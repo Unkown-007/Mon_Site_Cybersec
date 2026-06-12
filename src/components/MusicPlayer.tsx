@@ -82,7 +82,7 @@ export function MusicPlayer() {
   /* API YouTube + player */
   useEffect(() => {
     const w = window as unknown as {
-      YT?: { Player: new (el: string, o: unknown) => YTPlayer };
+      YT?: { Player: new (el: string | HTMLElement, o: unknown) => YTPlayer };
       onYouTubeIframeAPIReady?: () => void;
     };
     const create = () => {
