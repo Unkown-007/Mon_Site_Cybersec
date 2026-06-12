@@ -1,0 +1,499 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   UnknownX-077 — Design system (Akira / Cyberpunk)
+   ============================================================ */
+
+:root {
+  --base: #0a0a12;
+  --surface: #0d0d1a;
+  --primary: #7b5cf0;
+  --secondary: #00f5d4;
+  --ink: #c0c8e0;
+  --muted: #4a5070;
+  --danger: #ff3d60;
+  --warning: #febc2e;
+  --success: #00c9a7;
+  --line: #1a1a2e;
+  --line-strong: #1a1a3a;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--base);
+    color: var(--ink);
+    font-family: var(--font-share-tech-mono), ui-monospace, monospace;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    /* Léger maillage de fond, très discret */
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(123, 92, 240, 0.06), transparent 45%),
+      radial-gradient(circle at 90% 100%, rgba(0, 245, 212, 0.05), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(123, 92, 240, 0.35);
+    color: #fff;
+  }
+
+  /* Scrollbar façon terminal */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #20203a;
+    border: 2px solid var(--surface);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-orbitron), sans-serif;
+  }
+}
+
+@layer components {
+  /* Label // EN MAJUSCULES, espacé */
+  .label {
+    @apply font-mono uppercase text-muted;
+    letter-spacing: 3px;
+    font-size: 0.7rem;
+  }
+  .label::before {
+    content: "// ";
+    color: var(--secondary);
+  }
+
+  /* Carte standard avec bordure néon discrète */
+  .card {
+    background: var(--surface);
+    border: 1px solid rgba(123, 92, 240, 0.18);
+    position: relative;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .card:hover {
+    border-color: rgba(123, 92, 240, 0.5);
+    box-shadow: 0 0 0 1px rgba(123, 92, 240, 0.2), 0 0 24px -10px var(--primary);
+  }
+
+  /* Curseur clignotant terminal */
+  .cursor::after {
+    content: "_";
+    color: var(--secondary);
+    @apply animate-blink;
+    margin-left: 2px;
+  }
+
+  /* Bouton primaire */
+  .btn {
+    @apply font-mono uppercase tracking-[2px] text-xs px-5 py-3 inline-flex items-center gap-2 transition-all duration-200;
+  }
+  .btn-primary {
+    background: rgba(123, 92, 240, 0.12);
+    border: 1px solid var(--primary);
+    color: #d7ccff;
+  }
+  .btn-primary:hover {
+    background: rgba(123, 92, 240, 0.25);
+    box-shadow: 0 0 22px -6px var(--primary);
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+  .btn-ghost:hover {
+    border-color: var(--secondary);
+    color: var(--secondary);
+  }
+
+  /* Champ de saisie style terminal */
+  .field {
+    @apply w-full bg-base font-mono text-ink px-4 py-3 outline-none transition-colors;
+    border: 1px solid var(--line-strong);
+  }
+  .field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(123, 92, 240, 0.4);
+  }
+  .field::placeholder {
+    color: var(--muted);
+  }
+
+  /* Séparateur de section */
+  .hr {
+    border: none;
+    border-top: 1px solid var(--line-strong);
+  }
+}
+
+@layer utilities {
+  /* Grille / lignes diagonales très légères (fond de /login) */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(123, 92, 240, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123, 92, 240, 0.04) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+  .bg-diagonal {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(123, 92, 240, 0.035) 0px,
+      rgba(123, 92, 240, 0.035) 1px,
+      transparent 1px,
+      transparent 22px
+    );
+  }
+  .text-glow-primary {
+    text-shadow: 0 0 18px rgba(123, 92, 240, 0.6);
+  }
+  .text-glow-secondary {
+    text-shadow: 0 0 18px rgba(0, 245, 212, 0.55);
+  }
+}
+
+/* Barre de scan globale — ligne qui traverse l'écran verticalement */
+.scanline {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+.scanline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 245, 212, 0.05),
+    rgba(123, 92, 240, 0.07),
+    transparent
+  );
+  animation: scan 7s linear infinite;
+}
+@keyframes scan {
+  0% { transform: translateY(-140px); }
+  100% { transform: translateY(100vh); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanline::before,
+  .cursor::after {
+    animation: none;
+  }
+}
+
+/* ── Glitch RGB (titres / logo) ── */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  clip-path: inset(0 0 0 0);
+}
+.glitch.is-glitching::before {
+  opacity: 0.85;
+  color: #ff3d60;
+  transform: translateX(-2px);
+  animation: glitch-a 0.18s steps(2) 3;
+}
+.glitch.is-glitching::after {
+  opacity: 0.85;
+  color: #00f5d4;
+  transform: translateX(2px);
+  animation: glitch-b 0.18s steps(2) 3;
+}
+.glitch.is-glitching {
+  animation: glitch-skew 0.18s steps(2) 3;
+}
+@keyframes glitch-a {
+  0% { clip-path: inset(0 0 70% 0); transform: translateX(-3px); }
+  50% { clip-path: inset(40% 0 20% 0); transform: translateX(2px); }
+  100% { clip-path: inset(80% 0 0 0); transform: translateX(-2px); }
+}
+@keyframes glitch-b {
+  0% { clip-path: inset(70% 0 0 0); transform: translateX(3px); }
+  50% { clip-path: inset(20% 0 40% 0); transform: translateX(-2px); }
+  100% { clip-path: inset(0 0 80% 0); transform: translateX(2px); }
+}
+@keyframes glitch-skew {
+  0%, 100% { transform: skewX(0deg); }
+  50% { transform: skewX(-2deg); }
+}
+
+/* Ligne de scan qui balaie une carte au survol */
+.card.scan-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgba(0, 245, 212, 0.07), transparent);
+  transform: translateY(-100%);
+  opacity: 0;
+}
+.card.scan-hover:hover::after {
+  animation: card-scan 0.6s ease-out;
+}
+@keyframes card-scan {
+  0% { transform: translateY(-100%); opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glitch.is-glitching,
+  .glitch.is-glitching::before,
+  .glitch.is-glitching::after,
+  .card.scan-hover:hover::after {
+    animation: none;
+  }
+}
+
+/* ── Curseur viseur ── */
+.cursor-ring > div {
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.cursor-ring--down > div {
+  transform: scale(0.6) translateZ(0);
+  border-color: #00f5d4;
+}
+
+/* ── GUI panels : bordure pulsante ── */
+.gui-pulse {
+  animation: gui-pulse 2.4s ease-in-out infinite;
+}
+@keyframes gui-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(123, 92, 240, 0); }
+  50% { box-shadow: 0 0 18px -4px rgba(123, 92, 240, 0.6); }
+}
+
+/* ── Scanlines HUD (fond) ── */
+.hud-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 245, 212, 0.025) 0px,
+    rgba(0, 245, 212, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ── Panneaux GUI : ligne de données qui balaie l'en-tête ── */
+.gui-stream {
+  position: relative;
+  overflow: hidden;
+}
+.gui-stream::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1px;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 245, 212, 0.9),
+    transparent
+  );
+  animation: gui-stream 3.2s linear infinite;
+}
+@keyframes gui-stream {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
+/* ── Flicker holographique (texte / icônes "en direct") ── */
+.holo-flicker {
+  animation: holo-flicker 4.5s linear infinite;
+}
+@keyframes holo-flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 1; }
+  48% { opacity: 0.55; }
+  49% { opacity: 1; }
+  72% { opacity: 1; }
+  73% { opacity: 0.7; }
+  74% { opacity: 1; }
+}
+
+/* ── Coins d'équerre animés au survol d'une carte ── */
+.corner-frame {
+  position: relative;
+}
+.corner-frame::before,
+.corner-frame::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.corner-frame::before {
+  top: 4px;
+  left: 4px;
+  border-top: 1px solid var(--secondary);
+  border-left: 1px solid var(--secondary);
+}
+.corner-frame::after {
+  bottom: 4px;
+  right: 4px;
+  border-bottom: 1px solid var(--secondary);
+  border-right: 1px solid var(--secondary);
+}
+.corner-frame:hover::before,
+.corner-frame:hover::after {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gui-stream::after,
+  .holo-flicker {
+    animation: none;
+  }
+}
+
+/* ── Mode "lite" : coupe les effets/animations lourds ── */
+.lite .scanline,
+.lite .hud-scanlines::after {
+  display: none !important;
+}
+.lite .marquee-track,
+.lite .eq > i,
+.lite .gui-stream::after,
+.lite .holo-flicker,
+.lite .gui-pulse,
+.lite .animate-flicker,
+.lite .card.scan-hover:hover::after,
+.lite .cursor::after {
+  animation: none !important;
+}
+.lite .eq > i {
+  height: 40% !important;
+}
+
+/* ── Banderole news/CVE : défilement horizontal continu ── */
+.marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 70s) linear infinite;
+  will-change: transform;
+}
+.marquee-mask:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+/* ── Audio deck : égaliseur animé ── */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+.eq > i {
+  width: 3px;
+  background: linear-gradient(to top, var(--secondary), var(--primary));
+  border-radius: 1px;
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.eq > i:nth-child(1) { animation-delay: -0.1s; }
+.eq > i:nth-child(2) { animation-delay: -0.4s; }
+.eq > i:nth-child(3) { animation-delay: -0.7s; }
+.eq > i:nth-child(4) { animation-delay: -0.25s; }
+.eq > i:nth-child(5) { animation-delay: -0.55s; }
+.eq.is-paused > i {
+  animation-play-state: paused;
+  height: 4px !important;
+}
+@keyframes eq-bounce {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+/* Slider volume du deck */
+.deck-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+  outline: none;
+  cursor: pointer;
+}
+.deck-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--secondary);
+  box-shadow: 0 0 8px -1px var(--secondary);
+  border: none;
+}
+.deck-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--secondary);
+  box-shadow: 0 0 8px -1px var(--secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq > i { animation: none; height: 40%; }
+}
+
+/* ── Carte des attaques : tracé de trajectoire + ping cible ── */
+.attack-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: attack-draw 1.8s ease-out forwards;
+}
+@keyframes attack-draw {
+  to { stroke-dashoffset: 0; }
+}
+.attack-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: attack-ping 1.6s ease-out infinite;
+}
+@keyframes attack-ping {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  70% { opacity: 0; }
+  100% { transform: scale(2.8); opacity: 0; }
+}

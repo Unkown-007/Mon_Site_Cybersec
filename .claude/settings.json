@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Guepa\\\\OneDrive\\\\Bureau\\\\RedTeam\"; node -e \"console.log\\('rsm', require\\('react-simple-maps/package.json'\\).version\\); console.log\\('types', require\\('@types/react-simple-maps/package.json'\\).version\\)\")",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Guepa\\\\OneDrive\\\\Bureau\\\\RedTeam\"; npx tsc --noEmit 2>&1 | Select-Object -First 40; \"TSC_EXIT=$LASTEXITCODE\")"
+    ]
+  }
+}
