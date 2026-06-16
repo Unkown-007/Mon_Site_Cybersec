@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 
-type Tab = "revshell" | "codec" | "hash" | "jwt";
+type Tab = "revshell" | "codec" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
   { id: "revshell", label: "Reverse Shell" },
   { id: "codec", label: "Encodeur / Décodeur" },
   { id: "hash", label: "Hash" },
   { id: "jwt", label: "JWT" },
+  { id: "gen", label: "Générateur" },
+  { id: "hashid", label: "Hash ID" },
+  { id: "cidr", label: "CIDR / IP" },
+  { id: "time", label: "Timestamp" },
 ];
 
 export default function ToolkitPage() {
@@ -52,6 +56,10 @@ export default function ToolkitPage() {
       {tab === "codec" && <Codec />}
       {tab === "hash" && <HashTool />}
       {tab === "jwt" && <JwtTool />}
+      {tab === "gen" && <Generator />}
+      {tab === "hashid" && <HashId />}
+      {tab === "cidr" && <CidrTool />}
+      {tab === "time" && <TimeTool />}
     </div>
   );
 }
@@ -321,6 +329,321 @@ function JwtTool() {
               ⚠ signature non vérifiée — déchiffrage d&apos;affichage uniquement.
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────── 5. Générateur (mots de passe / UUID / hex) ───────────── */
+
+function Generator() {
+  const { push } = useToast();
+  const [len, setLen] = useState(20);
+  const [opts, setOpts] = useState({ lower: true, upper: true, digits: true, symbols: true });
+  const [pw, setPw] = useState("");
+  const [uuid, setUuid] = useState("");
+  const [hex, setHex] = useState("");
+
+  const regen = useCallback(() => {
+    let pool = "";
+    if (opts.lower) pool += "abcdefghijkmnpqrstuvwxyz";
+    if (opts.upper) pool += "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    if (opts.digits) pool += "23456789";
+    if (opts.symbols) pool += "!@#$%^&*()-_=+[]{};:,.?";
+    if (pool) {
+      const a = new Uint32Array(len);
+      crypto.getRandomValues(a);
+      let out = "";
+      for (let i = 0; i < len; i++) out += pool[a[i] % pool.length];
+      setPw(out);
+    } else setPw("");
+    setUuid(crypto.randomUUID());
+    const hb = new Uint8Array(16);
+    crypto.getRandomValues(hb);
+    setHex(Array.from(hb).map((b) => b.toString(16).padStart(2, "0")).join(""));
+  }, [len, opts]);
+
+  useEffect(() => {
+    regen();
+  }, [regen]);
+
+  const poolSize =
+    (opts.lower ? 23 : 0) + (opts.upper ? 23 : 0) + (opts.digits ? 8 : 0) + (opts.symbols ? 22 : 0);
+  const entropy = poolSize ? Math.round(len * Math.log2(poolSize)) : 0;
+  const strength =
+    entropy < 50 ? "faible" : entropy < 80 ? "correcte" : entropy < 120 ? "forte" : "excellente";
+  const strengthColor =
+    entropy < 50 ? "text-danger" : entropy < 80 ? "text-warning" : "text-success";
+  const barColor =
+    entropy < 50 ? "bg-danger" : entropy < 80 ? "bg-warning" : "bg-success";
+
+  const toggle = (k: keyof typeof opts) => setOpts((o) => ({ ...o, [k]: !o[k] }));
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      {/* Mot de passe */}
+      <div className="card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="label !text-secondary">Mot de passe</span>
+          <button onClick={regen} className="btn btn-ghost !py-1.5 !px-3 text-[11px]">
+            ⟳ Régénérer
+          </button>
+        </div>
+        <CopyBlock value={pw} />
+        <label className="block">
+          <span className="font-mono text-[11px] text-muted">Longueur : {len}</span>
+          <input
+            type="range"
+            min={8}
+            max={64}
+            value={len}
+            onChange={(e) => setLen(Number(e.target.value))}
+            className="deck-range w-full mt-1.5"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["lower", "a-z"],
+              ["upper", "A-Z"],
+              ["digits", "0-9"],
+              ["symbols", "!@#"],
+            ] as const
+          ).map(([k, lbl]) => (
+            <button
+              key={k}
+              onClick={() => toggle(k)}
+              aria-pressed={opts[k]}
+              className={`px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
+                opts[k]
+                  ? "border-secondary text-secondary bg-secondary/10"
+                  : "border-line-strong text-muted hover:text-ink"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+        <div>
+          <div className="flex items-center justify-between font-mono text-[11px] mb-1">
+            <span className="text-muted">Entropie ≈ {entropy} bits</span>
+            <span className={strengthColor}>{strength}</span>
+          </div>
+          <div className="h-1.5 w-full bg-base overflow-hidden">
+            <div
+              className={`h-full ${barColor} transition-all`}
+              style={{ width: `${Math.min(100, (entropy / 128) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* UUID + hex */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="card p-3 space-y-2">
+          <span className="label !text-muted">UUID v4</span>
+          <CopyBlock value={uuid} />
+        </div>
+        <div className="card p-3 space-y-2">
+          <span className="label !text-muted">128 bits aléatoires (hex)</span>
+          <CopyBlock value={hex} />
+        </div>
+      </div>
+      <p className="font-mono text-[10px] text-muted">
+        Généré via <span className="text-secondary">crypto.getRandomValues</span> (CSPRNG du
+        navigateur) — caractères ambigus (l, I, O, 0, 1) exclus.{" "}
+        <button onClick={() => navigator.clipboard.writeText(pw).then(() => push("ok", "Copié."))} className="text-secondary hover:text-primary">copier le mdp</button>
+      </p>
+    </div>
+  );
+}
+
+/* ───────────── 6. Identification de hash ───────────── */
+
+function identifyHash(s: string): string[] {
+  if (!s) return [];
+  if (/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(s)) return ["bcrypt"];
+  if (/^\$1\$/.test(s)) return ["MD5 crypt (Unix)"];
+  if (/^\$5\$/.test(s)) return ["SHA-256 crypt (Unix)"];
+  if (/^\$6\$/.test(s)) return ["SHA-512 crypt (Unix)"];
+  if (/^\$argon2[id]{1,2}\$/.test(s)) return ["Argon2"];
+  if (/^[0-9a-f]{32}:[0-9a-f]+$/i.test(s)) return ["MD5 salé (hash:salt)"];
+  if (/^[0-9a-fA-F]+$/.test(s)) {
+    switch (s.length) {
+      case 32:
+        return ["MD5", "NTLM", "MD4", "LM (moitié)"];
+      case 40:
+        return ["SHA-1", "RIPEMD-160"];
+      case 56:
+        return ["SHA-224", "SHA3-224"];
+      case 64:
+        return ["SHA-256", "SHA3-256", "BLAKE2s"];
+      case 96:
+        return ["SHA-384", "SHA3-384"];
+      case 128:
+        return ["SHA-512", "SHA3-512", "BLAKE2b"];
+      default:
+        return [`hexadécimal (${s.length} caractères) — type inconnu`];
+    }
+  }
+  return ["format non reconnu"];
+}
+
+function HashId() {
+  const [h, setH] = useState("");
+  const guesses = useMemo(() => identifyHash(h.trim()), [h]);
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <input
+        value={h}
+        onChange={(e) => setH(e.target.value)}
+        placeholder="colle un hash…"
+        spellCheck={false}
+        className="field break-all"
+      />
+      {h.trim() && (
+        <div className="card p-4">
+          <div className="label !text-muted mb-3">Types probables</div>
+          <div className="flex flex-wrap gap-2">
+            {guesses.map((g) => (
+              <span
+                key={g}
+                className="font-mono text-xs px-2.5 py-1 border border-secondary/40 text-secondary bg-secondary/5"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+          <p className="mt-3 font-mono text-[10px] text-muted">
+            Heuristique sur longueur/format — à confirmer avec hashid/hashcat selon le contexte.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────── 7. Calculateur CIDR / IPv4 ───────────── */
+
+function CidrTool() {
+  const [cidr, setCidr] = useState("10.10.10.0/24");
+
+  const info = useMemo(() => {
+    const m = cidr.trim().match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/);
+    if (!m) return null;
+    const oct = [1, 2, 3, 4].map((i) => Number(m[i]));
+    const bits = Number(m[5]);
+    if (oct.some((o) => o > 255) || bits > 32) return null;
+    const ipNum = ((oct[0] << 24) >>> 0) + (oct[1] << 16) + (oct[2] << 8) + oct[3];
+    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+    const network = (ipNum & mask) >>> 0;
+    const broadcast = (network | (~mask >>> 0)) >>> 0;
+    const total = 2 ** (32 - bits);
+    const fmt = (n: number) => [24, 16, 8, 0].map((s) => (n >>> s) & 255).join(".");
+    return {
+      mask: fmt(mask),
+      wildcard: fmt(~mask >>> 0),
+      network: fmt(network),
+      broadcast: fmt(broadcast),
+      first: fmt(bits >= 31 ? network : network + 1),
+      last: fmt(bits >= 31 ? broadcast : broadcast - 1),
+      total,
+      usable: bits >= 31 ? total : Math.max(0, total - 2),
+    };
+  }, [cidr]);
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <input
+        value={cidr}
+        onChange={(e) => setCidr(e.target.value)}
+        placeholder="10.10.10.0/24"
+        spellCheck={false}
+        className="field font-mono"
+      />
+      {!info ? (
+        <p className="font-mono text-sm text-danger">[ CIDR invalide — format a.b.c.d/n ]</p>
+      ) : (
+        <div className="card p-4 grid sm:grid-cols-2 gap-y-2 gap-x-6 font-mono text-xs">
+          <Row k="Masque" v={info.mask} />
+          <Row k="Wildcard" v={info.wildcard} />
+          <Row k="Réseau" v={info.network} />
+          <Row k="Broadcast" v={info.broadcast} />
+          <Row k="1ʳᵉ IP" v={info.first} />
+          <Row k="Dernière IP" v={info.last} />
+          <Row k="Total" v={info.total.toLocaleString("fr-FR")} />
+          <Row k="Hôtes utiles" v={info.usable.toLocaleString("fr-FR")} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-b border-line pb-1">
+      <span className="text-muted uppercase tracking-[1px]">{k}</span>
+      <span className="text-ink">{v}</span>
+    </div>
+  );
+}
+
+/* ───────────── 8. Convertisseur Timestamp ───────────── */
+
+function TimeTool() {
+  const [val, setVal] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const parsed = useMemo(() => {
+    const t = val.trim();
+    if (!t) return null;
+    let ms: number | null = null;
+    if (/^\d{10}$/.test(t)) ms = Number(t) * 1000;
+    else if (/^\d{13}$/.test(t)) ms = Number(t);
+    else {
+      const d = Date.parse(t);
+      if (!isNaN(d)) ms = d;
+    }
+    if (ms === null) return null;
+    const d = new Date(ms);
+    return {
+      local: d.toLocaleString("fr-FR"),
+      iso: d.toISOString(),
+      epoch: String(Math.floor(ms / 1000)),
+      ms: String(ms),
+    };
+  }, [val]);
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="card p-3 font-mono text-xs flex flex-wrap items-center justify-between gap-2">
+        <span className="text-muted">Maintenant</span>
+        <span className="text-secondary">{Math.floor(now / 1000)}</span>
+        <span className="text-ink">{new Date(now).toLocaleString("fr-FR")}</span>
+      </div>
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        placeholder="epoch (s ou ms) ou date (2026-06-16, 16/06/2026…)"
+        spellCheck={false}
+        className="field font-mono"
+      />
+      {val.trim() && !parsed && (
+        <p className="font-mono text-sm text-danger">[ date / timestamp illisible ]</p>
+      )}
+      {parsed && (
+        <div className="space-y-3">
+          <CopyBlock label="Local (fr-FR)" value={parsed.local} />
+          <CopyBlock label="ISO 8601 (UTC)" value={parsed.iso} />
+          <CopyBlock label="Epoch (s)" value={parsed.epoch} />
+          <CopyBlock label="Epoch (ms)" value={parsed.ms} />
         </div>
       )}
     </div>

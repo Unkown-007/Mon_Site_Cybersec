@@ -41,8 +41,8 @@ export default function LoginPage() {
       await loginWithProvider(provider);
       push("ok", `Session ${provider} établie.`);
       setTransition(provider === "github" ? "GH_OPERATOR" : "GOOGLE_OPERATOR");
-    } catch {
-      push("err", "Échec du fournisseur d'identité.");
+    } catch (err) {
+      push("err", err instanceof Error ? err.message : "Fournisseur indisponible.");
       setBusy(null);
     }
   };

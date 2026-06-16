@@ -1,9 +1,10 @@
 "use client";
 
 /*
- * Mock d'authentification — phase actuelle (sans backend).
- * Stocke une session factice dans localStorage. À remplacer par NextAuth
- * (GitHub / Google / credentials) + Supabase quand les credentials seront dispo.
+ * Auth client — branchée sur le VRAI backend de session (routes /api/auth/*).
+ * La vérification des identifiants et la session se font côté serveur ; ici on
+ * ne fait qu'interroger /api/auth/me, /login et /logout. L'interface publique
+ * (useAuth) reste identique pour ne rien casser dans les composants.
  */
 
 import {
@@ -22,7 +23,7 @@ export interface SessionUser {
   name: string;
   role: "admin" | "operator";
   provider: Provider;
-  since: number; // timestamp d'ouverture de session (pour `uptime`)
+  since: number;
 }
 
 interface AuthContextValue {
@@ -33,72 +34,54 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const STORAGE_KEY = "ux077.session";
-
-// Compte admin mock (dev uniquement) — surchargé par .env.local si présent.
-const MOCK_ADMIN_EMAIL =
-  process.env.NEXT_PUBLIC_MOCK_ADMIN_EMAIL ?? "admin@unknownx.local";
-const MOCK_ADMIN_PASSWORD =
-  process.env.NEXT_PUBLIC_MOCK_ADMIN_PASSWORD ?? "akira2077";
-
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
 
+  // Récupère la session courante depuis le cookie httpOnly (côté serveur).
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw) as SessionUser);
-    } catch {
-      /* ignore */
+    let alive = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { user: SessionUser | null }) => {
+        if (alive) setUser(d.user ?? null);
+      })
+      .catch(() => {
+        if (alive) setUser(null);
+      })
+      .finally(() => {
+        if (alive) setReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const loginWithCredentials = useCallback(async (email: string, password: string) => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error || "Accès refusé.");
     }
-    setReady(true);
+    const d = (await res.json()) as { user: SessionUser };
+    setUser(d.user);
   }, []);
 
-  const persist = useCallback((next: SessionUser | null) => {
-    setUser(next);
-    if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    else localStorage.removeItem(STORAGE_KEY);
+  // OAuth non configuré : on n'autorise plus de fausse connexion.
+  const loginWithProvider = useCallback(async () => {
+    throw new Error("Connexion OAuth non configurée — utilise email + mot de passe.");
   }, []);
 
-  const loginWithCredentials = useCallback(
-    async (email: string, password: string) => {
-      // Simule une latence réseau.
-      await new Promise((r) => setTimeout(r, 550));
-      if (
-        email.trim().toLowerCase() !== MOCK_ADMIN_EMAIL.toLowerCase() ||
-        password !== MOCK_ADMIN_PASSWORD
-      ) {
-        throw new Error("Identifiants invalides.");
-      }
-      persist({
-        email,
-        name: "ADMIN",
-        role: "admin",
-        provider: "credentials",
-        since: Date.now(),
-      });
-    },
-    [persist]
-  );
-
-  const loginWithProvider = useCallback(
-    async (provider: Exclude<Provider, "credentials">) => {
-      await new Promise((r) => setTimeout(r, 700));
-      persist({
-        email: `${provider}.user@unknownx.local`,
-        name: provider === "github" ? "GH_OPERATOR" : "GOOGLE_OPERATOR",
-        role: "operator",
-        provider,
-        since: Date.now(),
-      });
-    },
-    [persist]
-  );
-
-  const logout = useCallback(() => persist(null), [persist]);
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    setUser(null);
+  }, []);
 
   return (
     <AuthContext.Provider
