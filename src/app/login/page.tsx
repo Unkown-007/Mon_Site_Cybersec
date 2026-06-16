@@ -8,7 +8,7 @@ import { useToast } from "@/components/Toast";
 import { LoginTransition } from "@/components/LoginTransition";
 
 export default function LoginPage() {
-  const { user, ready, loginWithCredentials, loginWithProvider } = useAuth();
+  const { user, ready, loginWithCredentials } = useAuth();
   const router = useRouter();
   const { push } = useToast();
 
@@ -21,6 +21,23 @@ export default function LoginPage() {
     // Si déjà connecté et qu'on n'est pas en pleine séquence, on file au dashboard.
     if (ready && user && !transition && !busy) router.replace("/");
   }, [ready, user, router, transition, busy]);
+
+  // Affiche les erreurs OAuth renvoyées par le callback (?error=…).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (!err) return;
+    const provider = params.get("provider") ?? "";
+    const messages: Record<string, string> = {
+      oauth_not_configured: `Connexion ${provider || "OAuth"} pas encore configurée (identifiants manquants côté serveur).`,
+      bad_state: "Échec de sécurité OAuth (state invalide). Réessaie.",
+      oauth_denied: "Connexion annulée.",
+      oauth_failed: "Impossible de récupérer ton profil. Réessaie.",
+      not_allowed: "Ce compte n'est pas autorisé à se connecter.",
+    };
+    push("err", messages[err] ?? "Échec de la connexion.");
+    window.history.replaceState({}, "", "/login");
+  }, [push]);
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +52,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleProvider = async (provider: "github" | "google") => {
+  const handleProvider = (provider: "github" | "google") => {
+    // Redirection plein écran vers le flux OAuth serveur (/api/auth/oauth/…).
     setBusy(provider);
-    try {
-      await loginWithProvider(provider);
-      push("ok", `Session ${provider} établie.`);
-      setTransition(provider === "github" ? "GH_OPERATOR" : "GOOGLE_OPERATOR");
-    } catch (err) {
-      push("err", err instanceof Error ? err.message : "Fournisseur indisponible.");
-      setBusy(null);
-    }
+    window.location.href = `/api/auth/oauth/${provider}`;
   };
 
   if (transition) {
