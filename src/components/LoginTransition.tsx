@@ -26,31 +26,31 @@ export function LoginTransition({
     [username]
   );
 
-  // Étape 1 — scan terminal (~0.5s : 4 lignes × 100ms)
+  // Étape 1 — scan terminal (un peu ralenti : 4 lignes × 160ms)
   useEffect(() => {
     if (phase !== "scan") return;
     if (shown >= lines.length) {
-      const t = setTimeout(() => setPhase("glitch"), 120);
+      const t = setTimeout(() => setPhase("glitch"), 260);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setShown((n) => n + 1), 100);
+    const t = setTimeout(() => setShown((n) => n + 1), 160);
     return () => clearTimeout(t);
   }, [phase, shown, lines.length]);
 
-  // Étape 2 — glitch (0.2s)
+  // Étape 2 — glitch (~0.32s)
   useEffect(() => {
     if (phase !== "glitch") return;
-    const t = setTimeout(() => setPhase("fragment"), 200);
+    const t = setTimeout(() => setPhase("fragment"), 320);
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Étape 3 — fragmentation (0.3s) → fin
+  // Étape 3 — fragmentation (~0.45s) → fin
   useEffect(() => {
     if (phase !== "fragment") return;
     const t = setTimeout(() => {
       setPhase("done");
       onComplete();
-    }, 320);
+    }, 450);
     return () => clearTimeout(t);
   }, [phase, onComplete]);
 
@@ -69,7 +69,7 @@ export function LoginTransition({
                 className="bg-base bg-diagonal border border-line/40"
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0, x: dirX * 240, y: dirY * 260, rotate: dirX * 12 }}
-                transition={{ duration: 0.3, delay: i * 0.015, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ duration: 0.42, delay: i * 0.02, ease: [0.4, 0, 0.2, 1] }}
               />
             );
           })}
@@ -85,7 +85,7 @@ export function LoginTransition({
           }}
           initial={{ top: "-10%" }}
           animate={{ top: "110%" }}
-          transition={{ duration: 0.7, ease: "linear", repeat: Infinity }}
+          transition={{ duration: 1.0, ease: "linear", repeat: Infinity }}
         />
       )}
 

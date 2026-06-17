@@ -79,8 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // On attend que le cookie de session soit bien effacé côté serveur AVANT
+    // de naviguer (sinon le middleware voit encore la session et te renvoie au
+    // dashboard → impression de "rester connecté"). Rechargement propre ensuite.
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
+    if (typeof window !== "undefined") window.location.href = "/login";
   }, []);
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogoWordmark } from "@/components/Logo";
@@ -22,7 +22,6 @@ const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal")
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, logout } = useAuth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
@@ -33,8 +32,8 @@ export function Navbar() {
   const groupActive = (g: { hrefs: string[] }) => g.hrefs.some(isActive);
 
   const handleLogout = () => {
+    // logout() efface la session puis recharge proprement sur /login.
     logout();
-    router.push("/login");
   };
 
   return (

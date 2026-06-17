@@ -899,6 +899,78 @@ export const RESOURCES: Resource[] = [
     tags: ["htb", "writeups", "méthodo"],
     desc: "Write-ups HackTheBox détaillés et pédagogiques, référence de la communauté.",
   },
+
+  // ── Wordlists & cloud (lot étendu) ──
+  {
+    id: "assetnote-wordlists",
+    title: "Assetnote Wordlists",
+    url: "https://wordlists.assetnote.io/",
+    domain: "Web",
+    type: "outil",
+    date: "2026-06-16",
+    tags: ["wordlists", "fuzzing", "web"],
+    desc: "Wordlists massives et à jour, générées à partir de données réelles (contenus, paramètres, sous-domaines).",
+  },
+  {
+    id: "weakpass",
+    title: "Weakpass",
+    url: "https://weakpass.com/",
+    domain: "Crypto",
+    type: "outil",
+    date: "2026-06-16",
+    tags: ["wordlists", "mots-de-passe", "crack"],
+    desc: "Énormes dictionnaires de mots de passe pour le cassage de hash.",
+  },
+  {
+    id: "onelistforall",
+    title: "OneListForAll",
+    url: "https://github.com/six2dez/OneListForAll",
+    domain: "Web",
+    type: "outil",
+    date: "2026-06-16",
+    tags: ["wordlists", "fuzzing"],
+    desc: "Wordlist unifiée pour le fuzzing web (agrège de nombreuses sources).",
+  },
+  {
+    id: "psudohash",
+    title: "psudohash",
+    url: "https://github.com/t3l3machus/psudohash",
+    domain: "Crypto",
+    type: "outil",
+    date: "2026-06-16",
+    tags: ["wordlists", "mutation", "mots-de-passe"],
+    desc: "Génère des variantes de mots de passe probables à partir de mots-clés (façon humaine).",
+  },
+  {
+    id: "pentestmonkey-revshell",
+    title: "Reverse Shell Cheat Sheet (pentestmonkey)",
+    url: "https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet",
+    domain: "Réseau",
+    type: "cheatsheet",
+    date: "2026-06-16",
+    tags: ["reverse-shell", "cheatsheet"],
+    desc: "La fiche de référence historique des reverse shells (bash, python, nc, perl…).",
+  },
+  {
+    id: "stratus-red-team",
+    title: "Stratus Red Team",
+    url: "https://github.com/DataDog/stratus-red-team",
+    domain: "Cloud",
+    type: "outil",
+    date: "2026-06-16",
+    tags: ["cloud", "ttp", "détonation"],
+    desc: "« Atomic Red Team » du cloud : émule des techniques d'attaque AWS/Azure/GCP/k8s.",
+  },
+  {
+    id: "pacu-resource",
+    title: "Pacu (AWS exploitation)",
+    url: "https://github.com/RhinoSecurityLabs/pacu",
+    domain: "Cloud",
+    type: "lien",
+    date: "2026-06-16",
+    tags: ["aws", "exploitation", "framework"],
+    desc: "Framework offensif AWS modulaire (énumération, escalade IAM, persistance).",
+  },
 ];
 
 /* ============================================================
@@ -1045,6 +1117,29 @@ export const EXTERNAL_TOOLS: ExternalTool[] = [
   // ── Reporting (lot étendu) ──
   { name: "PwnDoc", url: "https://github.com/pwndoc/pwndoc", phase: "Reporting", desc: "Plateforme collaborative de rédaction de rapports de pentest.", cmd: "docker compose up -d", tags: ["rapport", "pentest"] },
   { name: "WriteHat", url: "https://github.com/blacklanternsecurity/writehat", phase: "Reporting", desc: "Outil de reporting pentest (Markdown → rapports, gestion findings).", cmd: "# Django app", tags: ["rapport", "findings"] },
+
+  // ── Cloud & conteneurs ──
+  { name: "ScoutSuite", url: "https://github.com/nccgroup/ScoutSuite", phase: "Enum", desc: "Audit de posture multi-cloud (AWS, Azure, GCP) → rapport HTML.", cmd: "scout aws", tags: ["cloud", "audit"] },
+  { name: "Prowler", url: "https://github.com/prowler-cloud/prowler", phase: "Enum", desc: "Audit de sécurité et conformité cloud (centaines de contrôles).", cmd: "prowler aws", tags: ["cloud", "aws"] },
+  { name: "CloudFox", url: "https://github.com/BishopFox/cloudfox", phase: "Enum", desc: "Cartographie des chemins d'attaque dans un environnement cloud.", cmd: "cloudfox aws --profile p all-checks", tags: ["cloud", "aws"] },
+  { name: "Pacu", url: "https://github.com/RhinoSecurityLabs/pacu", phase: "Exploit", desc: "Framework d'exploitation AWS (escalade IAM, persistance, pivot).", cmd: "pacu", tags: ["aws", "exploit"] },
+  { name: "enumerate-iam", url: "https://github.com/andresriancho/enumerate-iam", phase: "Enum", desc: "Énumère les permissions associées à une clé d'accès AWS.", cmd: "enumerate-iam --access-key AKIA... --secret-key ...", tags: ["aws", "iam"] },
+  { name: "kube-hunter", url: "https://github.com/aquasecurity/kube-hunter", phase: "Enum", desc: "Recherche de faiblesses dans un cluster Kubernetes.", cmd: "kube-hunter --remote 10.0.0.1", tags: ["k8s", "cloud"] },
+  { name: "Trivy", url: "https://github.com/aquasecurity/trivy", phase: "Enum", desc: "Scanner de vulnérabilités images/conteneurs/IaC.", cmd: "trivy image nginx:latest", tags: ["scanner", "conteneurs"] },
+  { name: "Peirates", url: "https://github.com/inguardians/peirates", phase: "Post-exploit", desc: "Post-exploitation Kubernetes (escalade, vol de tokens, pivot).", cmd: "peirates", tags: ["k8s", "post"] },
+
+  // ── Mobile ──
+  { name: "objection", url: "https://github.com/sensepost/objection", phase: "Exploit", desc: "Exploration runtime mobile sans root/jailbreak (au-dessus de Frida).", cmd: "objection -g com.app explore", tags: ["mobile", "frida"] },
+  { name: "drozer", url: "https://github.com/WithSecureLabs/drozer", phase: "Enum", desc: "Framework d'évaluation de sécurité Android (IPC, surfaces exposées).", cmd: "drozer console connect", tags: ["android", "enum"] },
+  { name: "apkleaks", url: "https://github.com/dwisiswant0/apkleaks", phase: "Recon", desc: "Recherche d'URI, endpoints et secrets dans un APK.", cmd: "apkleaks -f app.apk", tags: ["android", "secrets"] },
+
+  // ── Active Directory (suite) ──
+  { name: "PowerView", url: "https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1", phase: "Enum", desc: "Reconnaissance AD en PowerShell (utilisateurs, ACL, sessions, SPN).", cmd: "Get-DomainUser -SPN", tags: ["ad", "recon"] },
+  { name: "bloodyAD", url: "https://github.com/CravateRouge/bloodyAD", phase: "Post-exploit", desc: "Abus d'objets/ACL Active Directory en ligne de commande.", cmd: "bloodyAD -u u -p p -d dom get writable", tags: ["ad", "abuse"] },
+  { name: "targetedKerberoast", url: "https://github.com/ShutdownRepo/targetedKerberoast", phase: "Exploit", desc: "Kerberoasting ciblé en posant temporairement un SPN.", cmd: "targetedKerberoast.py -d dom -u u -p p", tags: ["kerberos", "ad"] },
+  { name: "pyGPOAbuse", url: "https://github.com/Hackndo/pyGPOAbuse", phase: "Post-exploit", desc: "Abus d'une GPO modifiable pour exécuter du code (immediate task).", cmd: "pygpoabuse.py dom/u:p -gpo-id <id>", tags: ["gpo", "ad"] },
+  { name: "Group3r", url: "https://github.com/Group3r/Group3r", phase: "Enum", desc: "Trouve les mauvaises configurations exploitables dans les GPO.", cmd: "group3r -f out.txt", tags: ["gpo", "ad"] },
+  { name: "ldapnomnom", url: "https://github.com/lkarlslund/ldapnomnom", phase: "Enum", desc: "Énumération anonyme ultra-rapide d'utilisateurs AD via LDAP ping.", cmd: "ldapnomnom -i names.txt --server dc", tags: ["ad", "recon"] },
 ];
 
 export interface Script {
