@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import {
-  providerConfig,
-  exchangeAndFetchUser,
-  isAllowed,
-  roleFor,
-  type OAuthProvider,
-} from "@/lib/oauth";
+import { providerConfig, exchangeAndFetchUser, type OAuthProvider } from "@/lib/oauth";
+import { isAllowedEmail, defaultRoleFor, isOwner } from "@/lib/access";
+import { recordLogin } from "@/lib/users";
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
-/* Callback OAuth : échange le code, récupère le profil, ouvre la session. */
+/* Callback OAuth : échange le code, récupère le profil, crée/ouvre le compte. */
 export const runtime = "nodejs";
 
 const OAUTH_STATE_COOKIE = "ux077_oauth_state";
@@ -34,13 +30,21 @@ export async function GET(req: Request, { params }: { params: { provider: string
   const redirectUri = `${origin}/api/auth/callback/${provider}`;
   const user = await exchangeAndFetchUser(provider, cfg, code, redirectUri);
   if (!user) return fail("oauth_failed");
-  if (!isAllowed(user.email)) return fail("not_allowed");
+  if (!isAllowedEmail(user.email)) return fail("not_allowed");
 
-  const token = await signSession({
+  // Crée le compte au 1er login, sinon met à jour. Le rôle stocké prime
+  // (permet à l'admin de promouvoir / rétrograder) ; le propriétaire est
+  // toujours admin.
+  const account = await recordLogin({
     email: user.email,
     name: user.name,
-    role: roleFor(user.email),
+    provider,
+    defaultRole: defaultRoleFor(user.email),
   });
+  if (account.status === "banned") return fail("banned");
+
+  const role = isOwner(user.email) ? "admin" : account.role;
+  const token = await signSession({ email: user.email, name: user.name, role });
 
   const res = NextResponse.redirect(new URL("/", origin));
   res.cookies.set(SESSION_COOKIE, token, {

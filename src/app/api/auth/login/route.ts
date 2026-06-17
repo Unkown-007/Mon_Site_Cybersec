@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { recordLogin } from "@/lib/users";
 
 /*
  * Connexion réelle : la vérification des identifiants se fait CÔTÉ SERVEUR
@@ -46,6 +47,13 @@ export async function POST(req: Request) {
   }
 
   const user = { email: ADMIN_EMAIL, name: "ADMIN", role: "admin" as const };
+  // Enregistre le compte admin en base (création au 1er login, sinon MAJ).
+  await recordLogin({
+    email: ADMIN_EMAIL,
+    name: "ADMIN",
+    provider: "credentials",
+    defaultRole: "admin",
+  });
   const token = await signSession(user);
 
   const res = NextResponse.json({
