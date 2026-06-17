@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
 import {
   SCRIPTS,
@@ -131,7 +132,19 @@ export default function ToolsPage() {
         desc="Arsenal personnel et boîte à outils externe, classés par phase d'attaque."
       />
 
-      <AddedTools />
+      <InlineAdmin
+        collection="tools"
+        heading="⊕ OUTILS DE L'OPÉRATEUR"
+        accent="primary"
+        fields={[
+          { name: "title", label: "Nom", required: true },
+          { name: "url", label: "URL (https://…)" },
+          { name: "category", label: "Catégorie (Recon, Web…)" },
+          { name: "command", label: "Commande / exemple" },
+          { name: "tags", label: "Tags (séparés par des virgules)" },
+          { name: "description", label: "Documentation", kind: "textarea" },
+        ]}
+      />
 
       {/* Filtre par phase */}
       <div className="flex flex-wrap gap-2 mb-8">
@@ -275,79 +288,3 @@ function Chip({
   );
 }
 
-/* Outils ajoutés par l'admin (persistés en base, via /api/tools). */
-interface AddedTool {
-  id: string;
-  name: string;
-  url: string;
-  category: string;
-  description: string;
-  command?: string;
-  tags: string[];
-}
-
-function AddedTools() {
-  const [tools, setTools] = useState<AddedTool[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/tools", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: { tools?: AddedTool[] }) => {
-        if (alive) setTools(d.tools ?? []);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (tools.length === 0) return null;
-
-  return (
-    <section className="mb-10">
-      <h2 className="label mb-4">⊕ AJOUTS DE L&apos;OPÉRATEUR</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {tools.map((t) => (
-          <article key={t.id} className="card corner-frame p-4 flex flex-col">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <a
-                href={t.url}
-                target="_blank"
-                rel="noreferrer"
-                className="font-mono text-sm text-ink hover:text-secondary transition-colors truncate"
-              >
-                {t.name} ↗
-              </a>
-              <span className="shrink-0 text-[9px] font-mono uppercase tracking-[1px] text-primary border border-primary/40 px-1.5 py-0.5">
-                {t.category}
-              </span>
-            </div>
-            {t.description && (
-              <p className="text-xs text-muted leading-relaxed flex-1 whitespace-pre-wrap">
-                {t.description}
-              </p>
-            )}
-            {t.command && (
-              <pre className="mt-2 bg-base/70 border border-line px-2.5 py-1.5 text-[11px] text-secondary/90 overflow-x-auto">
-                {t.command}
-              </pre>
-            )}
-            {t.tags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {t.tags.map((x) => (
-                  <span
-                    key={x}
-                    className="text-[10px] font-mono text-secondary bg-secondary/5 border border-secondary/30 px-1.5 py-0.5"
-                  >
-                    #{x}
-                  </span>
-                ))}
-              </div>
-            )}
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}

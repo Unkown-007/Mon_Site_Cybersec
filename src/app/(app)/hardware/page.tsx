@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { InlineAdmin } from "@/components/InlineAdmin";
 import { HARDWARE, HW_CATEGORIES, type HwCategory, type HwStatus } from "@/data/hardware";
 
 const CAT_COLOR: Record<HwCategory, string> = {
@@ -39,6 +40,20 @@ export default function HardwarePage() {
         code="HW // PROJETS ÉLECTRONIQUE"
         title="Hardware"
         desc="Gadgets ESP32 & électronique offensive/défensive — recon, RFID, Sub-GHz, BadUSB."
+      />
+
+      <InlineAdmin
+        collection="hardware"
+        heading="⊕ MATÉRIEL AJOUTÉ"
+        accent="primary"
+        fields={[
+          { name: "title", label: "Nom du projet / outil", required: true },
+          { name: "url", label: "Lien (dépôt GitHub…)" },
+          { name: "category", label: "Catégorie (WiFi, RFID, USB…)" },
+          { name: "board", label: "Carte / board (ESP32…)" },
+          { name: "tags", label: "Tags (virgules)" },
+          { name: "description", label: "Description / notes", kind: "textarea" },
+        ]}
       />
 
       {/* bandeau légal */}

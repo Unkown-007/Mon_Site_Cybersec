@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
 import {
   RESOURCES,
@@ -90,6 +91,18 @@ export default function ResourcesPage() {
             </ViewBtn>
           </div>
         }
+      />
+
+      <InlineAdmin
+        collection="resources"
+        heading="⊕ RESSOURCES AJOUTÉES"
+        fields={[
+          { name: "title", label: "Titre", required: true },
+          { name: "url", label: "URL (https://…)" },
+          { name: "category", label: "Domaine (Web, Réseau…)" },
+          { name: "tags", label: "Tags (séparés par des virgules)" },
+          { name: "description", label: "Description / notes", kind: "textarea" },
+        ]}
       />
 
       {/* Recherche terminal */}

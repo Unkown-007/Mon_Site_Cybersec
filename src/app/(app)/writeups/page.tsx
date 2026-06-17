@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { InlineAdmin } from "@/components/InlineAdmin";
 import { WRITEUPS, type Writeup } from "@/data/mock";
 
 const DIFF_COLOR: Record<Writeup["difficulty"], string> = {
@@ -57,6 +58,20 @@ export default function WriteupsPage() {
         code="WUP // WRITE-UPS CTF"
         title="Write-ups CTF"
         desc="Comptes-rendus de machines et challenges — HackTheBox, TryHackMe, Root-Me, FCSC."
+      />
+
+      <InlineAdmin
+        collection="writeups"
+        heading="⊕ WRITE-UPS AJOUTÉS"
+        accent="primary"
+        fields={[
+          { name: "title", label: "Nom de la machine / challenge", required: true },
+          { name: "url", label: "Lien (write-up complet, optionnel)" },
+          { name: "category", label: "Plateforme", kind: "select", options: ["HackTheBox", "TryHackMe", "Root-Me", "FCSC", "VulnHub", "Autre"] },
+          { name: "difficulty", label: "Difficulté", kind: "select", options: ["Easy", "Medium", "Hard", "Insane"] },
+          { name: "tags", label: "Tags / techniques (virgules)" },
+          { name: "description", label: "Résumé / notes", kind: "textarea" },
+        ]}
       />
 
       {/* Recherche */}
