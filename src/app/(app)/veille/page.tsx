@@ -88,6 +88,7 @@ export default function VeillePage() {
   const [vendor, setVendor] = useState<string | null>(null);
   const [kev, setKev] = useState<Set<string>>(new Set());
   const [kevRansom, setKevRansom] = useState<Set<string>>(new Set());
+  const [epss, setEpss] = useState<Record<string, { epss: number; percentile: number }>>({});
 
   useEffect(() => {
     let alive = true;
@@ -122,6 +123,25 @@ export default function VeillePage() {
       alive = false;
     };
   }, []);
+
+  // B2 — scores EPSS pour les CVE chargées (probabilité d'exploitation).
+  useEffect(() => {
+    if (items.length === 0) return;
+    let alive = true;
+    const ids = items.map((c) => c.id).filter((id) => /^CVE-\d{4}-\d{4,}$/.test(id));
+    if (ids.length === 0) return;
+    fetch(`/api/epss?cve=${ids.join(",")}`)
+      .then((r) => r.json())
+      .then((d: { scores?: Record<string, { epss: number; percentile: number }> }) => {
+        if (alive) setEpss(d.scores ?? {});
+      })
+      .catch(() => {
+        /* repli silencieux : pas d'EPSS si la source tombe */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [items]);
 
   const vendors = useMemo(
     () => Array.from(new Set(items.map((c) => c.vendor))).filter((v) => v !== "n/a").sort(),
@@ -281,6 +301,9 @@ export default function VeillePage() {
                   </div>
                   <p className="text-xs text-muted leading-relaxed">{c.summary}</p>
                   <div className="mt-2 text-[10px] font-mono text-muted uppercase tracking-[1px]">
+                    {epss[c.id] != null && (
+                      <span className="text-ink">EPSS {(epss[c.id].epss * 100).toFixed(1)}% · </span>
+                    )}
                     {c.vendor !== "n/a" ? `${c.vendor} · ` : ""}
                     {c.published}
                   </div>
