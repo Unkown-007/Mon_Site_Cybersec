@@ -8,7 +8,7 @@ import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
 
-type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
+type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "cvss" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
   { id: "revshell", label: "Reverse Shell" },
   { id: "gtfo", label: "GTFOBins / LOLBAS" },
@@ -16,6 +16,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "pipe", label: "Pipeline" },
   { id: "hash", label: "Hash" },
   { id: "jwt", label: "JWT" },
+  { id: "cvss", label: "CVSS" },
   { id: "gen", label: "Générateur" },
   { id: "hashid", label: "Hash ID" },
   { id: "cidr", label: "CIDR / IP" },
@@ -62,6 +63,7 @@ export default function ToolkitPage() {
       {tab === "pipe" && <Pipeline />}
       {tab === "hash" && <HashTool />}
       {tab === "jwt" && <JwtTool />}
+      {tab === "cvss" && <CvssTool />}
       {tab === "gen" && <Generator />}
       {tab === "hashid" && <HashId />}
       {tab === "cidr" && <CidrTool />}
@@ -833,6 +835,173 @@ function JwtTool() {
           </p>
         </div>
       </Panel>
+    </div>
+  );
+}
+
+/* ───────────── 4bis. Calculateur CVSS (v3.1 score + v4.0 vecteur) ───────────── */
+
+interface Metric {
+  key: string;
+  label: string;
+  opts: [string, string][];
+}
+
+const V31_METRICS: Metric[] = [
+  { key: "AV", label: "Attack Vector", opts: [["N", "Network"], ["A", "Adjacent"], ["L", "Local"], ["P", "Physical"]] },
+  { key: "AC", label: "Attack Complexity", opts: [["L", "Low"], ["H", "High"]] },
+  { key: "PR", label: "Privileges Required", opts: [["N", "None"], ["L", "Low"], ["H", "High"]] },
+  { key: "UI", label: "User Interaction", opts: [["N", "None"], ["R", "Required"]] },
+  { key: "S", label: "Scope", opts: [["U", "Unchanged"], ["C", "Changed"]] },
+  { key: "C", label: "Confidentiality", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "I", label: "Integrity", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "A", label: "Availability", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+];
+
+const V40_METRICS: Metric[] = [
+  { key: "AV", label: "Attack Vector", opts: [["N", "Network"], ["A", "Adjacent"], ["L", "Local"], ["P", "Physical"]] },
+  { key: "AC", label: "Attack Complexity", opts: [["L", "Low"], ["H", "High"]] },
+  { key: "AT", label: "Attack Requirements", opts: [["N", "None"], ["P", "Present"]] },
+  { key: "PR", label: "Privileges Required", opts: [["N", "None"], ["L", "Low"], ["H", "High"]] },
+  { key: "UI", label: "User Interaction", opts: [["N", "None"], ["P", "Passive"], ["A", "Active"]] },
+  { key: "VC", label: "Confidentiality (Vuln.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "VI", label: "Integrity (Vuln.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "VA", label: "Availability (Vuln.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "SC", label: "Confidentiality (Sys.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "SI", label: "Integrity (Sys.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+  { key: "SA", label: "Availability (Sys.)", opts: [["H", "High"], ["L", "Low"], ["N", "None"]] },
+];
+
+const num = (map: Record<string, number>, k: string) => map[k] ?? 0;
+
+function roundup(x: number): number {
+  const i = Math.round(x * 100000);
+  return i % 10000 === 0 ? i / 100000 : (Math.floor(i / 10000) + 1) / 10;
+}
+
+function scoreV31(s: Record<string, string>): number {
+  const av = num({ N: 0.85, A: 0.62, L: 0.55, P: 0.2 }, s.AV);
+  const ac = num({ L: 0.77, H: 0.44 }, s.AC);
+  const pr =
+    s.S === "U"
+      ? num({ N: 0.85, L: 0.62, H: 0.27 }, s.PR)
+      : num({ N: 0.85, L: 0.68, H: 0.5 }, s.PR);
+  const ui = num({ N: 0.85, R: 0.62 }, s.UI);
+  const cia = (v: string) => num({ H: 0.56, L: 0.22, N: 0 }, v);
+  const iss = 1 - (1 - cia(s.C)) * (1 - cia(s.I)) * (1 - cia(s.A));
+  const impact =
+    s.S === "U" ? 6.42 * iss : 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+  const expl = 8.22 * av * ac * pr * ui;
+  if (impact <= 0) return 0;
+  return s.S === "U"
+    ? roundup(Math.min(impact + expl, 10))
+    : roundup(Math.min(1.08 * (impact + expl), 10));
+}
+
+function severity(x: number): { label: string; variant: "neutral" | "success" | "warning" | "danger" } {
+  if (x === 0) return { label: "None", variant: "neutral" };
+  if (x < 4) return { label: "Low", variant: "success" };
+  if (x < 7) return { label: "Medium", variant: "warning" };
+  return { label: x < 9 ? "High" : "Critical", variant: "danger" };
+}
+
+const vector = (prefix: string, metrics: Metric[], s: Record<string, string>) =>
+  `${prefix}/` + metrics.map((m) => `${m.key}:${s[m.key]}`).join("/");
+
+function MetricGrid({
+  metrics,
+  sel,
+  onSet,
+}: {
+  metrics: Metric[];
+  sel: Record<string, string>;
+  onSet: (k: string, v: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {metrics.map((m) => (
+        <div key={m.key}>
+          <span className="label mb-2 block">
+            {m.key} · {m.label}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {m.opts.map(([v, lbl]) => (
+              <Toggle key={v} active={sel[m.key] === v} onClick={() => onSet(m.key, v)}>
+                {v} <span className="opacity-60">{lbl}</span>
+              </Toggle>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const defaults = (metrics: Metric[]): Record<string, string> =>
+  Object.fromEntries(metrics.map((m) => [m.key, m.opts[0][0]]));
+
+function CvssTool() {
+  const [ver, setVer] = useState<"3.1" | "4.0">("3.1");
+  const [s31, setS31] = useState<Record<string, string>>(() => defaults(V31_METRICS));
+  const [s40, setS40] = useState<Record<string, string>>(() => defaults(V40_METRICS));
+
+  const score = useMemo(() => scoreV31(s31), [s31]);
+  const sev = severity(score);
+  const vec31 = vector("CVSS:3.1", V31_METRICS, s31);
+  const vec40 = vector("CVSS:4.0", V40_METRICS, s40);
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div className="flex flex-wrap gap-2">
+        <Toggle active={ver === "3.1"} onClick={() => setVer("3.1")}>CVSS v3.1</Toggle>
+        <Toggle active={ver === "4.0"} onClick={() => setVer("4.0")}>CVSS v4.0</Toggle>
+      </div>
+
+      {ver === "3.1" ? (
+        <>
+          <Panel focal>
+            <div className="flex items-center gap-5">
+              <span className="font-display text-display tabular-nums text-ink-strong">
+                {score.toFixed(1)}
+              </span>
+              <div className="space-y-2">
+                <Badge variant={sev.variant} dot>{sev.label}</Badge>
+                <p className="text-body-sm text-muted">Base Score · CVSS v3.1</p>
+              </div>
+            </div>
+          </Panel>
+          <MetricGrid
+            metrics={V31_METRICS}
+            sel={s31}
+            onSet={(k, v) => setS31((p) => ({ ...p, [k]: v }))}
+          />
+          <CopyBlock label="Vecteur" value={vec31} />
+        </>
+      ) : (
+        <>
+          <MetricGrid
+            metrics={V40_METRICS}
+            sel={s40}
+            onSet={(k, v) => setS40((p) => ({ ...p, [k]: v }))}
+          />
+          <CopyBlock label="Vecteur CVSS v4.0" value={vec40} />
+          <div className="rounded-md border border-line bg-surface p-4 space-y-3">
+            <p className="text-body-sm text-muted">
+              Le score numérique v4.0 repose sur la table de correspondance officielle
+              de FIRST. Ouvre le vecteur dans le calculateur de référence pour l&apos;obtenir :
+            </p>
+            <Button
+              variant="signal"
+              size="sm"
+              href={`https://www.first.org/cvss/calculator/4.0#${vec40}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Score officiel sur first.org ↗
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
