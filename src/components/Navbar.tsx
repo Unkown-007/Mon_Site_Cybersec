@@ -15,7 +15,7 @@ const item = (href: string): NavItem =>
 const GROUPS: { label: string; hrefs: string[] }[] = [
   { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/arsenal"] },
   { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map"] },
-  { label: "Intel", hrefs: ["/veille", "/news"] },
+  { label: "Intel", hrefs: ["/veille", "/news", "/ai"] },
 ];
 
 const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal"));
