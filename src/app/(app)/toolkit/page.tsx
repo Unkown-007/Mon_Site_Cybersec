@@ -6,10 +6,12 @@ import { useToast } from "@/components/Toast";
 import { Badge } from "@/components/ui";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
+import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
 
-type Tab = "revshell" | "codec" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
+type Tab = "revshell" | "gtfo" | "codec" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
   { id: "revshell", label: "Reverse Shell" },
+  { id: "gtfo", label: "GTFOBins / LOLBAS" },
   { id: "codec", label: "Encodeur / Décodeur" },
   { id: "hash", label: "Hash" },
   { id: "jwt", label: "JWT" },
@@ -54,6 +56,7 @@ export default function ToolkitPage() {
       </div>
 
       {tab === "revshell" && <RevShell />}
+      {tab === "gtfo" && <Gtfobins />}
       {tab === "codec" && <Codec />}
       {tab === "hash" && <HashTool />}
       {tab === "jwt" && <JwtTool />}
@@ -220,6 +223,105 @@ function RevShell() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ───────────── 1bis. GTFOBins / LOLBAS (read-only) ───────────── */
+
+function Gtfobins() {
+  const [q, setQ] = useState("");
+  const [fn, setFn] = useState<GtfoFunction | "all">("all");
+  const [plat, setPlat] = useState<GtfoPlatform | "all">("all");
+
+  const results = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return GTFO_BINS.filter(
+      (b) =>
+        (plat === "all" || b.platform === plat) &&
+        (fn === "all" || b.functions.includes(fn)) &&
+        (!query || b.name.toLowerCase().includes(query)),
+    );
+  }, [q, fn, plat]);
+
+  return (
+    <div className="space-y-6">
+      <p className="max-w-2xl font-mono text-body-sm text-muted">
+        Binaires détournables — GTFOBins (Unix) &amp; LOLBAS (Windows). Read-only :
+        chaque entrée renvoie à sa fiche officielle. {GTFO_BINS.length} binaires indexés.
+      </p>
+
+      {/* Recherche — élément focal cyan */}
+      <div className="flex items-center gap-3 rounded-md border border-secondary/40 bg-surface px-4 py-3 transition-[border-color,box-shadow] duration-base ease-out-soft [--glow-color:var(--secondary)] focus-within:border-secondary focus-within:shadow-glow">
+        <span className="shrink-0 font-mono text-sm text-secondary">// SEARCH</span>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="binaire (bash, certutil, vim…)"
+          spellCheck={false}
+          className="flex-1 bg-transparent font-mono text-sm text-ink outline-none placeholder:text-muted"
+          aria-label="Rechercher un binaire"
+        />
+      </div>
+
+      {/* Filtres */}
+      <div className="space-y-3">
+        <div>
+          <span className="label mb-2 block">Plateforme</span>
+          <div className="flex flex-wrap gap-2">
+            <Toggle active={plat === "all"} onClick={() => setPlat("all")}>Toutes</Toggle>
+            <Toggle active={plat === "unix"} onClick={() => setPlat("unix")}>Unix</Toggle>
+            <Toggle active={plat === "windows"} onClick={() => setPlat("windows")}>Windows</Toggle>
+          </div>
+        </div>
+        <div>
+          <span className="label mb-2 block">Fonction</span>
+          <div className="flex flex-wrap gap-2">
+            <Toggle active={fn === "all"} onClick={() => setFn("all")}>Toutes</Toggle>
+            {GTFO_FUNCTIONS.map((f) => (
+              <Toggle key={f} active={fn === f} onClick={() => setFn(f)}>
+                {f}
+              </Toggle>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Résultats */}
+      <div className="flex items-center justify-between">
+        <span className="label">Résultats</span>
+        <span className="font-mono text-label text-muted">{results.length} binaire(s)</span>
+      </div>
+      {results.length === 0 ? (
+        <div className="rounded-md border border-line bg-surface p-8 text-center font-mono text-body-sm text-muted">
+          [ aucun binaire ]
+        </div>
+      ) : (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {results.map((b) => (
+            <li key={b.platform + b.name}>
+              <a
+                href={b.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="focus-ring block rounded-md border border-line bg-surface p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="font-mono text-body-sm text-ink">
+                    {b.name} <span className="text-muted">↗</span>
+                  </span>
+                  <Badge>{b.platform}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {b.functions.map((f) => (
+                    <Badge key={f}>{f}</Badge>
+                  ))}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
