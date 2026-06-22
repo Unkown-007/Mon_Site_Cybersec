@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { GUIPanel } from "@/components/GUIPanel";
 import { Badge } from "@/components/ui";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 
 interface ApiCve {
   id: string;
@@ -89,6 +90,8 @@ export default function VeillePage() {
   const [kev, setKev] = useState<Set<string>>(new Set());
   const [kevRansom, setKevRansom] = useState<Set<string>>(new Set());
   const [epss, setEpss] = useState<Record<string, { epss: number; percentile: number }>>({});
+  const [watch, setWatch] = useLocalStorage<string[]>("ux077:watchlist", []);
+  const [term, setTerm] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -153,6 +156,24 @@ export default function VeillePage() {
       items.filter((c) => c.score >= minScore && (!vendor || c.vendor === vendor)),
     [items, minScore, vendor]
   );
+
+  // B3 — watchlist : une CVE matche si un terme suivi est dans son vendor/résumé.
+  const isWatched = (c: ApiCve) =>
+    watch.some((t) => `${c.vendor} ${c.summary}`.toLowerCase().includes(t));
+
+  // Les CVE suivies remontent en tête (tri stable, ordre par score conservé).
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => Number(isWatched(b)) - Number(isWatched(a))),
+    [filtered, watch] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const addTerm = (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = term.trim().toLowerCase();
+    if (t && !watch.includes(t)) setWatch((w) => [...w, t]);
+    setTerm("");
+  };
+  const removeTerm = (t: string) => setWatch((w) => w.filter((x) => x !== t));
 
   return (
     <div>
@@ -237,6 +258,48 @@ export default function VeillePage() {
             </div>
           </div>
 
+          {/* B3 — Watchlist persistée (localStorage) */}
+          <div className="mb-4 rounded-md border border-line bg-surface p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="label">Watchlist</span>
+              <span className="font-mono text-label text-muted">{watch.length} suivi(s)</span>
+            </div>
+            <form onSubmit={addTerm} className="mb-2 flex gap-2">
+              <input
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder="vendor / produit (fortinet, vmware…)"
+                spellCheck={false}
+                className="field flex-1"
+                aria-label="Ajouter un terme à suivre"
+              />
+              <button
+                type="submit"
+                className="focus-ring shrink-0 rounded-sm border border-secondary/70 bg-secondary/10 px-3 py-2 font-mono text-label uppercase text-secondary transition-colors duration-fast ease-out-soft hover:bg-secondary/20"
+              >
+                + Suivre
+              </button>
+            </form>
+            {watch.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {watch.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => removeTerm(t)}
+                    aria-label={`Retirer ${t}`}
+                    className="focus-ring inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-2 py-0.5 font-mono text-label text-muted transition-colors duration-fast ease-out-soft hover:border-danger/50 hover:text-danger"
+                  >
+                    {t} <span aria-hidden>✕</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="font-mono text-label text-muted">
+                Ajoute des vendors/produits — les CVE correspondantes remontent en tête.
+              </p>
+            )}
+          </div>
+
           {vendors.length > 0 && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               <span className="label !text-muted">Vendor</span>
@@ -272,7 +335,7 @@ export default function VeillePage() {
             </div>
           ) : (
             <ul className="space-y-2">
-              {filtered.map((c) => (
+              {sorted.map((c) => (
                 <li key={c.id} className="card p-4">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <a
@@ -284,6 +347,7 @@ export default function VeillePage() {
                       {c.id} ↗
                     </a>
                     <div className="flex items-center gap-2 shrink-0">
+                      {isWatched(c) && <Badge variant="accent">watch</Badge>}
                       {kev.has(c.id) && (
                         <Badge variant="danger" dot>
                           {kevRansom.has(c.id) ? "KEV · ransomware" : "KEV exploité"}
