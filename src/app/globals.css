@@ -267,7 +267,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scanline::before,
-  .cursor::after {
+  .cursor::after,
+  .animate-fade-up {
     animation: none;
   }
 }

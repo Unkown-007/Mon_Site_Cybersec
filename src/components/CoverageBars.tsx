@@ -47,21 +47,19 @@ export function CoverageBars({
     <div ref={ref} className="space-y-2.5">
       {entries.map((e, i) => (
         <div key={e.label} className="grid grid-cols-[5.5rem_1fr_2rem] items-center gap-3">
-          <span className="truncate font-mono text-[11px] uppercase tracking-[1px] text-muted">
-            {e.label}
-          </span>
-          <div className="h-2 w-full overflow-hidden bg-base">
+          <span className="truncate text-label text-muted">{e.label}</span>
+          <div className="h-1.5 w-full overflow-hidden rounded-full border border-line-subtle bg-base">
             <div
-              className="h-full ease-out"
+              className="h-full rounded-full"
               style={{
                 width: shown ? `${(e.count / max) * 100}%` : "0%",
-                background: `linear-gradient(90deg, ${accent}40, ${accent})`,
+                background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 25%, transparent), ${accent})`,
                 boxShadow: `0 0 8px -3px ${accent}`,
-                transition: `width 900ms cubic-bezier(0.22,1,0.36,1) ${i * 70}ms`,
+                transition: `width var(--dur-slow) var(--ease-out-soft) ${i * 60}ms`,
               }}
             />
           </div>
-          <span className="text-right font-mono text-xs tabular-nums text-ink">{e.count}</span>
+          <span className="text-right font-mono text-body-sm tabular-nums text-ink">{e.count}</span>
         </div>
       ))}
     </div>
