@@ -9,7 +9,18 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-const SECRET = process.env.AUTH_SECRET || "dev-insecure-ux077-change-me";
+/*
+ * Secret de signature. En production il est OBLIGATOIRE et fort (≥16 car.) :
+ * à défaut on refuse de signer/vérifier (fail-closed) plutôt que d'utiliser un
+ * secret connu — ce qui permettrait à n'importe qui de forger une session admin.
+ * En dev seulement, un repli générique non sensible est toléré.
+ */
+function resolveSecret(): string {
+  const s = process.env.AUTH_SECRET;
+  if (s && s.length >= 16) return s;
+  if (process.env.NODE_ENV !== "production") return "dev-only-insecure-secret-change-me";
+  throw new Error("AUTH_SECRET manquant ou trop court (<16) en production");
+}
 export const SESSION_COOKIE = "ux077_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 jours
 
@@ -31,7 +42,7 @@ function b64urlDecode(str: string): Uint8Array {
 async function hmacKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    enc.encode(SECRET),
+    enc.encode(resolveSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],

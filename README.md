@@ -19,14 +19,15 @@ npm run dev
 # http://localhost:3000  → redirige vers /login
 ```
 
-### Connexion (mock, dev uniquement)
+### Connexion
 
-| Méthode      | Identifiants                                            |
-| ------------ | ------------------------------------------------------- |
-| Credentials  | `admin@unknownx.local` / `akira2077` (rôle **admin**)   |
-| GitHub / Google | bouton OAuth → session **operator** simulée          |
+Les identifiants admin sont **définis par variables d'environnement** (`ADMIN_EMAIL`,
+`ADMIN_PASSWORD`, `AUTH_SECRET`) — jamais en clair dans le code. Voir
+[.env.local.example](.env.local.example). En dev sans `.env.local`, un repli
+générique non sensible est utilisé ; en production ces variables sont **obligatoires**
+(l'authentification est refusée à défaut).
 
-Surchargeable via `.env.local` (voir `.env.local.example`).
+OAuth GitHub/Google : optionnel ; restreins l'accès avec `ALLOWED_EMAILS`.
 
 ## Structure
 

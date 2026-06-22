@@ -15,7 +15,9 @@ import { recordLogin } from "@/lib/users";
 export const runtime = "nodejs";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@unknownx.local";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "akira2077";
+// Aucun mot de passe réel en dur : requis par env en prod, repli générique en dev.
+const ADMIN_PASSWORD =
+  process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "changeme-dev");
 
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -30,6 +32,17 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
+  }
+
+  // Refus si l'auth n'est pas configurée en prod (pas de secret/mot de passe par défaut).
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!process.env.AUTH_SECRET || !process.env.ADMIN_PASSWORD)
+  ) {
+    return NextResponse.json(
+      { error: "Authentification non configurée (AUTH_SECRET / ADMIN_PASSWORD)." },
+      { status: 503 },
+    );
   }
 
   const email = (body.email ?? "").trim();
