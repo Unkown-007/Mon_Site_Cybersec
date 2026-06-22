@@ -19,15 +19,6 @@ npm run dev
 # http://localhost:3000  → redirige vers /login
 ```
 
-### Connexion (mock, dev uniquement)
-
-| Méthode      | Identifiants                                            |
-| ------------ | ------------------------------------------------------- |
-| Credentials  | `admin@unknownx.local` / `akira2077` (rôle **admin**)   |
-| GitHub / Google | bouton OAuth → session **operator** simulée          |
-
-Surchargeable via `.env.local` (voir `.env.local.example`).
-
 ## Structure
 
 ```
