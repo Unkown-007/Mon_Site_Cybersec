@@ -9,6 +9,7 @@ import { SfxClicks } from "@/components/SfxClicks";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { PerfProvider } from "@/lib/perf";
 import { PerfToggle } from "@/components/PerfToggle";
+import { Analytics } from "@vercel/analytics/next";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -54,6 +55,7 @@ export default function RootLayout({
             </ToastProvider>
           </AuthProvider>
         </PerfProvider>
+        <Analytics />
       </body>
     </html>
   );
