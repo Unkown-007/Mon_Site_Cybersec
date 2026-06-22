@@ -8,7 +8,7 @@ import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
 
-type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "cvss" | "gen" | "hashid" | "cidr" | "time";
+type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "cvss" | "cmd" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
   { id: "revshell", label: "Reverse Shell" },
   { id: "gtfo", label: "GTFOBins / LOLBAS" },
@@ -17,6 +17,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "hash", label: "Hash" },
   { id: "jwt", label: "JWT" },
   { id: "cvss", label: "CVSS" },
+  { id: "cmd", label: "Command Builder" },
   { id: "gen", label: "Générateur" },
   { id: "hashid", label: "Hash ID" },
   { id: "cidr", label: "CIDR / IP" },
@@ -64,6 +65,7 @@ export default function ToolkitPage() {
       {tab === "hash" && <HashTool />}
       {tab === "jwt" && <JwtTool />}
       {tab === "cvss" && <CvssTool />}
+      {tab === "cmd" && <CmdBuilder />}
       {tab === "gen" && <Generator />}
       {tab === "hashid" && <HashId />}
       {tab === "cidr" && <CidrTool />}
@@ -1002,6 +1004,215 @@ function CvssTool() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ───────────── 4ter. Command builder (Nmap / Hashcat / John) ───────────── */
+
+function FlagRow({
+  flags,
+  state,
+  onToggle,
+}: {
+  flags: [string, string][];
+  state: Record<string, boolean>;
+  onToggle: (k: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {flags.map(([k, lbl]) => (
+        <Toggle key={k} active={!!state[k]} onClick={() => onToggle(k)}>
+          {k} <span className="opacity-60">{lbl}</span>
+        </Toggle>
+      ))}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="label mb-2 block">{label}</span>
+      <input
+        className="field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        spellCheck={false}
+        aria-label={label}
+      />
+    </label>
+  );
+}
+
+function NmapBuilder() {
+  const [target, setTarget] = useState("10.10.10.10");
+  const [ports, setPorts] = useState("");
+  const [timing, setTiming] = useState("T4");
+  const [out, setOut] = useState("");
+  const [f, setF] = useState<Record<string, boolean>>({
+    "-sC": true, "-sV": true, "-Pn": false, "-A": false,
+    "-sS": false, "-sU": false, "-O": false, "--open": false, "-v": false,
+  });
+  const toggle = (k: string) => setF((p) => ({ ...p, [k]: !p[k] }));
+
+  const cmd = useMemo(() => {
+    const flags = Object.entries(f).filter(([, v]) => v).map(([k]) => k);
+    return [
+      "nmap",
+      ...flags,
+      timing ? `-${timing}` : "",
+      ports ? `-p ${ports}` : "",
+      out ? `-oN ${out}` : "",
+      target || "<target>",
+    ].filter(Boolean).join(" ");
+  }, [f, timing, ports, out, target]);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Cible" value={target} onChange={setTarget} placeholder="10.10.10.10 / cible.htb" />
+        <Field label="Ports (-p)" value={ports} onChange={setPorts} placeholder="- (tous) ou 22,80,443" />
+      </div>
+      <div>
+        <span className="label mb-2 block">Options</span>
+        <FlagRow
+          flags={[
+            ["-sC", "scripts"], ["-sV", "versions"], ["-A", "agressif"], ["-Pn", "no ping"],
+            ["-sS", "SYN"], ["-sU", "UDP"], ["-O", "OS"], ["--open", "ouverts"], ["-v", "verbeux"],
+          ]}
+          state={f}
+          onToggle={toggle}
+        />
+      </div>
+      <div>
+        <span className="label mb-2 block">Timing</span>
+        <div className="flex flex-wrap gap-2">
+          {["T2", "T3", "T4", "T5"].map((t) => (
+            <Toggle key={t} active={timing === t} onClick={() => setTiming(t)}>{t}</Toggle>
+          ))}
+        </div>
+      </div>
+      <Field label="Sortie (-oN)" value={out} onChange={setOut} placeholder="scan.txt (optionnel)" />
+      <CopyBlock label="Commande" value={cmd} />
+    </div>
+  );
+}
+
+const HC_MODES: [string, string][] = [
+  ["0", "MD5"], ["100", "SHA1"], ["1400", "SHA-256"], ["1000", "NTLM"],
+  ["1800", "sha512crypt"], ["3200", "bcrypt"], ["22000", "WPA"],
+  ["13100", "Kerberoast TGS"], ["18200", "AS-REP"], ["5600", "NetNTLMv2"],
+];
+const HC_ATTACKS: [string, string][] = [["0", "dictionnaire"], ["3", "brute-force"], ["6", "hybride W+M"], ["1", "combinator"]];
+
+function HashcatBuilder() {
+  const [mode, setMode] = useState("1000");
+  const [attack, setAttack] = useState("0");
+  const [hashfile, setHashfile] = useState("hash.txt");
+  const [wordlist, setWordlist] = useState("rockyou.txt");
+  const [rules, setRules] = useState("");
+  const [f, setF] = useState<Record<string, boolean>>({ "-O": false, "--force": false, "--show": false });
+  const toggle = (k: string) => setF((p) => ({ ...p, [k]: !p[k] }));
+
+  const cmd = useMemo(() => {
+    const flags = Object.entries(f).filter(([, v]) => v).map(([k]) => k);
+    const last = attack === "3" ? "?a?a?a?a?a?a" : wordlist || "wordlist.txt";
+    return [
+      "hashcat", "-m", mode, "-a", attack, hashfile || "hash.txt", last,
+      rules ? `-r ${rules}` : "", ...flags,
+    ].filter(Boolean).join(" ");
+  }, [mode, attack, hashfile, wordlist, rules, f]);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <span className="label mb-2 block">Mode de hash (-m)</span>
+        <div className="flex flex-wrap gap-2">
+          {HC_MODES.map(([m, lbl]) => (
+            <Toggle key={m} active={mode === m} onClick={() => setMode(m)}>{m} <span className="opacity-60">{lbl}</span></Toggle>
+          ))}
+        </div>
+      </div>
+      <div>
+        <span className="label mb-2 block">Attaque (-a)</span>
+        <div className="flex flex-wrap gap-2">
+          {HC_ATTACKS.map(([a, lbl]) => (
+            <Toggle key={a} active={attack === a} onClick={() => setAttack(a)}>{a} <span className="opacity-60">{lbl}</span></Toggle>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Fichier de hash" value={hashfile} onChange={setHashfile} placeholder="hash.txt" />
+        <Field label="Wordlist" value={wordlist} onChange={setWordlist} placeholder="rockyou.txt" />
+      </div>
+      <Field label="Règles (-r)" value={rules} onChange={setRules} placeholder="best64.rule (optionnel)" />
+      <div>
+        <span className="label mb-2 block">Options</span>
+        <FlagRow flags={[["-O", "optimisé"], ["--force", "force"], ["--show", "afficher"]]} state={f} onToggle={toggle} />
+      </div>
+      <CopyBlock label="Commande" value={cmd} />
+    </div>
+  );
+}
+
+function JohnBuilder() {
+  const [hashfile, setHashfile] = useState("hash.txt");
+  const [wordlist, setWordlist] = useState("rockyou.txt");
+  const [format, setFormat] = useState("");
+  const [f, setF] = useState<Record<string, boolean>>({ "--rules": false, "--incremental": false, "--show": false });
+  const toggle = (k: string) => setF((p) => ({ ...p, [k]: !p[k] }));
+
+  const cmd = useMemo(() => {
+    const flags = Object.entries(f).filter(([, v]) => v).map(([k]) => k);
+    return [
+      "john",
+      f["--incremental"] ? "" : wordlist ? `--wordlist=${wordlist}` : "",
+      format ? `--format=${format}` : "",
+      ...flags,
+      hashfile || "hash.txt",
+    ].filter(Boolean).join(" ");
+  }, [hashfile, wordlist, format, f]);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Fichier de hash" value={hashfile} onChange={setHashfile} placeholder="hash.txt" />
+        <Field label="Wordlist (--wordlist)" value={wordlist} onChange={setWordlist} placeholder="rockyou.txt" />
+      </div>
+      <Field label="Format (--format)" value={format} onChange={setFormat} placeholder="nt, sha512crypt, krb5tgs… (optionnel)" />
+      <div>
+        <span className="label mb-2 block">Options</span>
+        <FlagRow flags={[["--rules", "règles"], ["--incremental", "brute"], ["--show", "afficher"]]} state={f} onToggle={toggle} />
+      </div>
+      <CopyBlock label="Commande" value={cmd} />
+    </div>
+  );
+}
+
+function CmdBuilder() {
+  const [tool, setTool] = useState<"nmap" | "hashcat" | "john">("nmap");
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div className="flex flex-wrap gap-2">
+        {(["nmap", "hashcat", "john"] as const).map((t) => (
+          <Toggle key={t} active={tool === t} onClick={() => setTool(t)}>{t}</Toggle>
+        ))}
+      </div>
+      {tool === "nmap" && <NmapBuilder />}
+      {tool === "hashcat" && <HashcatBuilder />}
+      {tool === "john" && <JohnBuilder />}
     </div>
   );
 }
