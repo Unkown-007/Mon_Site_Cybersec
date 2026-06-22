@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
-import { Badge } from "@/components/ui";
+import { Badge, Button, Panel } from "@/components/ui";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
@@ -451,8 +451,54 @@ const b64urlDecode = (s: string) => {
   return decodeURIComponent(escape(atob(pad + "=".repeat((4 - (pad.length % 4)) % 4))));
 };
 
+// ── Helpers de forge JWT (HS256 / none) ──
+const b64urlFromString = (s: string) =>
+  btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+const b64urlFromBytes = (bytes: Uint8Array) => {
+  let bin = "";
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+async function hmacSha256(secret: string, data: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return new Uint8Array(sig);
+}
+
+// Dictionnaire COURT de secrets faibles courants (démo pédagogique).
+const WEAK_SECRETS = [
+  "secret", "password", "123456", "admin", "root", "key", "jwt", "token",
+  "changeme", "test", "qwerty", "letmein", "welcome", "default", "private",
+  "supersecret", "secretkey", "secret123", "your-256-bit-secret", "mysecret",
+  "s3cr3t", "p@ssw0rd", "abc123", "passw0rd", "secret_key", "jwtsecret",
+  "Password1", "admin123", "0000", "iloveyou",
+];
+
+type CrackState = "idle" | "running" | "found" | "notfound" | "na";
+
 function JwtTool() {
   const [token, setToken] = useState("");
+
+  // Forge
+  const [payloadText, setPayloadText] = useState(
+    '{\n  "sub": "1337",\n  "name": "operator",\n  "role": "admin"\n}',
+  );
+  const [secret, setSecret] = useState("secret");
+  const [alg, setAlg] = useState<"HS256" | "none">("HS256");
+  const [forged, setForged] = useState("");
+  const [forgeErr, setForgeErr] = useState(false);
+
+  // Test de secret faible
+  const [crack, setCrack] = useState<CrackState>("idle");
+  const [found, setFound] = useState("");
 
   const parsed = useMemo(() => {
     const parts = token.trim().split(".");
@@ -466,42 +512,178 @@ function JwtTool() {
     }
   }, [token]);
 
+  // Forge en direct (HS256 signé, ou alg:none non signé).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const payloadObj = JSON.parse(payloadText);
+        const header = { alg, typ: "JWT" };
+        const data = `${b64urlFromString(JSON.stringify(header))}.${b64urlFromString(
+          JSON.stringify(payloadObj),
+        )}`;
+        const out =
+          alg === "none" ? `${data}.` : `${data}.${b64urlFromBytes(await hmacSha256(secret, data))}`;
+        if (alive) {
+          setForged(out);
+          setForgeErr(false);
+        }
+      } catch {
+        if (alive) {
+          setForged("");
+          setForgeErr(true);
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [payloadText, secret, alg]);
+
+  const testWeak = useCallback(async () => {
+    const parts = token.trim().split(".");
+    if (parts.length < 3 || !parts[2]) {
+      setCrack("na");
+      return;
+    }
+    try {
+      const h = JSON.parse(b64urlDecode(parts[0]));
+      if (h.alg !== "HS256") {
+        setCrack("na");
+        return;
+      }
+    } catch {
+      setCrack("na");
+      return;
+    }
+    setCrack("running");
+    const data = `${parts[0]}.${parts[1]}`;
+    for (const s of WEAK_SECRETS) {
+      if (b64urlFromBytes(await hmacSha256(s, data)) === parts[2]) {
+        setFound(s);
+        setCrack("found");
+        return;
+      }
+    }
+    setCrack("notfound");
+  }, [token]);
+
   const human = (ts: unknown) =>
     typeof ts === "number" ? new Date(ts * 1000).toLocaleString("fr-FR") : null;
 
   return (
-    <div className="space-y-5 max-w-3xl">
-      <textarea
-        value={token}
-        onChange={(e) => setToken(e.target.value)}
-        placeholder="eyJhbGciOi…"
-        spellCheck={false}
-        className="field min-h-[90px] resize-y break-all"
-      />
-      {!token ? null : !parsed || "error" in parsed ? (
-        <p className="font-mono text-sm text-danger">[ token invalide ou illisible ]</p>
-      ) : (
-        <div className="space-y-4">
-          <CopyBlock label="Header" value={JSON.stringify(parsed.header, null, 2)} />
-          <CopyBlock label="Payload" value={JSON.stringify(parsed.payload, null, 2)} />
-          <div className="card p-3 font-mono text-xs space-y-1 text-muted">
-            {parsed.payload.exp && (
-              <div>
-                exp → <span className="text-ink">{human(parsed.payload.exp)}</span>
-                {parsed.payload.exp * 1000 < Date.now() && <span className="text-danger"> (expiré)</span>}
+    <div className="max-w-3xl space-y-8">
+      {/* ── Décodage ── */}
+      <div className="space-y-5">
+        <span className="label">Décoder un token</span>
+        <textarea
+          value={token}
+          onChange={(e) => {
+            setToken(e.target.value);
+            setCrack("idle");
+          }}
+          placeholder="eyJhbGciOi…"
+          spellCheck={false}
+          className="field min-h-[90px] resize-y break-all"
+        />
+        {!token ? null : !parsed || "error" in parsed ? (
+          <p className="font-mono text-sm text-danger">[ token invalide ou illisible ]</p>
+        ) : (
+          <div className="space-y-4">
+            <CopyBlock label="Header" value={JSON.stringify(parsed.header, null, 2)} />
+            <CopyBlock label="Payload" value={JSON.stringify(parsed.payload, null, 2)} />
+            <div className="rounded-md border border-line bg-surface p-3 font-mono text-body-sm space-y-1 text-muted">
+              {parsed.payload.exp && (
+                <div>
+                  exp → <span className="text-ink">{human(parsed.payload.exp)}</span>
+                  {parsed.payload.exp * 1000 < Date.now() && <span className="text-danger"> (expiré)</span>}
+                </div>
+              )}
+              {parsed.payload.iat && (
+                <div>
+                  iat → <span className="text-ink">{human(parsed.payload.iat)}</span>
+                </div>
+              )}
+              <div className="text-warning">
+                ⚠ signature non vérifiée — déchiffrage d&apos;affichage uniquement.
               </div>
-            )}
-            {parsed.payload.iat && (
-              <div>
-                iat → <span className="text-ink">{human(parsed.payload.iat)}</span>
-              </div>
-            )}
-            <div className="text-warning/80">
-              ⚠ signature non vérifiée — déchiffrage d&apos;affichage uniquement.
+            </div>
+
+            {/* Test de secret faible (sur le token ci-dessus) */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="signal" size="sm" onClick={testWeak} disabled={crack === "running"}>
+                {crack === "running" ? "Test en cours…" : "Tester les secrets faibles"}
+              </Button>
+              {crack === "found" && (
+                <span className="font-mono text-body-sm text-danger">
+                  secret trouvé : <span className="text-ink">{found}</span> — token cassable
+                </span>
+              )}
+              {crack === "notfound" && (
+                <span className="font-mono text-body-sm text-success">
+                  aucun secret du dictionnaire ({WEAK_SECRETS.length}) ne correspond
+                </span>
+              )}
+              {crack === "na" && (
+                <span className="font-mono text-body-sm text-muted">
+                  test indisponible (token non HS256 ou sans signature)
+                </span>
+              )}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* ── Forge ── */}
+      <Panel code="HS256 / none" title="Forger un token">
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Toggle active={alg === "HS256"} onClick={() => setAlg("HS256")}>
+              HS256
+            </Toggle>
+            <Toggle active={alg === "none"} onClick={() => setAlg("none")}>
+              alg:none
+            </Toggle>
+          </div>
+
+          <label className="block">
+            <span className="label mb-2 block">Payload (JSON)</span>
+            <textarea
+              value={payloadText}
+              onChange={(e) => setPayloadText(e.target.value)}
+              spellCheck={false}
+              className="field min-h-[120px] resize-y font-mono"
+              aria-label="Payload JSON"
+            />
+          </label>
+
+          <label className="block">
+            <span className="label mb-2 block">
+              Secret {alg === "none" && "(ignoré — alg:none)"}
+            </span>
+            <input
+              className="field"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              disabled={alg === "none"}
+              placeholder="secret de signature"
+              aria-label="Secret HMAC"
+            />
+          </label>
+
+          {forgeErr ? (
+            <p className="font-mono text-sm text-danger">[ payload JSON invalide ]</p>
+          ) : (
+            <CopyBlock label="Token forgé" value={forged} />
+          )}
+
+          <p className="font-mono text-label text-muted">
+            {alg === "none"
+              ? "alg:none = signature vide. Teste les implémentations qui ne vérifient pas l'algorithme."
+              : "Signé en HS256 via Web Crypto (HMAC-SHA256), côté client."}
+          </p>
         </div>
-      )}
+      </Panel>
     </div>
   );
 }
