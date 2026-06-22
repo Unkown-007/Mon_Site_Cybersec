@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { GUIPanel } from "@/components/GUIPanel";
+import { Badge } from "@/components/ui";
 
 interface ApiCve {
   id: string;
@@ -85,6 +86,8 @@ export default function VeillePage() {
   const [loading, setLoading] = useState(true);
   const [minScore, setMinScore] = useState(0);
   const [vendor, setVendor] = useState<string | null>(null);
+  const [kev, setKev] = useState<Set<string>>(new Set());
+  const [kevRansom, setKevRansom] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let alive = true;
@@ -97,6 +100,24 @@ export default function VeillePage() {
       })
       .catch(() => alive && setSource("fallback"))
       .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // B1 — catalogue CISA KEV (failles activement exploitées).
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/kev")
+      .then((r) => r.json())
+      .then((d: { ids?: string[]; ransomware?: string[] }) => {
+        if (!alive) return;
+        setKev(new Set(d.ids ?? []));
+        setKevRansom(new Set(d.ransomware ?? []));
+      })
+      .catch(() => {
+        /* repli silencieux : pas de badge KEV si la source tombe */
+      });
     return () => {
       alive = false;
     };
@@ -243,6 +264,11 @@ export default function VeillePage() {
                       {c.id} ↗
                     </a>
                     <div className="flex items-center gap-2 shrink-0">
+                      {kev.has(c.id) && (
+                        <Badge variant="danger" dot>
+                          {kevRansom.has(c.id) ? "KEV · ransomware" : "KEV exploité"}
+                        </Badge>
+                      )}
                       <span
                         className={`text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SEV_COLOR[c.severity] ?? SEV_COLOR.LOW}`}
                       >
