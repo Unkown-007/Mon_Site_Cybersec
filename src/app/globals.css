@@ -3,21 +3,57 @@
 @tailwind utilities;
 
 /* ============================================================
-   UnknownX-077 — Design system (Akira / Cyberpunk)
+   UnknownX-077 — Design system (Akira / Cyberpunk retenu)
+   Tokens à 3 tiers : neutres (≈85%) · violet structurel (≈10%) ·
+   cyan signal rare (≈3%) · rouge sémantique (danger).
    ============================================================ */
 
 :root {
-  --base: #0a0a12;
-  --surface: #0d0d1a;
-  --primary: #7b5cf0;
-  --secondary: #00f5d4;
+  /* ── Neutres : échelle de fonds ── */
+  --base: #07070c;
+  --surface: #0c0c15;
+  --elevated: #12121e;
+  --overlay: #1a1a28;
+
+  /* ── Texte ── */
+  --ink-strong: #e9ecf6;
   --ink: #c0c8e0;
-  --muted: #4a5070;
+  --muted: #818aa8;
+
+  /* ── Accent structurel (violet) & signal rare (cyan) ── */
+  --primary: #7b5cf0;
+  --accent: #7b5cf0;
+  --secondary: #00f5d4;
+  --signal: #00f5d4;
+
+  /* ── Sémantiques ── */
   --danger: #ff3d60;
   --warning: #febc2e;
   --success: #00c9a7;
-  --line: #1a1a2e;
-  --line-strong: #1a1a3a;
+
+  /* ── Bordures unifiées ── */
+  --line-subtle: #15151f;
+  --line: #1f1f2d;
+  --line-strong: #2b2b3d;
+  --border-accent: rgba(123, 92, 240, 0.4);
+
+  /* ── Glow : un seul, recoloriable via --glow-color ── */
+  --glow-color: var(--secondary);
+
+  /* ── Focus-ring accessible ── */
+  --ring: 0 0 0 2px var(--base), 0 0 0 4px var(--secondary);
+  --ring-danger: 0 0 0 2px var(--base), 0 0 0 4px var(--danger);
+
+  /* ── Motion : durées + courbes nommées ── */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Rayons ── */
+  --radius-sm: 2px;
+  --radius-md: 6px;
 }
 
 @layer base {
@@ -31,15 +67,15 @@
     font-family: var(--font-share-tech-mono), ui-monospace, monospace;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
-    /* Léger maillage de fond, très discret */
+    /* Maillage de fond extrêmement discret (neutre, recule) */
     background-image:
-      radial-gradient(circle at 20% 0%, rgba(123, 92, 240, 0.06), transparent 45%),
-      radial-gradient(circle at 90% 100%, rgba(0, 245, 212, 0.05), transparent 40%);
+      radial-gradient(circle at 18% -5%, rgba(123, 92, 240, 0.04), transparent 42%),
+      radial-gradient(circle at 95% 105%, rgba(0, 245, 212, 0.03), transparent 38%);
     background-attachment: fixed;
   }
 
   ::selection {
-    background: rgba(123, 92, 240, 0.35);
+    background: rgba(123, 92, 240, 0.32);
     color: #fff;
   }
 
@@ -52,7 +88,7 @@
     background: var(--surface);
   }
   ::-webkit-scrollbar-thumb {
-    background: #20203a;
+    background: var(--line-strong);
     border: 2px solid var(--surface);
   }
   ::-webkit-scrollbar-thumb:hover {
@@ -61,31 +97,34 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-orbitron), sans-serif;
+    color: var(--ink-strong);
   }
 }
 
 @layer components {
-  /* Label // EN MAJUSCULES, espacé */
+  /* Label // EN MAJUSCULES, espacé — plancher 11px (AA) */
   .label {
     @apply font-mono uppercase text-muted;
-    letter-spacing: 3px;
-    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
   }
   .label::before {
     content: "// ";
     color: var(--secondary);
   }
 
-  /* Carte standard avec bordure néon discrète */
+  /* Carte standard — bordure neutre, survol calme (le violet recule) */
   .card {
     background: var(--surface);
-    border: 1px solid rgba(123, 92, 240, 0.18);
+    border: 1px solid var(--line);
     position: relative;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    transition:
+      border-color var(--dur-base) var(--ease-out-soft),
+      transform var(--dur-base) var(--ease-out-soft);
   }
   .card:hover {
-    border-color: rgba(123, 92, 240, 0.5);
-    box-shadow: 0 0 0 1px rgba(123, 92, 240, 0.2), 0 0 24px -10px var(--primary);
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
   }
 
   /* Curseur clignotant terminal */
@@ -96,9 +135,23 @@
     margin-left: 2px;
   }
 
-  /* Bouton primaire */
+  /* Bouton (classe héritée — primitive <Button> recommandée) */
   .btn {
-    @apply font-mono uppercase tracking-[2px] text-xs px-5 py-3 inline-flex items-center gap-2 transition-all duration-200;
+    @apply font-mono uppercase text-xs px-5 py-3 inline-flex items-center gap-2;
+    letter-spacing: 0.12em;
+    transition:
+      color var(--dur-fast) var(--ease-out-soft),
+      background-color var(--dur-fast) var(--ease-out-soft),
+      border-color var(--dur-fast) var(--ease-out-soft),
+      box-shadow var(--dur-fast) var(--ease-out-soft),
+      transform var(--dur-fast) var(--ease-out-soft);
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
   }
   .btn-primary {
     background: rgba(123, 92, 240, 0.12);
@@ -106,8 +159,7 @@
     color: #d7ccff;
   }
   .btn-primary:hover {
-    background: rgba(123, 92, 240, 0.25);
-    box-shadow: 0 0 22px -6px var(--primary);
+    background: rgba(123, 92, 240, 0.22);
   }
   .btn-ghost {
     background: transparent;
@@ -121,10 +173,15 @@
 
   /* Champ de saisie style terminal */
   .field {
-    @apply w-full bg-base font-mono text-ink px-4 py-3 outline-none transition-colors;
+    @apply w-full bg-base font-mono text-ink px-4 py-3 outline-none;
     border: 1px solid var(--line-strong);
+    transition:
+      border-color var(--dur-fast) var(--ease-out-soft),
+      box-shadow var(--dur-fast) var(--ease-out-soft);
   }
-  .field:focus {
+  .field:focus,
+  .field:focus-visible {
+    outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 1px rgba(123, 92, 240, 0.4);
   }
@@ -140,6 +197,16 @@
 }
 
 @layer utilities {
+  /* Focus-ring réutilisable (primitives, liens, boutons custom) */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+  }
+  .focus-ring-danger:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-danger);
+  }
+
   /* Grille / lignes diagonales très légères (fond de /login) */
   .bg-grid {
     background-image:
@@ -156,15 +223,21 @@
       transparent 22px
     );
   }
+  /* Réservés à l'élément focal cyan / danger — emphase, pas décoration */
   .text-glow-primary {
-    text-shadow: 0 0 18px rgba(123, 92, 240, 0.6);
+    text-shadow: 0 0 18px rgba(123, 92, 240, 0.55);
   }
   .text-glow-secondary {
-    text-shadow: 0 0 18px rgba(0, 245, 212, 0.55);
+    text-shadow: 0 0 18px rgba(0, 245, 212, 0.5);
   }
 }
 
-/* Barre de scan globale — ligne qui traverse l'écran verticalement */
+/* ============================================================
+   AMBIANCE — un seul effet de fond continu (très subtil).
+   Tout le reste est déclenché au survol / par l'état.
+   ============================================================ */
+
+/* Barre de scan globale : opacité très basse, lente, fine */
 .scanline {
   position: fixed;
   inset: 0;
@@ -177,18 +250,18 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: 140px;
+  height: 90px;
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(0, 245, 212, 0.05),
-    rgba(123, 92, 240, 0.07),
+    rgba(0, 245, 212, 0.018),
+    rgba(123, 92, 240, 0.022),
     transparent
   );
-  animation: scan 7s linear infinite;
+  animation: scan 12s linear infinite;
 }
 @keyframes scan {
-  0% { transform: translateY(-140px); }
+  0% { transform: translateY(-90px); }
   100% { transform: translateY(100vh); }
 }
 
@@ -199,7 +272,7 @@
   }
 }
 
-/* ── Glitch RGB (titres / logo) ── */
+/* ── Glitch RGB : au survol ou au mount d'un titre clé (jamais en boucle) ── */
 .glitch {
   position: relative;
   display: inline-block;
@@ -215,13 +288,13 @@
 }
 .glitch.is-glitching::before {
   opacity: 0.85;
-  color: #ff3d60;
+  color: var(--danger);
   transform: translateX(-2px);
   animation: glitch-a 0.18s steps(2) 3;
 }
 .glitch.is-glitching::after {
   opacity: 0.85;
-  color: #00f5d4;
+  color: var(--secondary);
   transform: translateX(2px);
   animation: glitch-b 0.18s steps(2) 3;
 }
@@ -243,18 +316,18 @@
   50% { transform: skewX(-2deg); }
 }
 
-/* Ligne de scan qui balaie une carte au survol */
+/* Ligne de scan qui balaie une carte au survol (déjà event-driven) */
 .card.scan-hover::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(transparent, rgba(0, 245, 212, 0.07), transparent);
+  background: linear-gradient(transparent, rgba(0, 245, 212, 0.06), transparent);
   transform: translateY(-100%);
   opacity: 0;
 }
 .card.scan-hover:hover::after {
-  animation: card-scan 0.6s ease-out;
+  animation: card-scan 0.6s var(--ease-out-soft);
 }
 @keyframes card-scan {
   0% { transform: translateY(-100%); opacity: 1; }
@@ -276,19 +349,19 @@
 }
 .cursor-ring--down > div {
   transform: scale(0.6) translateZ(0);
-  border-color: #00f5d4;
+  border-color: var(--secondary);
 }
 
-/* ── GUI panels : bordure pulsante ── */
-.gui-pulse {
+/* ── GUI panels : bordure pulsante — UNIQUEMENT au survol ── */
+.gui-pulse:hover {
   animation: gui-pulse 2.4s ease-in-out infinite;
 }
 @keyframes gui-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(123, 92, 240, 0); }
-  50% { box-shadow: 0 0 18px -4px rgba(123, 92, 240, 0.6); }
+  50% { box-shadow: 0 0 18px -4px rgba(123, 92, 240, 0.5); }
 }
 
-/* ── Scanlines HUD (fond) ── */
+/* ── Scanlines HUD (fond de panneau, statique) ── */
 .hud-scanlines::after {
   content: "";
   position: absolute;
@@ -296,14 +369,14 @@
   pointer-events: none;
   background: repeating-linear-gradient(
     0deg,
-    rgba(0, 245, 212, 0.025) 0px,
-    rgba(0, 245, 212, 0.025) 1px,
+    rgba(0, 245, 212, 0.02) 0px,
+    rgba(0, 245, 212, 0.02) 1px,
     transparent 1px,
     transparent 3px
   );
 }
 
-/* ── Panneaux GUI : ligne de données qui balaie l'en-tête ── */
+/* ── Panneaux GUI : ligne de données — au survol du panneau seulement ── */
 .gui-stream {
   position: relative;
   overflow: hidden;
@@ -315,12 +388,17 @@
   left: 0;
   height: 1px;
   width: 30%;
+  opacity: 0;
   background: linear-gradient(
     90deg,
     transparent,
     rgba(0, 245, 212, 0.9),
     transparent
   );
+}
+.card:hover .gui-stream::after,
+.gui-stream:hover::after {
+  opacity: 1;
   animation: gui-stream 3.2s linear infinite;
 }
 @keyframes gui-stream {
@@ -328,9 +406,13 @@
   100% { transform: translateX(420%); }
 }
 
-/* ── Flicker holographique (texte / icônes "en direct") ── */
+/* ── Pastille "en direct" : statique par défaut, flicker au survol du panneau ── */
 .holo-flicker {
-  animation: holo-flicker 4.5s linear infinite;
+  opacity: 0.9;
+}
+.card:hover .holo-flicker,
+.holo-flicker:hover {
+  animation: holo-flicker 1.6s linear;
 }
 @keyframes holo-flicker {
   0%, 100% { opacity: 1; }
@@ -342,7 +424,7 @@
   74% { opacity: 1; }
 }
 
-/* ── Coins d'équerre animés au survol d'une carte ── */
+/* ── Coins d'équerre au survol d'une carte ── */
 .corner-frame {
   position: relative;
 }
@@ -354,7 +436,7 @@
   height: 10px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-base) var(--ease-out-soft);
 }
 .corner-frame::before {
   top: 4px;
@@ -375,7 +457,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gui-stream::after,
-  .holo-flicker {
+  .card:hover .gui-stream::after,
+  .gui-pulse:hover,
+  .card:hover .holo-flicker,
+  .holo-flicker:hover {
     animation: none;
   }
 }
@@ -389,7 +474,7 @@
 .lite .eq > i,
 .lite .gui-stream::after,
 .lite .holo-flicker,
-.lite .gui-pulse,
+.lite .gui-pulse:hover,
 .lite .animate-flicker,
 .lite .card.scan-hover:hover::after,
 .lite .cursor::after {
@@ -417,7 +502,7 @@
   .marquee-track { animation: none; }
 }
 
-/* ── Audio deck : égaliseur animé ── */
+/* ── Audio deck : égaliseur (reflète l'état de lecture réel) ── */
 .eq {
   display: inline-flex;
   align-items: flex-end;
@@ -482,7 +567,7 @@
 .attack-line {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
-  animation: attack-draw 1.8s ease-out forwards;
+  animation: attack-draw 1.8s var(--ease-out-soft) forwards;
 }
 @keyframes attack-draw {
   to { stroke-dashoffset: 0; }
@@ -496,4 +581,11 @@
   0% { transform: scale(0.4); opacity: 0.9; }
   70% { opacity: 0; }
   100% { transform: scale(2.8); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attack-line,
+  .attack-ping {
+    animation: none;
+  }
 }
