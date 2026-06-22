@@ -1,5 +1,4 @@
-# UnknownX-077 // VAULT
-<img width="280" height="88" alt="image" src="https://github.com/user-attachments/assets/9d94fc43-e463-49e2-8319-879a26423c00" />
+<img width="580" height="288" alt="image" src="https://github.com/user-attachments/assets/9d94fc43-e463-49e2-8319-879a26423c00" />
 
 
 Plateforme personnelle de cybersécurité — ressources, write-ups CTF, outils, veille threat-intel et notes de terrain. Thème **Akira / Cyberpunk**.
