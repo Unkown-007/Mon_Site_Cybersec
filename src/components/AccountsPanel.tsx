@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StatusDot } from "@/components/StatusDot";
+import { Panel, Button } from "@/components/ui";
 
 /*
  * Panneau "Comptes" — données GitHub réelles (via /api/github) + lien TryHackMe.
@@ -59,14 +60,14 @@ export function AccountsPanel() {
     <section>
       <div className="flex items-end justify-between mb-4">
         <h2 className="label">COMPTES</h2>
-        <span className="font-mono text-[11px] text-muted">profils externes</span>
+        <span className="text-label text-muted">profils externes</span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* GitHub */}
-        <div className="card p-5">
+        <Panel>
           <div className="flex items-center justify-between mb-4">
-            <span className="label !text-secondary">// GITHUB</span>
+            <span className="label">// GITHUB</span>
             <StatusDot
               state={loading ? "idle" : ok ? "online" : "warn"}
               label={loading ? "sync…" : ok ? "connecté" : "injoignable"}
@@ -74,17 +75,17 @@ export function AccountsPanel() {
           </div>
 
           {loading ? (
-            <p className="font-mono text-xs text-muted">
+            <p className="font-mono text-body-sm text-muted">
               récupération du profil<span className="cursor" aria-hidden="true" />
             </p>
           ) : !ok ? (
-            <p className="font-mono text-xs text-muted">
+            <p className="font-mono text-body-sm text-muted">
               GitHub injoignable.{" "}
               <a
                 href="https://github.com/Unkown-007"
                 target="_blank"
                 rel="noreferrer"
-                className="text-secondary hover:text-primary"
+                className="focus-ring rounded-sm text-muted underline-offset-2 transition-colors duration-fast ease-out-soft hover:text-secondary"
               >
                 Voir le profil →
               </a>
@@ -95,7 +96,7 @@ export function AccountsPanel() {
                 href={p.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 group"
+                className="focus-ring group flex items-center gap-3 rounded-sm"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -106,10 +107,10 @@ export function AccountsPanel() {
                   className="h-11 w-11 rounded-full border border-line-strong"
                 />
                 <div className="min-w-0">
-                  <div className="text-ink text-sm group-hover:text-primary transition-colors">
+                  <div className="text-body-sm text-ink transition-colors duration-fast ease-out-soft group-hover:text-primary">
                     {p.name ?? p.login}
                   </div>
-                  <div className="font-mono text-[11px] text-muted truncate">
+                  <div className="truncate font-mono text-label text-muted">
                     @{p.login}
                     {p.company ? ` · ${p.company}` : ""}
                     {p.location ? ` · ${p.location}` : ""}
@@ -117,7 +118,7 @@ export function AccountsPanel() {
                 </div>
               </a>
 
-              <div className="mt-4 grid grid-cols-3 gap-px bg-line-strong border border-line-strong text-center">
+              <div className="mt-4 grid grid-cols-3 gap-px border border-line-strong bg-line-strong text-center">
                 <Mini value={p.publicRepos} label="repos" />
                 <Mini value={p.followers} label="followers" />
                 <Mini value={p.following} label="following" />
@@ -131,17 +132,17 @@ export function AccountsPanel() {
                         href={r.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="card block p-3 hover:border-secondary/40 transition-colors"
+                        className="focus-ring block rounded-md border border-line bg-base p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-xs text-ink truncate">{r.name}</span>
-                          <span className="font-mono text-[10px] text-muted shrink-0">
+                          <span className="truncate font-mono text-body-sm text-ink">{r.name}</span>
+                          <span className="shrink-0 font-mono text-label text-muted">
                             {r.language ?? "—"}
                             {r.stars > 0 ? ` · ★ ${r.stars}` : ""}
                           </span>
                         </div>
                         {r.description && (
-                          <p className="mt-1 text-xs text-muted leading-snug line-clamp-2">
+                          <p className="mt-1 line-clamp-2 text-body-sm text-muted">
                             {r.description}
                           </p>
                         )}
@@ -152,35 +153,36 @@ export function AccountsPanel() {
               )}
             </>
           )}
-        </div>
+        </Panel>
 
         {/* TryHackMe */}
-        <div className="card p-5 flex flex-col">
+        <Panel>
           <div className="flex items-center justify-between mb-4">
-            <span className="label !text-secondary">// TRYHACKME</span>
+            <span className="label">// TRYHACKME</span>
             <StatusDot state="idle" label="lien" />
           </div>
-          <p className="font-mono text-xs text-muted leading-relaxed flex-1">
+          <p className="font-mono text-body-sm text-muted">
             TryHackMe ne propose pas d&apos;API publique synchronisable
             (protection anti-bot). Profil consultable directement :
           </p>
+          <Button
+            variant="ghost"
+            href={THM_PROFILE}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 w-full"
+          >
+            Ouvrir le profil TryHackMe →
+          </Button>
           <a
             href={THM_PROFILE}
             target="_blank"
             rel="noreferrer"
-            className="btn btn-ghost w-full justify-center mt-4"
-          >
-            Ouvrir le profil TryHackMe →
-          </a>
-          <a
-            href="https://tryhackme.com/p/ThalesX01"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 font-mono text-[11px] text-muted text-center hover:text-secondary"
+            className="focus-ring mt-3 rounded-sm text-center font-mono text-label text-muted transition-colors duration-fast ease-out-soft hover:text-secondary"
           >
             tryhackme.com/p/ThalesX01
           </a>
-        </div>
+        </Panel>
       </div>
     </section>
   );
@@ -189,8 +191,8 @@ export function AccountsPanel() {
 function Mini({ value, label }: { value: number; label: string }) {
   return (
     <div className="bg-surface px-2 py-3">
-      <div className="font-display font-bold text-lg tabular-nums text-secondary">{value}</div>
-      <div className="label mt-0.5 justify-center !text-[9px]">{label}</div>
+      <div className="font-display text-h3 font-bold tabular-nums text-ink-strong">{value}</div>
+      <div className="label mt-0.5 justify-center">{label}</div>
     </div>
   );
 }
