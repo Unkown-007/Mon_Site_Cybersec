@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Texte avec glitch RGB. Par défaut au survol ; `auto` déclenche
- * périodiquement, `trigger` (clé qui change) force un glitch ponctuel.
+ * Texte avec glitch RGB. Au survol par défaut ; `auto` déclenche UNE fois au
+ * mount (titre clé), `trigger` (clé qui change) force un glitch ponctuel.
+ * Plus de boucle permanente — l'effet reste rare et impactant.
  */
 export function GlitchText({
   text,
@@ -35,8 +36,8 @@ export function GlitchText({
 
   useEffect(() => {
     if (!auto) return;
-    const id = setInterval(fire, 3800);
-    return () => clearInterval(id);
+    // Un seul glitch au mount (plus de boucle permanente).
+    fire();
   }, [auto, fire]);
 
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
