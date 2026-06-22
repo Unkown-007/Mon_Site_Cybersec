@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifySession, SESSION_COOKIE } from "@/lib/session";
 
 /*
  * Profil GitHub en direct depuis l'API publique GitHub.
  * Exécuté côté serveur (pas de CORS, quota plus large), avec cache 1 h.
- * Aucun token requis pour les données publiques.
+ * Confidentialité : réservé au propriétaire (rôle admin) — un visiteur ne peut
+ * pas récupérer le profil perso, même en appelant l'API directement.
  * Doc : https://docs.github.com/rest/users
  */
 
@@ -38,6 +41,13 @@ interface GhRepo {
 }
 
 export async function GET(request: Request) {
+  // Garde : seul le propriétaire (admin) accède aux comptes perso.
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  const session = await verifySession(token);
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ source: "forbidden", profile: null, repos: [] }, { status: 403 });
+  }
+
   const user = new URL(request.url).searchParams.get("user") || DEFAULT_USER;
   const headers: HeadersInit = {
     "User-Agent": "UnknownX-077/0.1",
