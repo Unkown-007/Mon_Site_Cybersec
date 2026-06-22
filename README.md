@@ -1,4 +1,4 @@
-<img width="1181" height="360" alt="image" src="https://github.com/user-attachments/assets/3d352482-d599-4b0b-b741-983ceac71083" />
+<img width="288" height="88" alt="image" src="https://github.com/user-attachments/assets/3d352482-d599-4b0b-b741-983ceac71083" />
 
 
 Plateforme personnelle de cybersécurité — ressources, write-ups CTF, outils, veille threat-intel et notes de terrain. Thème **Akira / Cyberpunk**.
