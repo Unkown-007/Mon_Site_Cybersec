@@ -8,11 +8,12 @@ import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
 
-type Tab = "revshell" | "gtfo" | "codec" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
+type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
   { id: "revshell", label: "Reverse Shell" },
   { id: "gtfo", label: "GTFOBins / LOLBAS" },
   { id: "codec", label: "Encodeur / Décodeur" },
+  { id: "pipe", label: "Pipeline" },
   { id: "hash", label: "Hash" },
   { id: "jwt", label: "JWT" },
   { id: "gen", label: "Générateur" },
@@ -58,6 +59,7 @@ export default function ToolkitPage() {
       {tab === "revshell" && <RevShell />}
       {tab === "gtfo" && <Gtfobins />}
       {tab === "codec" && <Codec />}
+      {tab === "pipe" && <Pipeline />}
       {tab === "hash" && <HashTool />}
       {tab === "jwt" && <JwtTool />}
       {tab === "gen" && <Generator />}
@@ -397,6 +399,153 @@ function Codec() {
         ))}
       </div>
     </div>
+  );
+}
+
+/* ───────────── 2bis. Pipeline d'encodage (CyberChef-lite) ───────────── */
+
+const PIPE_OPS: { id: string; label: string; fn: (s: string) => string }[] = [
+  { id: "b64e", label: "Base64 ▸ encode", fn: (s) => safe(b64e, s) },
+  { id: "b64d", label: "Base64 ▸ decode", fn: (s) => safe(b64d, s) },
+  { id: "urle", label: "URL ▸ encode", fn: (s) => encodeURIComponent(s) },
+  { id: "urld", label: "URL ▸ decode", fn: (s) => safe(decodeURIComponent, s) },
+  { id: "hexe", label: "Hex ▸ encode", fn: (s) => hexe(s) },
+  { id: "hexd", label: "Hex ▸ decode", fn: (s) => safe(hexd, s) },
+  { id: "rot13", label: "ROT13", fn: rot13 },
+  {
+    id: "uni-e",
+    label: "Unicode ▸ \\uXXXX",
+    fn: (s) =>
+      Array.from(s)
+        .map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+        .join(""),
+  },
+  {
+    id: "uni-d",
+    label: "Unicode ▸ decode",
+    fn: (s) =>
+      safe(
+        (x) => x.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))),
+        s,
+      ),
+  },
+  { id: "rev", label: "Inverser", fn: (s) => Array.from(s).reverse().join("") },
+  { id: "upper", label: "MAJUSCULES", fn: (s) => s.toUpperCase() },
+  { id: "lower", label: "minuscules", fn: (s) => s.toLowerCase() },
+];
+
+const PIPE_MAP = new Map(PIPE_OPS.map((o) => [o.id, o]));
+
+function Pipeline() {
+  const [input, setInput] = useState("");
+  const [steps, setSteps] = useState<string[]>(["b64e"]);
+  const [sel, setSel] = useState(PIPE_OPS[0].id);
+
+  const output = useMemo(() => {
+    let cur = input;
+    for (const id of steps) {
+      const op = PIPE_MAP.get(id);
+      if (op) cur = op.fn(cur);
+    }
+    return cur;
+  }, [input, steps]);
+
+  const add = () => setSteps((s) => [...s, sel]);
+  const remove = (i: number) => setSteps((s) => s.filter((_, j) => j !== i));
+  const move = (i: number, d: number) =>
+    setSteps((s) => {
+      const j = i + d;
+      if (j < 0 || j >= s.length) return s;
+      const n = [...s];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="entrée…"
+        spellCheck={false}
+        className="field min-h-[90px] resize-y"
+        aria-label="Entrée du pipeline"
+      />
+
+      {/* Construction de la recette */}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={sel}
+          onChange={(e) => setSel(e.target.value)}
+          className="field !w-auto !py-2"
+          aria-label="Opération à ajouter"
+        >
+          {PIPE_OPS.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <Button variant="ghost" size="sm" onClick={add}>
+          + Ajouter l&apos;étape
+        </Button>
+        {steps.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={() => setSteps([])}>
+            Vider
+          </Button>
+        )}
+      </div>
+
+      {/* Étapes ordonnées */}
+      {steps.length === 0 ? (
+        <p className="font-mono text-body-sm text-muted">
+          [ recette vide — ajoute des étapes, elles s&apos;appliquent de haut en bas ]
+        </p>
+      ) : (
+        <ol className="space-y-2">
+          {steps.map((id, i) => (
+            <li
+              key={`${id}-${i}`}
+              className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2"
+            >
+              <span className="label text-primary">{String(i + 1).padStart(2, "0")}</span>
+              <span className="flex-1 font-mono text-body-sm text-ink">{PIPE_MAP.get(id)?.label}</span>
+              <div className="flex items-center gap-1">
+                <IconBtn label="Monter" onClick={() => move(i, -1)} disabled={i === 0}>↑</IconBtn>
+                <IconBtn label="Descendre" onClick={() => move(i, 1)} disabled={i === steps.length - 1}>↓</IconBtn>
+                <IconBtn label="Retirer" onClick={() => remove(i)}>✕</IconBtn>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <CopyBlock label="Sortie" value={output} />
+    </div>
+  );
+}
+
+function IconBtn({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="focus-ring rounded-sm border border-line-strong px-2 py-1 font-mono text-xs text-muted transition-colors duration-fast ease-out-soft hover:text-secondary disabled:opacity-30 disabled:pointer-events-none"
+    >
+      {children}
+    </button>
   );
 }
 
