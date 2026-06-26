@@ -43,7 +43,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-line-strong bg-base/70 backdrop-blur-[8px]">
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-primary/20 bg-base/60 backdrop-blur-[12px]" style={{ boxShadow: '0 1px 12px rgba(123,92,240,0.15), inset 0 -1px 0 rgba(123,92,240,0.1)' }}>
       <nav className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between gap-4">
         <Link href="/" className="shrink-0" aria-label="Accueil UnknownX-077">
           <LogoWordmark />
@@ -95,8 +95,8 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute left-0 top-full w-64 p-1.5 rounded-sm border bg-surface/95 backdrop-blur-md"
-                    style={{ borderColor: "rgba(123,92,240,0.25)" }}
+                    className="absolute left-0 top-full w-64 p-1.5 rounded-sm border bg-surface/90 backdrop-blur-xl"
+                    style={{ borderColor: "rgba(123,92,240,0.3)", boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 1px rgba(123,92,240,0.3)' }}
                   >
                     {g.hrefs.map((h) => {
                       const it = item(h);

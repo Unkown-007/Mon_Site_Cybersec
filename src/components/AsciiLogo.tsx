@@ -18,7 +18,7 @@ export function AsciiLogo({ tagline = true }: { tagline?: boolean }) {
         aria-label="UnknownX-077"
         className="mx-auto w-max select-none bg-gradient-to-r from-primary via-secondary to-primary
                    bg-clip-text text-transparent
-                   text-[7px] sm:text-[10px] md:text-[13px]"
+                   text-[9px] sm:text-[10px] md:text-[13px]"
         style={{
           fontFamily:
             '"Cascadia Mono", "Cascadia Code", Consolas, "DejaVu Sans Mono", ui-monospace, monospace',

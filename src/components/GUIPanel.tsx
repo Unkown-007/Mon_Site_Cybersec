@@ -19,7 +19,7 @@ const POS: Record<Position, string> = {
 const SIZE: Record<Size, string> = { sm: "w-48", md: "w-60", lg: "w-80" };
 
 function Corner({ at, danger }: { at: "tl" | "tr" | "bl" | "br"; danger?: boolean }) {
-  const color = danger ? "border-danger" : "border-primary";
+  const color = danger ? "border-danger shadow-[0_0_8px_var(--danger)]" : "border-primary shadow-[0_0_8px_var(--primary)]";
   const map: Record<string, string> = {
     tl: "top-0 left-0 border-t border-l",
     tr: "top-0 right-0 border-t border-r",
@@ -55,9 +55,11 @@ export function GUIPanel({
       } overflow-hidden ${className ?? ""}`}
       style={{
         borderColor: danger ? "rgba(255,61,96,0.4)" : "rgba(123,92,240,0.4)",
-        background: "rgba(10,10,18,0.62)",
+        background: "rgba(10,10,18,0.65)",
+        backdropFilter: "blur(12px)",
       }}
     >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
       <Corner at="tl" danger={danger} />
       <Corner at="tr" danger={danger} />
       <Corner at="bl" danger={danger} />
