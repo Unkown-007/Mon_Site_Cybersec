@@ -5,6 +5,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { GUIPanel } from "@/components/GUIPanel";
 import { Badge } from "@/components/ui";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion, motion } from "framer-motion";
+import { CveSkeletonCard } from "@/components/ui/Skeletons";
+
 
 interface ApiCve {
   id: string;
@@ -82,6 +86,10 @@ const SCORE_FILTERS = [
 ];
 
 export default function VeillePage() {
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+
   const [items, setItems] = useState<ApiCve[]>([]);
   const [source, setSource] = useState<"nvd" | "fallback" | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,6 +182,19 @@ export default function VeillePage() {
     setTerm("");
   };
   const removeTerm = (t: string) => setWatch((w) => w.filter((x) => x !== t));
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: disableAnimation ? 0 : 0.05 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: disableAnimation ? 0 : 6 },
+    visible: { opacity: 1, y: 0, transition: { duration: disableAnimation ? 0 : 0.25 } }
+  };
 
   return (
     <div>
@@ -326,17 +347,28 @@ export default function VeillePage() {
           )}
 
           {loading ? (
-            <div className="card p-8 text-center font-mono text-sm text-muted">
-              interrogation de l&apos;API NVD<span className="cursor" aria-hidden="true" />
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <CveSkeletonCard key={i} disableAnimation={disableAnimation} />
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="card p-8 text-center font-mono text-sm text-muted">
               [ aucune CVE pour ce filtre ]
             </div>
           ) : (
-            <ul className="space-y-2">
+            <motion.ul
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-2"
+            >
               {sorted.map((c) => (
-                <li key={c.id} className="card p-4">
+                <motion.li
+                  variants={itemVariants}
+                  key={c.id}
+                  className="card p-4"
+                >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <a
                       href={`https://nvd.nist.gov/vuln/detail/${c.id}`}
@@ -371,9 +403,9 @@ export default function VeillePage() {
                     {c.vendor !== "n/a" ? `${c.vendor} · ` : ""}
                     {c.published}
                   </div>
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           )}
         </section>
 

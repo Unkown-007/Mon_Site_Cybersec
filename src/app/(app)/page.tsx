@@ -9,6 +9,7 @@ import { CoverageBars } from "@/components/CoverageBars";
 import { AccountsPanel } from "@/components/AccountsPanel";
 import { Panel, Badge } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
+import { ModuleCard } from "@/components/ModuleCard";
 import {
   STATS,
   WRITEUPS,
@@ -85,6 +86,37 @@ const MODULES = [
   },
 ];
 
+const MODULE_ICONS: Record<string, React.ReactNode> = {
+  RES: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+      <path d="M6 6h10" />
+      <path d="M6 10h10" />
+    </svg>
+  ),
+  WUP: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  ),
+  TLS: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  ),
+  INT: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      <path d="M2 12h20" />
+    </svg>
+  ),
+};
+
+
 export default function Dashboard() {
   const { user } = useAuth();
   const reduce = useReducedMotion();
@@ -116,7 +148,7 @@ export default function Dashboard() {
           de {user?.name ?? "l'opérateur"}.
         </h1>
         <p className="mt-6 max-w-2xl text-body text-muted">
-          Base de ressources, write-ups CTF, arsenal d'outils et veille
+          Base de ressources, write-ups CTF, arsenal d&apos;outils et veille
           threat-intel — centralisés dans un espace de travail unique.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -199,22 +231,15 @@ export default function Dashboard() {
         >
           {MODULES.map((m) => (
             <motion.div key={m.href} variants={item}>
-              <Link
+              <ModuleCard
                 href={m.href}
-                className="focus-ring group block rounded-md border border-line bg-surface p-5 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
-              >
-                <div className="mb-4 flex items-start justify-between">
-                  <span className="label text-primary">{m.code}</span>
-                  <span className="text-muted transition-colors duration-fast ease-out-soft group-hover:text-secondary">
-                    →
-                  </span>
-                </div>
-                <h3 className="mb-2 font-display text-h3 text-ink-strong">{m.title}</h3>
-                <p className="text-body-sm text-muted">{m.desc}</p>
-                <div className="mt-4 border-t border-line-subtle pt-3 text-label text-muted">
-                  {m.meta}
-                </div>
-              </Link>
+                code={m.code}
+                title={m.title}
+                desc={m.desc}
+                meta={m.meta}
+                accent={m.code === "INT" ? "secondary" : "primary"}
+                icon={MODULE_ICONS[m.code]}
+              />
             </motion.div>
           ))}
         </motion.div>

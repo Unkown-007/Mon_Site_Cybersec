@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 import { Badge, Button, Panel } from "@/components/ui";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
 import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion, motion } from "framer-motion";
+import { ToolkitTabSkeleton } from "@/components/ui/ToolkitTabSkeleton";
 
 type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "cvss" | "cmd" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
@@ -25,7 +28,37 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function ToolkitPage() {
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+
   const [tab, setTab] = useState<Tab>("revshell");
+  const [activeTab, setActiveTab] = useState<Tab>("revshell");
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const changeTab = (newTab: Tab) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setTab(newTab);
+
+    if (disableAnimation) {
+      setActiveTab(newTab);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    timerRef.current = setTimeout(() => {
+      setActiveTab(newTab);
+      setLoading(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return (
     <div>
@@ -46,7 +79,7 @@ export default function ToolkitPage() {
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => changeTab(t.id)}
             className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
               tab === t.id
                 ? "border-primary text-primary bg-primary/10"
@@ -58,18 +91,29 @@ export default function ToolkitPage() {
         ))}
       </div>
 
-      {tab === "revshell" && <RevShell />}
-      {tab === "gtfo" && <Gtfobins />}
-      {tab === "codec" && <Codec />}
-      {tab === "pipe" && <Pipeline />}
-      {tab === "hash" && <HashTool />}
-      {tab === "jwt" && <JwtTool />}
-      {tab === "cvss" && <CvssTool />}
-      {tab === "cmd" && <CmdBuilder />}
-      {tab === "gen" && <Generator />}
-      {tab === "hashid" && <HashId />}
-      {tab === "cidr" && <CidrTool />}
-      {tab === "time" && <TimeTool />}
+      {loading ? (
+        <ToolkitTabSkeleton tabId={tab} />
+      ) : (
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: disableAnimation ? 1 : 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: disableAnimation ? 0 : 0.2 }}
+        >
+          {activeTab === "revshell" && <RevShell />}
+          {activeTab === "gtfo" && <Gtfobins />}
+          {activeTab === "codec" && <Codec />}
+          {activeTab === "pipe" && <Pipeline />}
+          {activeTab === "hash" && <HashTool />}
+          {activeTab === "jwt" && <JwtTool />}
+          {activeTab === "cvss" && <CvssTool />}
+          {activeTab === "cmd" && <CmdBuilder />}
+          {activeTab === "gen" && <Generator />}
+          {activeTab === "hashid" && <HashId />}
+          {activeTab === "cidr" && <CidrTool />}
+          {activeTab === "time" && <TimeTool />}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -259,7 +303,7 @@ function Gtfobins() {
 
       {/* Recherche — élément focal cyan */}
       <div className="flex items-center gap-3 rounded-md border border-secondary/40 bg-surface px-4 py-3 transition-[border-color,box-shadow] duration-base ease-out-soft [--glow-color:var(--secondary)] focus-within:border-secondary focus-within:shadow-glow">
-        <span className="shrink-0 font-mono text-sm text-secondary">// SEARCH</span>
+        <span className="shrink-0 font-mono text-sm text-secondary">{"// SEARCH"}</span>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

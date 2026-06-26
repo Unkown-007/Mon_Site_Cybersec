@@ -590,3 +590,162 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   UnknownX-077 — Custom styles for Immersive 404 (Alarm Red) & Skeletons
+   ============================================================ */
+
+/* Red Glow effect for alarm headings */
+.text-glow-danger {
+  text-shadow: 0 0 18px rgba(255, 61, 96, 0.6);
+}
+
+/* Red HUD Scanlines (similar pattern to hud-scanlines but in danger red) */
+.hud-scanlines-danger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 61, 96, 0.03) 0px,
+    rgba(255, 61, 96, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Cyberpunk Alarm Corners for the main panel */
+.corner-frame-danger {
+  position: relative;
+}
+.corner-frame-danger::before,
+.corner-frame-danger::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity var(--dur-base) var(--ease-out-soft);
+}
+.corner-frame-danger::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--danger);
+  border-left: 2px solid var(--danger);
+}
+.corner-frame-danger::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--danger);
+  border-right: 2px solid var(--danger);
+}
+
+/* Alarm-themed Buttons */
+.btn-primary-danger {
+  background: rgba(255, 61, 96, 0.12);
+  border: 1px solid var(--danger);
+  color: #ffccd5;
+}
+.btn-primary-danger:hover {
+  background: rgba(255, 61, 96, 0.22);
+  box-shadow: 0 0 12px rgba(255, 61, 96, 0.2);
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+.btn-ghost-danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(255, 61, 96, 0.05);
+}
+
+/* Slow warning pulsing animation */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.55; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite ease-in-out;
+}
+
+/* Cyberpunk terminal skeleton shimmer block */
+.terminal-skeleton {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.terminal-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(123, 92, 240, 0.08), /* Subtle violet primary glow */
+    transparent
+  );
+  animation: terminal-shimmer 1.8s infinite;
+}
+
+@keyframes terminal-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Terminal stepped pulsing for skeletons */
+@keyframes pulse-stepped {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.75; }
+}
+.animate-pulse-stepped {
+  animation: pulse-stepped 1.6s steps(4) infinite;
+}
+
+/* Technical Compliance Overrides */
+.lite .hud-scanlines-danger::after {
+  display: none !important;
+}
+.lite .text-glow-danger {
+  text-shadow: none !important;
+}
+.lite .animate-pulse-slow {
+  animation: none !important;
+  opacity: 1 !important;
+}
+.lite .btn-primary-danger:hover {
+  box-shadow: none !important;
+}
+.lite .terminal-skeleton::after {
+  display: none !important;
+}
+.lite .animate-pulse-stepped {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow,
+  .corner-frame-danger::before,
+  .corner-frame-danger::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .terminal-skeleton::after {
+    animation: none !important;
+  }
+  .animate-pulse-stepped {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+

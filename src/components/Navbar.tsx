@@ -8,6 +8,9 @@ import { LogoWordmark } from "@/components/Logo";
 import { StatusDot } from "@/components/StatusDot";
 import { NAV_ITEMS, ADMIN_ITEM, type NavItem } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion } from "framer-motion";
+
 
 const item = (href: string): NavItem =>
   NAV_ITEMS.find((n) => n.href === href) ?? ADMIN_ITEM;
@@ -23,6 +26,9 @@ const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal")
 export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { lite } = usePerf();
+  const prefersReducedMotion = useReducedMotion();
+  const bypass = lite || prefersReducedMotion;
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const [acc, setAcc] = useState<string | null>(null);
@@ -60,12 +66,26 @@ export function Navbar() {
             >
               <button
                 onClick={() => setOpenGroup((v) => (v === g.label ? null : g.label))}
-                className={`px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors flex items-center gap-1 ${
+                className={`relative group px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors flex items-center gap-1 ${
                   groupActive(g) ? "text-secondary" : "text-muted hover:text-ink"
                 }`}
               >
                 {g.label}
                 <span className="text-[8px]">▾</span>
+                {!groupActive(g) && (
+                  <span className="absolute bottom-0 left-1/2 w-0 h-[2px] bg-secondary -translate-x-1/2 group-hover:w-full group-hover:left-0 group-hover:translate-x-0 transition-all duration-base ease-out-soft" />
+                )}
+                {groupActive(g) && (
+                  bypass ? (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary" />
+                  ) : (
+                    <motion.span
+                      layoutId="navActiveIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )
+                )}
               </button>
 
               <AnimatePresence>
@@ -147,7 +167,7 @@ export function Navbar() {
             </>
           ) : (
             <Link href="/login" className="btn btn-primary !py-2 !px-4">
-              // Connect
+              {"// Connect"}
             </Link>
           )}
         </div>
@@ -241,7 +261,7 @@ export function Navbar() {
                   </button>
                 ) : (
                   <Link href="/login" className="btn btn-primary w-full justify-center">
-                    // Connect
+                    {"// Connect"}
                   </Link>
                 )}
               </div>
@@ -262,14 +282,32 @@ function NavTopLink({
   active: boolean;
   children: React.ReactNode;
 }) {
+  const { lite } = usePerf();
+  const prefersReducedMotion = useReducedMotion();
+  const bypass = lite || prefersReducedMotion;
+
   return (
     <Link
       href={href}
-      className={`px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors ${
+      className={`relative group px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors ${
         active ? "text-secondary" : "text-muted hover:text-ink"
       }`}
     >
       {children}
+      {!active && (
+        <span className="absolute bottom-0 left-1/2 w-0 h-[2px] bg-secondary -translate-x-1/2 group-hover:w-full group-hover:left-0 group-hover:translate-x-0 transition-all duration-base ease-out-soft" />
+      )}
+      {active && (
+        bypass ? (
+          <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary" />
+        ) : (
+          <motion.span
+            layoutId="navActiveIndicator"
+            className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )
+      )}
     </Link>
   );
 }
@@ -289,8 +327,8 @@ function MobLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`py-3 border-b border-line font-mono text-sm uppercase tracking-[2px] ${
-        active ? "text-secondary" : "text-ink"
+      className={`block py-3 border-b border-line border-l-2 font-mono text-sm uppercase tracking-[2px] pl-3 transition-all ${
+        active ? "border-l-secondary text-secondary bg-secondary/5" : "border-l-transparent text-ink hover:text-ink-strong"
       }`}
     >
       {children}

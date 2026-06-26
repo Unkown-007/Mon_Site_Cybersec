@@ -7,7 +7,7 @@ import { CyberCityBackground } from "@/components/CyberCityBackground";
 import { CrosshairCursor } from "@/components/CrosshairCursor";
 import { SfxClicks } from "@/components/SfxClicks";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { PerfProvider } from "@/lib/perf";
+import { PerfProvider, MotionComplianceConfig } from "@/lib/perf";
 import { PerfToggle } from "@/components/PerfToggle";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -43,17 +43,19 @@ export default function RootLayout({
     <html lang="fr" className={`${orbitron.variable} ${shareTechMono.variable}`}>
       <body>
         <PerfProvider>
-          <CyberCityBackground />
-          <CrosshairCursor />
-          <SfxClicks />
-          <div className="scanline" aria-hidden="true" />
-          <PerfToggle />
-          <AuthProvider>
-            <ToastProvider>
-              <div className="relative z-10">{children}</div>
-              <MusicPlayer />
-            </ToastProvider>
-          </AuthProvider>
+          <MotionComplianceConfig>
+            <CyberCityBackground />
+            <CrosshairCursor />
+            <SfxClicks />
+            <div className="scanline" aria-hidden="true" />
+            <PerfToggle />
+            <AuthProvider>
+              <ToastProvider>
+                <div className="relative z-10">{children}</div>
+                <MusicPlayer />
+              </ToastProvider>
+            </AuthProvider>
+          </MotionComplianceConfig>
         </PerfProvider>
         <Analytics />
       </body>

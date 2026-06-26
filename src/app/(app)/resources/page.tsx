@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion, motion } from "framer-motion";
+import { ResourceSkeletonCard } from "@/components/ui/Skeletons";
 import {
   RESOURCES,
   DOMAINS,
@@ -39,10 +42,37 @@ ${r.desc}
 
 export default function ResourcesPage() {
   const { push } = useToast();
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState<Domain | null>(null);
   const [type, setType] = useState<ResourceType | null>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    if (disableAnimation) {
+      setLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, [disableAnimation]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: disableAnimation ? 0 : 0.04 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: disableAnimation ? 0 : 6 },
+    visible: { opacity: 1, y: 0, transition: { duration: disableAnimation ? 0 : 0.25 } }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -107,7 +137,7 @@ export default function ResourcesPage() {
 
       {/* Recherche terminal */}
       <div className="card flex items-center gap-3 px-4 py-3 mb-6">
-        <span className="font-mono text-sm text-secondary shrink-0">// SEARCH</span>
+        <span className="font-mono text-sm text-secondary shrink-0">{"// SEARCH"}</span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -148,11 +178,7 @@ export default function ResourcesPage() {
             <span className="label !text-muted">{filtered.length} résultat(s)</span>
           </div>
 
-          {filtered.length === 0 ? (
-            <div className="card p-8 text-center font-mono text-sm text-muted">
-              [ aucun résultat ] — ajuste la recherche ou les filtres.
-            </div>
-          ) : (
+          {loading ? (
             <div
               className={
                 view === "grid"
@@ -160,8 +186,28 @@ export default function ResourcesPage() {
                   : "flex flex-col gap-3"
               }
             >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ResourceSkeletonCard key={i} view={view} disableAnimation={disableAnimation} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="card p-8 text-center font-mono text-sm text-muted">
+              [ aucun résultat ] — ajuste la recherche ou les filtres.
+            </div>
+          ) : (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className={
+                view === "grid"
+                  ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                  : "flex flex-col gap-3"
+              }
+            >
               {filtered.map((r) => (
-                <article
+                <motion.article
+                  variants={itemVariants}
                   key={r.id}
                   className={`card p-4 group flex flex-col ${view === "list" ? "sm:flex-row sm:items-center sm:gap-4" : ""}`}
                 >
@@ -207,9 +253,9 @@ export default function ResourcesPage() {
                       ⬇ .md
                     </button>
                   </div>
-                </article>
+                </motion.article>
               ))}
-            </div>
+            </motion.div>
           )}
         </section>
       </div>

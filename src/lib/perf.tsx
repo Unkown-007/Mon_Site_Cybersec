@@ -58,3 +58,15 @@ export function usePerf(): PerfContextValue {
   // Repli sûr si utilisé hors provider (évite tout crash).
   return ctx ?? { lite: false, toggle: () => {}, setLite: () => {} };
 }
+
+import { MotionConfig } from "framer-motion";
+
+export function MotionComplianceConfig({ children }: { children: ReactNode }) {
+  const { lite } = usePerf();
+  return (
+    <MotionConfig reducedMotion={lite ? "always" : "user"}>
+      {children}
+    </MotionConfig>
+  );
+}
+
