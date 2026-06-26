@@ -10,6 +10,7 @@ import { AccountsPanel } from "@/components/AccountsPanel";
 import { Panel, Badge } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { ModuleCard } from "@/components/ModuleCard";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   STATS,
   WRITEUPS,
@@ -143,7 +144,7 @@ export default function Dashboard() {
           <span className="label text-secondary">SYSTÈME OPÉRATIONNEL</span>
         </div>
         <h1 className="max-w-3xl font-display text-display text-ink-strong">
-          Centre de commande <span className="text-primary">cyber</span>
+          Centre de commande <span className="text-gradient-primary">cyber</span>
           <br />
           de {user?.name ?? "l'opérateur"}.
         </h1>
@@ -174,7 +175,7 @@ export default function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 gap-px border border-line-strong bg-line-strong lg:grid-cols-4"
+        className="grid grid-cols-2 gap-px rounded-md overflow-hidden border border-line-strong bg-line-strong lg:grid-cols-4"
       >
         <Stat value={STATS.resources} label="Ressources indexées" variant={item} />
         <Stat value={STATS.writeups} label="Write-ups publiés" variant={item} />
@@ -185,65 +186,78 @@ export default function Dashboard() {
       {/* COMPTES — données externes réelles */}
       <AccountsPanel />
 
+      {/* GRADIENT DIVIDER */}
+      <div className="divider-gradient" />
+
       {/* COUVERTURE — dérivée des vraies données */}
-      <section>
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="label">COUVERTURE DU COFFRE</h2>
-          <span className="text-label text-muted">
-            {STATS.domains} domaines · {STATS.resolved}/{STATS.writeups} write-ups résolus
-          </span>
-        </div>
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid gap-4 sm:grid-cols-2"
-        >
-          <motion.div variants={item}>
-            <Panel
-              code="RES"
-              title="Ressources / domaine"
-              right={<span className="font-mono text-label text-muted">Σ {RES_TOTAL}</span>}
-            >
-              <CoverageBars entries={COVERAGE_BY_DOMAIN} />
-            </Panel>
+      <ScrollReveal>
+        <section>
+          <div className="mb-4 flex items-end justify-between">
+            <h2 className="label">COUVERTURE DU COFFRE</h2>
+            <span className="text-label text-muted">
+              {STATS.domains} domaines · {STATS.resolved}/{STATS.writeups} write-ups résolus
+            </span>
+          </div>
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            <motion.div variants={item}>
+              <Panel
+                code="RES"
+                title="Ressources / domaine"
+                right={<span className="font-mono text-label text-muted">Σ {RES_TOTAL}</span>}
+              >
+                <CoverageBars entries={COVERAGE_BY_DOMAIN} />
+              </Panel>
+            </motion.div>
+            <motion.div variants={item}>
+              <Panel
+                code="ARS"
+                title="Arsenal / phase kill-chain"
+                right={<span className="font-mono text-label text-muted">Σ {ARS_TOTAL}</span>}
+              >
+                <CoverageBars entries={COVERAGE_BY_PHASE} />
+              </Panel>
+            </motion.div>
           </motion.div>
-          <motion.div variants={item}>
-            <Panel
-              code="ARS"
-              title="Arsenal / phase kill-chain"
-              right={<span className="font-mono text-label text-muted">Σ {ARS_TOTAL}</span>}
-            >
-              <CoverageBars entries={COVERAGE_BY_PHASE} />
-            </Panel>
-          </motion.div>
-        </motion.div>
-      </section>
+        </section>
+      </ScrollReveal>
+
+      {/* GRADIENT DIVIDER */}
+      <div className="divider-gradient" />
 
       {/* MODULES */}
-      <section>
-        <h2 className="label mb-4">MODULES</h2>
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          {MODULES.map((m) => (
-            <motion.div key={m.href} variants={item}>
-              <ModuleCard
-                href={m.href}
-                code={m.code}
-                title={m.title}
-                desc={m.desc}
-                meta={m.meta}
-                accent={m.code === "INT" ? "secondary" : "primary"}
-                icon={MODULE_ICONS[m.code]}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
+      <ScrollReveal delay={100}>
+        <section>
+          <h2 className="label mb-4">MODULES</h2>
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {MODULES.map((m) => (
+              <motion.div key={m.href} variants={item}>
+                <ModuleCard
+                  href={m.href}
+                  code={m.code}
+                  title={m.title}
+                  desc={m.desc}
+                  meta={m.meta}
+                  accent={m.code === "INT" ? "secondary" : "primary"}
+                  icon={MODULE_ICONS[m.code]}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
+      </ScrollReveal>
+
+      {/* GRADIENT DIVIDER */}
+      <div className="divider-gradient" />
 
       {/* TERMINAL + SIDEBAR */}
       <section id="terminal" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -362,8 +376,11 @@ function Stat({
   variant: Variants;
 }) {
   const color = accent === "danger" ? "text-danger" : "text-ink-strong";
+  const glow = accent === "danger"
+    ? "shadow-[inset_0_0_30px_rgba(255,61,96,0.06)]"
+    : "shadow-[inset_0_0_30px_rgba(123,92,240,0.04)]";
   return (
-    <motion.div variants={variant} className="bg-surface px-5 py-6 text-center">
+    <motion.div variants={variant} className={`bg-surface/80 backdrop-blur-sm px-5 py-6 text-center ${glow} hover:bg-surface transition-colors duration-base`}>
       <div className={`font-display text-h1 font-bold tabular-nums ${color}`}>
         <CountUp value={value} pad={0} />
       </div>

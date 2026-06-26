@@ -165,19 +165,19 @@ export default function LoginPage() {
         className="flex flex-col items-center mb-8"
         variants={isFastMode ? undefined : cardVariants}
       >
-        <div className="mb-3">
+        <div className="mb-3 drop-shadow-[0_0_12px_rgba(123,92,240,0.5)]">
           <HexLogo size={48} />
         </div>
         <h1 className="font-display font-bold text-2xl tracking-[2px] text-ink">
-          UnknownX<span className="text-primary">-077</span>
+          UnknownX<span className="text-gradient-primary">-077</span>
         </h1>
-        <p className="label mt-3 text-secondary">IDENTIFICATION REQUISE</p>
+        <p className="label mt-3 text-secondary text-glow-secondary">IDENTIFICATION REQUISE</p>
       </motion.div>
 
       {/* Encart de connexion */}
       <motion.div
-        className="card w-full max-w-sm p-7 relative"
-        style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "0 0 40px -18px #7b5cf0" }}
+        className="card w-full max-w-sm p-7 relative backdrop-blur-xl"
+        style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "0 0 60px -12px rgba(123,92,240,0.3), inset 0 0 40px rgba(123,92,240,0.06)" }}
         variants={isFastMode ? undefined : cardVariants}
       >
         {/* coins HUD */}
@@ -255,12 +255,8 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* Séparateur */}
-              <div className="flex items-center gap-3 my-6">
-                <span className="h-px flex-1 bg-line-strong" />
-                <span className="label !text-muted">ou</span>
-                <span className="h-px flex-1 bg-line-strong" />
-              </div>
+              {/* Séparateur gradient */}
+              <div className="my-6 divider-gradient" />
 
               {/* Credentials admin */}
               <form onSubmit={handleCredentials} className="space-y-3">

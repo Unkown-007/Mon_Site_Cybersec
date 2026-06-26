@@ -268,6 +268,76 @@
   .text-glow-secondary {
     text-shadow: 0 0 18px rgba(0, 245, 212, 0.5);
   }
+
+  /* ── SpotlightCard : gradient radial suivant le curseur (Apple-style) ── */
+  .spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .spotlight-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      350px circle at var(--spot-x) var(--spot-y),
+      var(--spot-color, rgba(123, 92, 240, 0.08)),
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 1;
+  }
+  .spotlight-card:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Gradient text (titres premium) ── */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, #7b5cf0, #a78bfa, #00f5d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-cyber {
+    background: linear-gradient(90deg, #00f5d4, #7b5cf0, #ff3d60);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Gradient dividers (premium separator) ── */
+  .divider-gradient {
+    height: 1px;
+    border: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(123, 92, 240, 0.4),
+      rgba(0, 245, 212, 0.2),
+      transparent
+    );
+  }
+
+  /* ── Stagger animation delay utilities ── */
+  .stagger-1 { animation-delay: 80ms; }
+  .stagger-2 { animation-delay: 160ms; }
+  .stagger-3 { animation-delay: 240ms; }
+  .stagger-4 { animation-delay: 320ms; }
+  .stagger-5 { animation-delay: 400ms; }
+  .stagger-6 { animation-delay: 480ms; }
+  .stagger-7 { animation-delay: 560ms; }
+  .stagger-8 { animation-delay: 640ms; }
+
+  /* ── Smooth hover lift (reusable) ── */
+  .hover-lift {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
 }
 
 /* ============================================================
@@ -530,6 +600,13 @@
 }
 .lite .card:hover,
 .lite .btn-primary:hover {
+  box-shadow: none !important;
+}
+.lite .spotlight-card::after {
+  display: none !important;
+}
+.lite .hover-lift:hover {
+  transform: none !important;
   box-shadow: none !important;
 }
 
