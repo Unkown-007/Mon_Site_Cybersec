@@ -835,12 +835,14 @@ export default function VaultPage() {
                 <button
                   key={t}
                   onClick={() => setDraft((d) => ({ ...d, type: t }))}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 border rounded-sm text-[10px] font-mono transition-colors ${
-                    draft.type === t ? "border-secondary text-secondary bg-secondary/5" : "border-line-strong text-muted hover:border-line"
+                  className={`hud-tab hud-tab--chip flex items-center px-2 py-1.5 text-[10px] font-mono ${
+                    draft.type === t ? "is-active text-secondary" : "text-muted hover:text-ink"
                   }`}
                 >
-                  <TypeIcon type={t} />
-                  <span className="truncate">{TYPE_META[t].label}</span>
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <TypeIcon type={t} />
+                    <span className="truncate">{TYPE_META[t].label}</span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -978,13 +980,15 @@ function FilterChip({ active, onClick, label, count, icon }: { active: boolean; 
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-sm text-[10px] font-mono uppercase tracking-[1px] transition-colors ${
-        active ? "border-secondary text-secondary bg-secondary/5" : "border-line-strong text-muted hover:border-line hover:text-ink"
+      className={`hud-tab hud-tab--chip flex items-center px-3 py-1.5 text-[10px] font-mono uppercase tracking-[1px] ${
+        active ? "is-active text-secondary" : "text-muted hover:text-ink"
       }`}
     >
-      {icon}
-      {label}
-      <span className={active ? "text-secondary/70" : "text-muted/50"}>{count}</span>
+      <span className="relative z-10 flex items-center gap-1.5">
+        {icon}
+        {label}
+        <span className={active ? "text-secondary/70" : "text-muted/50"}>{count}</span>
+      </span>
     </button>
   );
 }
@@ -993,11 +997,11 @@ function Toggle({ label, on, onClick, wide }: { label: string; on: boolean; onCl
   return (
     <button
       onClick={onClick}
-      className={`px-2 py-1.5 border rounded-sm text-[10px] font-mono transition-colors ${wide ? "col-span-2" : ""} ${
-        on ? "border-primary text-primary bg-primary/5" : "border-line-strong text-muted hover:border-line"
+      className={`hud-tab hud-tab--chip px-2.5 py-1.5 text-[10px] font-mono ${wide ? "col-span-2" : ""} ${
+        on ? "is-active text-primary" : "text-muted hover:text-ink"
       }`}
     >
-      {on ? "◉" : "○"} {label}
+      <span className="relative z-10">{on ? "◉" : "○"} {label}</span>
     </button>
   );
 }

@@ -8,8 +8,6 @@ import { LogoWordmark } from "@/components/Logo";
 import { StatusDot } from "@/components/StatusDot";
 import { NAV_ITEMS, ADMIN_ITEM, type NavItem } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
-import { usePerf } from "@/lib/perf";
-import { useReducedMotion } from "framer-motion";
 
 
 const item = (href: string): NavItem =>
@@ -26,9 +24,6 @@ const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal")
 export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { lite } = usePerf();
-  const prefersReducedMotion = useReducedMotion();
-  const bypass = lite || prefersReducedMotion;
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const [acc, setAcc] = useState<string | null>(null);
@@ -66,26 +61,14 @@ export function Navbar() {
             >
               <button
                 onClick={() => setOpenGroup((v) => (v === g.label ? null : g.label))}
-                className={`relative group px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors flex items-center gap-1 ${
-                  groupActive(g) ? "text-secondary" : "text-muted hover:text-ink"
+                className={`hud-tab px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] flex items-center ${
+                  groupActive(g) ? "is-active text-secondary" : "text-muted hover:text-ink"
                 }`}
               >
-                {g.label}
-                <span className="text-[8px]">▾</span>
-                {!groupActive(g) && (
-                  <span className="absolute bottom-0 left-1/2 w-0 h-[2px] bg-secondary -translate-x-1/2 group-hover:w-full group-hover:left-0 group-hover:translate-x-0 transition-all duration-base ease-out-soft" />
-                )}
-                {groupActive(g) && (
-                  bypass ? (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary" />
-                  ) : (
-                    <motion.span
-                      layoutId="navActiveIndicator"
-                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )
-                )}
+                <span className="relative z-10 flex items-center gap-1">
+                  {g.label}
+                  <span className="text-[8px]">▾</span>
+                </span>
               </button>
 
               <AnimatePresence>
@@ -145,9 +128,9 @@ export function Navbar() {
           <li>
             <button
               onClick={openTerminal}
-              className="px-3 py-2 text-xs font-mono uppercase tracking-[2px] text-muted hover:text-secondary transition-colors"
+              className="hud-tab px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] text-muted hover:text-secondary"
             >
-              ❯_ Terminal
+              <span className="relative z-10">❯_ Terminal</span>
             </button>
           </li>
         </ul>
@@ -282,32 +265,14 @@ function NavTopLink({
   active: boolean;
   children: React.ReactNode;
 }) {
-  const { lite } = usePerf();
-  const prefersReducedMotion = useReducedMotion();
-  const bypass = lite || prefersReducedMotion;
-
   return (
     <Link
       href={href}
-      className={`relative group px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors ${
-        active ? "text-secondary" : "text-muted hover:text-ink"
+      className={`hud-tab inline-block px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] ${
+        active ? "is-active text-secondary" : "text-muted hover:text-ink"
       }`}
     >
-      {children}
-      {!active && (
-        <span className="absolute bottom-0 left-1/2 w-0 h-[2px] bg-secondary -translate-x-1/2 group-hover:w-full group-hover:left-0 group-hover:translate-x-0 transition-all duration-base ease-out-soft" />
-      )}
-      {active && (
-        bypass ? (
-          <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary" />
-        ) : (
-          <motion.span
-            layoutId="navActiveIndicator"
-            className="absolute bottom-0 left-0 right-0 h-[2px] bg-secondary"
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          />
-        )
-      )}
+      <span className="relative z-10">{children}</span>
     </Link>
   );
 }
