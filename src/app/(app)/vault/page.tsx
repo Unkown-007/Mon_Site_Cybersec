@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 import { VaultDoor } from "@/components/VaultDoor";
-import { encryptJSON, decryptJSON } from "@/lib/crypto";
+import {
+  createVault,
+  unlockVault,
+  recoverVault,
+  resaveVault,
+  rewrapPassword,
+  isVaultV2,
+  decryptJSON,
+} from "@/lib/crypto";
 
 interface VaultNote {
   id: string;
@@ -13,16 +21,62 @@ interface VaultNote {
 }
 
 const STORAGE = "ux077.vault.blob";
+const MIN_PWD = 8;
+
+type LockedScreen = "unlock" | "setup" | "reset";
+
+interface PendingRecovery {
+  code: string;
+  emailed: "sent" | "not_configured" | "failed";
+  to?: string;
+  migrated?: boolean;
+}
+
+/** Envoie le code de récupération par email (à l'adresse de la session). */
+async function emailRecoveryCode(
+  code: string,
+  context: "setup" | "reset",
+): Promise<{ status: PendingRecovery["emailed"]; to?: string }> {
+  try {
+    const res = await fetch("/api/vault/recovery", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code, context }),
+    });
+    const d = (await res.json()) as { sent?: boolean; to?: string };
+    if (d.sent) return { status: "sent", to: d.to };
+    return { status: "not_configured" };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
+/** Score grossier de robustesse (0-4) pour le retour visuel. */
+function pwdScore(p: string): number {
+  let s = 0;
+  if (p.length >= MIN_PWD) s++;
+  if (p.length >= 14) s++;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++;
+  if (/\d/.test(p) && /[^A-Za-z0-9]/.test(p)) s++;
+  return Math.min(s, 4);
+}
 
 export default function VaultPage() {
   const { push } = useToast();
   const [hasVault, setHasVault] = useState(false);
-  const [master, setMaster] = useState<string | null>(null);
+  const [blob, setBlob] = useState<string | null>(null);
+  const [dek, setDek] = useState<string | null>(null); // clé de données en mémoire
   const [notes, setNotes] = useState<VaultNote[]>([]);
-  const [pwd, setPwd] = useState("");
+  const [screen, setScreen] = useState<LockedScreen>("unlock");
   const [busy, setBusy] = useState(false);
   const [opening, setOpening] = useState(false);
   const [lockIn, setLockIn] = useState(300);
+  const [pending, setPending] = useState<PendingRecovery | null>(null);
+
+  // champs de formulaire (verrouillé)
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [recoveryInput, setRecoveryInput] = useState("");
 
   // brouillon d'ajout
   const [title, setTitle] = useState("");
@@ -30,12 +84,15 @@ export default function VaultPage() {
   const [reveal, setReveal] = useState<string | null>(null);
 
   useEffect(() => {
-    setHasVault(localStorage.getItem(STORAGE) !== null);
+    const b = localStorage.getItem(STORAGE);
+    setBlob(b);
+    setHasVault(b !== null);
+    setScreen(b !== null ? "unlock" : "setup");
   }, []);
 
   // Auto-lock après 5 min d'inactivité (réinitialisé à chaque action).
   useEffect(() => {
-    if (!master || opening) return;
+    if (!dek || opening) return;
     let remaining = 300;
     setLockIn(300);
     const tick = setInterval(() => {
@@ -55,36 +112,77 @@ export default function VaultPage() {
       window.removeEventListener("keydown", reset);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [master, opening]);
+  }, [dek, opening]);
 
-  const persist = async (next: VaultNote[], key: string) => {
-    const blob = await encryptJSON(next, key);
-    localStorage.setItem(STORAGE, blob);
-    setHasVault(true);
+  const resetForm = () => {
+    setPwd("");
+    setPwd2("");
+    setRecoveryInput("");
   };
 
-  const unlock = async (e: React.FormEvent) => {
+  /* ──────────────── Setup : choix du mot de passe maître ──────────────── */
+  const submitSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwd.length < 4) {
-      push("err", "Mot de passe maître trop court (min. 4).");
+    if (pwd.length < MIN_PWD) {
+      push("err", `Mot de passe maître trop court (min. ${MIN_PWD}).`);
+      return;
+    }
+    if (pwd !== pwd2) {
+      push("err", "Les deux mots de passe ne correspondent pas.");
       return;
     }
     setBusy(true);
     try {
-      const blob = localStorage.getItem(STORAGE);
-      if (blob) {
-        const data = await decryptJSON<VaultNote[]>(blob, pwd);
+      const { blob: newBlob, recoveryCode, dek: newDek } = await createVault<VaultNote[]>([], pwd);
+      localStorage.setItem(STORAGE, newBlob);
+      setBlob(newBlob);
+      setHasVault(true);
+      setDek(newDek);
+      setNotes([]);
+      const mail = await emailRecoveryCode(recoveryCode, "setup");
+      setPending({ code: recoveryCode, emailed: mail.status, to: mail.to });
+      resetForm();
+    } catch {
+      push("err", "Impossible d'initialiser le coffre.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* ──────────────── Déverrouillage (mot de passe par défaut) ──────────────── */
+  const submitUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwd.length < 1) return;
+    setBusy(true);
+    try {
+      const b = localStorage.getItem(STORAGE);
+      if (!b) {
+        setScreen("setup");
+        return;
+      }
+      if (isVaultV2(b)) {
+        const { data, dek: newDek } = await unlockVault<VaultNote[]>(b, pwd);
+        setBlob(b);
+        setDek(newDek);
         setNotes(data);
-        setMaster(pwd);
+        resetForm();
+        setOpening(true);
         push("ok", "Coffre déverrouillé.");
       } else {
-        await persist([], pwd);
-        setNotes([]);
-        setMaster(pwd);
-        push("ok", "Coffre initialisé et chiffré.");
+        // Coffre v1 hérité → on déchiffre puis on migre vers l'enveloppe v2.
+        const data = await decryptJSON<VaultNote[]>(b, pwd);
+        const { blob: newBlob, recoveryCode, dek: newDek } = await createVault<VaultNote[]>(
+          data,
+          pwd,
+        );
+        localStorage.setItem(STORAGE, newBlob);
+        setBlob(newBlob);
+        setDek(newDek);
+        setNotes(data);
+        resetForm();
+        const mail = await emailRecoveryCode(recoveryCode, "setup");
+        setPending({ code: recoveryCode, emailed: mail.status, to: mail.to, migrated: true });
       }
-      setOpening(true);
-      setPwd("");
     } catch {
       push("err", "Déchiffrement impossible — mot de passe incorrect.");
     } finally {
@@ -92,79 +190,331 @@ export default function VaultPage() {
     }
   };
 
+  /* ──────────────── Reset via code de récupération ──────────────── */
+  const submitReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blob) return;
+    if (pwd.length < MIN_PWD) {
+      push("err", `Nouveau mot de passe trop court (min. ${MIN_PWD}).`);
+      return;
+    }
+    if (pwd !== pwd2) {
+      push("err", "Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data, dek: newDek } = await recoverVault<VaultNote[]>(blob, recoveryInput);
+      const newBlob = await rewrapPassword(blob, newDek, pwd);
+      localStorage.setItem(STORAGE, newBlob);
+      setBlob(newBlob);
+      setDek(newDek);
+      setNotes(data);
+      resetForm();
+      setScreen("unlock");
+      setOpening(true);
+      push("ok", "Mot de passe maître réinitialisé — coffre récupéré.");
+    } catch {
+      push("err", "Code de récupération invalide.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const lock = () => {
-    setMaster(null);
+    setDek(null);
     setNotes([]);
     setReveal(null);
+    setScreen("unlock");
     push("warn", "Coffre verrouillé.");
   };
 
+  const persist = async (next: VaultNote[]) => {
+    if (!blob || !dek) return;
+    const newBlob = await resaveVault<VaultNote[]>(blob, next, dek);
+    localStorage.setItem(STORAGE, newBlob);
+    setBlob(newBlob);
+  };
+
   const addNote = async () => {
-    if (!master || !title.trim() || !secret.trim()) return;
+    if (!dek || !title.trim() || !secret.trim()) return;
     const next = [...notes, { id: crypto.randomUUID(), title: title.trim(), secret }];
     setNotes(next);
-    await persist(next, master);
+    await persist(next);
     setTitle("");
     setSecret("");
     push("ok", "Entrée chiffrée ajoutée.");
   };
 
   const removeNote = async (id: string) => {
-    if (!master) return;
+    if (!dek) return;
     const next = notes.filter((n) => n.id !== id);
     setNotes(next);
-    await persist(next, master);
+    await persist(next);
     if (reveal === id) setReveal(null);
     push("warn", "Entrée supprimée.");
   };
 
-  /* ──────────────── Écran verrouillé ──────────────── */
-  if (!master) {
+  /* ──────────────── Panneau « code de récupération » (après setup) ─────── */
+  if (pending) {
+    const downloadCode = () => {
+      const file = new Blob(
+        [
+          "UnknownX-077 — Code de récupération du coffre (Vault)\n",
+          "Conserve ce code en lieu sûr. Seul moyen de réinitialiser ton\n",
+          "mot de passe maître sans perdre tes données.\n\n",
+          `CODE : ${pending.code}\n`,
+        ],
+        { type: "text/plain" },
+      );
+      const url = URL.createObjectURL(file);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "unknownx-vault-recovery.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    const proceed = () => {
+      setPending(null);
+      setOpening(true);
+    };
+
     return (
       <div className="max-w-md mx-auto">
         <PageHeader
-          code="VLT // ZONE CLASSIFIÉE"
-          title="Vault"
-          desc="Coffre chiffré côté client. Le mot de passe maître n'est jamais stocké."
+          code="VLT // CLÉ DE SECOURS"
+          title="Code de récupération"
+          desc={
+            pending.migrated
+              ? "Coffre migré vers le chiffrement par enveloppe. Voici ta clé de secours."
+              : "Coffre chiffré et initialisé. Note bien ce code."
+          }
           state="danger"
         />
 
         <div className="card p-4 mb-5 border-danger/40">
           <p className="font-mono text-xs text-danger leading-relaxed">
-            ⚠ // ZONE CLASSIFIÉE — chiffrement AES-256-GCM, clé dérivée par PBKDF2.
-            Si tu oublies le mot de passe maître, les données sont
-            irrécupérables.
+            ⚠ // C&apos;est le SEUL moyen de réinitialiser ton mot de passe maître
+            sans perdre tes données. Il ne sera plus jamais affiché. Personne ne
+            peut le régénérer.
           </p>
         </div>
 
-        <form onSubmit={unlock} className="card p-6 space-y-4">
-          <label className="block">
-            <span className="label !text-muted block mb-1.5">Mot de passe maître</span>
-            <input
-              type="password"
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              className="field"
-              placeholder="••••••••"
-              autoFocus
-              autoComplete="off"
-            />
-          </label>
-          <button type="submit" disabled={busy} className="btn btn-primary w-full justify-center">
-            {busy ? "Déchiffrement…" : hasVault ? "Déverrouiller" : "Créer le coffre"}
-          </button>
-          <p className="text-[10px] font-mono text-muted text-center">
-            {hasVault
-              ? "Coffre détecté sur cet appareil."
-              : "Aucun coffre — le mot de passe saisi en deviendra la clé."}
+        <div className="card p-6 space-y-4">
+          <div className="font-mono text-xl tracking-[3px] text-secondary text-center bg-base/60 border border-line p-4 break-all select-all">
+            {pending.code}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigator.clipboard.writeText(pending.code).then(() => push("ok", "Code copié."))}
+              className="btn btn-ghost flex-1 justify-center text-xs"
+            >
+              Copier
+            </button>
+            <button onClick={downloadCode} className="btn btn-ghost flex-1 justify-center text-xs">
+              Télécharger .txt
+            </button>
+          </div>
+
+          <p className="text-[10px] font-mono text-center leading-relaxed">
+            {pending.emailed === "sent" ? (
+              <span className="text-success">✓ Envoyé par email à {pending.to}.</span>
+            ) : pending.emailed === "not_configured" ? (
+              <span className="text-warn">
+                Email non configuré — sauvegarde ce code manuellement.
+              </span>
+            ) : (
+              <span className="text-danger">
+                Échec de l&apos;envoi email — sauvegarde ce code manuellement.
+              </span>
+            )}
           </p>
-        </form>
+
+          <button onClick={proceed} className="btn btn-primary w-full justify-center">
+            J&apos;ai sauvegardé mon code — ouvrir le coffre
+          </button>
+        </div>
       </div>
     );
   }
 
   /* ──────────────── Animation d'ouverture ──────────────── */
   if (opening) return <VaultDoor onDone={() => setOpening(false)} />;
+
+  /* ──────────────── Écrans verrouillés ──────────────── */
+  if (!dek) {
+    const score = pwdScore(pwd);
+    const scoreLabel = ["très faible", "faible", "correct", "solide", "excellent"][score];
+    const scoreColor = ["bg-danger", "bg-danger", "bg-warn", "bg-secondary", "bg-success"][score];
+
+    return (
+      <div className="max-w-md mx-auto">
+        <PageHeader
+          code="VLT // ZONE CLASSIFIÉE"
+          title="Vault"
+          desc="Coffre chiffré côté client (AES-256-GCM). Le mot de passe maître n'est jamais stocké."
+          state="danger"
+        />
+
+        <div className="card p-4 mb-5 border-danger/40">
+          <p className="font-mono text-xs text-danger leading-relaxed">
+            ⚠ // ZONE CLASSIFIÉE — chiffrement par enveloppe : une clé aléatoire
+            protège tes données, emballée par ton mot de passe ET un code de
+            récupération. Oubli du mot de passe → reset possible via le code.
+          </p>
+        </div>
+
+        {/* ─── Setup ─── */}
+        {screen === "setup" && (
+          <form onSubmit={submitSetup} className="card p-6 space-y-4">
+            <h2 className="label text-secondary">{"// CRÉATION DU COFFRE"}</h2>
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Choisis un mot de passe maître</span>
+              <input
+                type="password"
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+                autoFocus
+                autoComplete="new-password"
+              />
+            </label>
+            {pwd.length > 0 && (
+              <div>
+                <div className="h-1 w-full bg-line rounded overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${scoreColor}`}
+                    style={{ width: `${(score / 4) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[10px] font-mono text-muted mt-1">robustesse : {scoreLabel}</p>
+              </div>
+            )}
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Confirme</span>
+              <input
+                type="password"
+                value={pwd2}
+                onChange={(e) => setPwd2(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </label>
+            <button type="submit" disabled={busy} className="btn btn-primary w-full justify-center">
+              {busy ? "Chiffrement…" : "Créer le coffre"}
+            </button>
+            {hasVault && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setScreen("unlock");
+                }}
+                className="text-[10px] font-mono text-muted hover:text-secondary w-full text-center"
+              >
+                ← un coffre existe déjà — déverrouiller
+              </button>
+            )}
+          </form>
+        )}
+
+        {/* ─── Unlock (défaut) ─── */}
+        {screen === "unlock" && (
+          <form onSubmit={submitUnlock} className="card p-6 space-y-4">
+            <h2 className="label text-secondary">{"// DÉVERROUILLAGE"}</h2>
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Mot de passe maître</span>
+              <input
+                type="password"
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+                autoFocus
+                autoComplete="current-password"
+              />
+            </label>
+            <button type="submit" disabled={busy} className="btn btn-primary w-full justify-center">
+              {busy ? "Déchiffrement…" : "Déverrouiller"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setScreen("reset");
+              }}
+              className="text-[10px] font-mono text-muted hover:text-secondary w-full text-center"
+            >
+              Mot de passe oublié ? Réinitialiser avec le code de récupération
+            </button>
+          </form>
+        )}
+
+        {/* ─── Reset ─── */}
+        {screen === "reset" && (
+          <form onSubmit={submitReset} className="card p-6 space-y-4">
+            <h2 className="label text-secondary">{"// RÉINITIALISATION"}</h2>
+            <p className="text-[11px] font-mono text-muted leading-relaxed">
+              Saisis le code de récupération (envoyé par email à la création) puis
+              choisis un nouveau mot de passe maître. Tes données sont conservées.
+            </p>
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Code de récupération</span>
+              <input
+                type="text"
+                value={recoveryInput}
+                onChange={(e) => setRecoveryInput(e.target.value)}
+                className="field font-mono tracking-[2px]"
+                placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Nouveau mot de passe maître</span>
+              <input
+                type="password"
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="block">
+              <span className="label !text-muted block mb-1.5">Confirme</span>
+              <input
+                type="password"
+                value={pwd2}
+                onChange={(e) => setPwd2(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </label>
+            <button type="submit" disabled={busy} className="btn btn-primary w-full justify-center">
+              {busy ? "Récupération…" : "Réinitialiser & déverrouiller"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setScreen("unlock");
+              }}
+              className="text-[10px] font-mono text-muted hover:text-secondary w-full text-center"
+            >
+              ← retour au déverrouillage
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  }
 
   /* ──────────────── Écran déverrouillé ──────────────── */
   const mm = Math.floor(lockIn / 60);
