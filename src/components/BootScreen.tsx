@@ -105,7 +105,11 @@ export function BootScreen({ onComplete }: BootScreenProps) {
 
   return (
     <div className="min-h-screen bg-base bg-diagonal flex items-center justify-center p-4 sm:p-6 overflow-y-auto selection:bg-primary/30">
-      <div className="font-mono text-[10px] sm:text-xs w-full max-w-2xl bg-surface/50 border border-line-strong p-4 sm:p-6 rounded relative shadow-2xl">
+      <div className={`font-mono text-[10px] sm:text-xs w-full max-w-2xl bg-surface/50 border p-4 sm:p-6 rounded relative shadow-2xl transition-all duration-500 ${
+        !lite && !reducedMotion
+          ? "hud-scanlines shadow-[0_0_30px_rgba(0,245,212,0.15)] border-secondary/30 text-glow-secondary"
+          : "border-line-strong"
+      }`}>
         {/* HUD corners */}
         <span aria-hidden className="pointer-events-none absolute top-0 left-0 h-3 w-3 border-t-2 border-l-2 border-secondary/50" />
         <span aria-hidden className="pointer-events-none absolute top-0 right-0 h-3 w-3 border-t-2 border-r-2 border-secondary/50" />

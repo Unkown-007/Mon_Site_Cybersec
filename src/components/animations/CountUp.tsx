@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePerf } from "@/lib/perf";
 
 /** Compteur animé 0 → value (ease-out), avec léger "flicker" pendant la montée. */
 export function CountUp({
@@ -16,9 +17,11 @@ export function CountUp({
 }) {
   const [display, setDisplay] = useState("0");
   const raf = useRef<number>(0);
+  const { lite } = usePerf();
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (lite || reducedMotion) {
       setDisplay(String(value).padStart(pad, "0"));
       return;
     }
@@ -38,7 +41,7 @@ export function CountUp({
     };
     raf.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf.current);
-  }, [value, duration, pad]);
+  }, [value, duration, pad, lite]);
 
   return <span className={className}>{display}</span>;
 }

@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion, motion } from "framer-motion";
 import { ResourceSkeletonCard } from "@/components/ui/Skeletons";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   RESOURCES,
   DOMAINS,
@@ -135,6 +136,8 @@ export default function ResourcesPage() {
         ]}
       />
 
+      <div className="divider-gradient my-6" />
+
       {/* Recherche terminal */}
       <div className="card flex items-center gap-3 px-4 py-3 mb-6">
         <span className="font-mono text-sm text-secondary shrink-0">{"// SEARCH"}</span>
@@ -152,7 +155,7 @@ export default function ResourcesPage() {
 
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
         {/* Filtres latéraux */}
-        <aside className="space-y-6">
+        <ScrollReveal direction="left" delay={100} as="aside" className="space-y-6">
           <FilterGroup
             label="Domaine"
             options={DOMAINS}
@@ -170,7 +173,7 @@ export default function ResourcesPage() {
               Réinitialiser
             </button>
           )}
-        </aside>
+        </ScrollReveal>
 
         {/* Résultats */}
         <section>

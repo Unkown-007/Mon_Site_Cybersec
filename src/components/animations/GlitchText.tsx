@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePerf } from "@/lib/perf";
 
 /**
  * Texte avec glitch RGB. Au survol par défaut ; `auto` déclenche UNE fois au
@@ -22,12 +23,16 @@ export function GlitchText({
 }) {
   const [on, setOn] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { lite } = usePerf();
 
   const fire = useCallback(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (lite || reducedMotion) return;
+
     setOn(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setOn(false), 540);
-  }, []);
+  }, [lite]);
 
   useEffect(() => {
     if (trigger === undefined) return;

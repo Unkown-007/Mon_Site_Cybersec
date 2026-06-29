@@ -9,6 +9,7 @@ import { CoverageBars } from "@/components/CoverageBars";
 import { AccountsPanel } from "@/components/AccountsPanel";
 import { Panel, Badge } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
+import { usePerf } from "@/lib/perf";
 import { ModuleCard } from "@/components/ModuleCard";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
@@ -120,18 +121,20 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { lite } = usePerf();
   const reduce = useReducedMotion();
+  const disableAnimation = lite || (reduce ?? false);
 
   const container: Variants = {
     hidden: {},
-    show: { transition: { staggerChildren: reduce ? 0 : 0.04 } },
+    show: { transition: { staggerChildren: disableAnimation ? 0 : 0.04 } },
   };
   const item: Variants = {
-    hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 12 },
+    hidden: disableAnimation ? { opacity: 0 } : { opacity: 0, y: 12 },
     show: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: disableAnimation ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] },
     },
   };
 

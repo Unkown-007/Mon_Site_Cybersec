@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePerf } from "@/lib/perf";
 
 /*
  * <ScrollReveal> — élément qui apparaît élégamment au scroll.
@@ -45,6 +46,9 @@ export function ScrollReveal({
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const { lite } = usePerf();
+
+  const disableAnimation = lite || reducedMotion;
 
   useEffect(() => {
     setReducedMotion(
@@ -53,7 +57,7 @@ export function ScrollReveal({
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) {
+    if (disableAnimation) {
       setVisible(true);
       return;
     }
@@ -72,7 +76,7 @@ export function ScrollReveal({
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [reducedMotion, threshold, once]);
+  }, [disableAnimation, threshold, once]);
 
   const Component = Tag as React.ElementType;
 
@@ -84,7 +88,7 @@ export function ScrollReveal({
         opacity: visible ? 1 : 0,
         transform: visible ? "none" : TRANSFORMS[direction](distance),
         filter: visible ? "blur(0px)" : "blur(4px)",
-        transition: reducedMotion
+        transition: disableAnimation
           ? "none"
           : `opacity ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, filter ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
         willChange: visible ? "auto" : "opacity, transform, filter",

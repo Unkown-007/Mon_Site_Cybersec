@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion } from "framer-motion";
+import { ScriptSkeletonCard, ExternalToolSkeletonCard } from "@/components/ui/Skeletons";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   SCRIPTS,
   EXTERNAL_TOOLS,
@@ -105,6 +109,19 @@ function ToolBanner({ url, name }: { url: string; name: string }) {
 export default function ToolsPage() {
   const { push } = useToast();
   const [phase, setPhase] = useState<Phase | null>(null);
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (disableAnimation) {
+      setLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, [disableAnimation]);
 
   const scripts = useMemo(
     () => SCRIPTS.filter((s) => !phase || s.phase === phase),
@@ -159,9 +176,15 @@ export default function ToolsPage() {
       </div>
 
       {/* Scripts perso */}
-      <section className="mb-12">
+      <ScrollReveal direction="up" delay={50} as="section" className="mb-12">
         <h2 className="label mb-4">Scripts perso · {scripts.length}</h2>
-        {scripts.length === 0 ? (
+        {loading ? (
+          <div className="grid gap-5 lg:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <ScriptSkeletonCard key={i} disableAnimation={disableAnimation} />
+            ))}
+          </div>
+        ) : scripts.length === 0 ? (
           <p className="font-mono text-sm text-muted">[ aucun script pour cette phase ]</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">
@@ -197,69 +220,81 @@ export default function ToolsPage() {
             ))}
           </div>
         )}
-      </section>
+      </ScrollReveal>
+
+      <div className="divider-gradient my-8" />
 
       {/* Boîte à outils externe */}
-      <section>
+      <ScrollReveal direction="up" delay={50} as="section">
         <h2 className="label mb-4">Boîte à outils externe · {externals.length}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {externals.map((t) => (
-            <article key={t.name} className="card scan-hover overflow-hidden group flex flex-col">
-              {/* aperçu visuel du tool */}
-              <ToolBanner url={t.url} name={t.name} />
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <ExternalToolSkeletonCard key={i} disableAnimation={disableAnimation} />
+            ))}
+          </div>
+        ) : externals.length === 0 ? (
+          <p className="font-mono text-sm text-muted">[ aucun outil pour cette phase ]</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {externals.map((t) => (
+              <article key={t.name} className="card scan-hover overflow-hidden group flex flex-col">
+                {/* aperçu visuel du tool */}
+                <ToolBanner url={t.url} name={t.name} />
 
-              <div className="p-4 flex flex-col flex-1">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <a
-                    href={t.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-sm text-ink group-hover:text-secondary transition-colors truncate"
-                  >
-                    {t.name} ↗
-                  </a>
-                  <span
-                    className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
-                  >
-                    {t.phase}
-                  </span>
-                </div>
-
-                <p className="text-xs text-muted leading-relaxed flex-1">{t.desc}</p>
-
-                {t.tags && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {t.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {t.cmd && (
-                  <div className="mt-3 relative">
-                    <button
-                      onClick={() => copy(t.cmd!, t.name)}
-                      className="absolute top-1.5 right-1.5 text-[10px] font-mono uppercase tracking-[1px] text-muted hover:text-secondary transition-colors"
-                      aria-label={`Copier la commande ${t.name}`}
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <a
+                      href={t.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm text-ink group-hover:text-secondary transition-colors truncate"
                     >
-                      ⧉
-                    </button>
-                    <pre className="bg-base/70 border border-line px-2.5 py-2 overflow-x-auto text-[11px] leading-relaxed text-secondary/90 font-mono">
-                      <span className="text-success">$ </span>
-                      {t.cmd}
-                    </pre>
+                      {t.name} ↗
+                    </a>
+                    <span
+                      className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
+                    >
+                      {t.phase}
+                    </span>
                   </div>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+
+                  <p className="text-xs text-muted leading-relaxed flex-1">{t.desc}</p>
+
+                  {t.tags && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {t.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {t.cmd && (
+                    <div className="mt-3 relative">
+                      <button
+                        onClick={() => copy(t.cmd!, t.name)}
+                        className="absolute top-1.5 right-1.5 text-[10px] font-mono uppercase tracking-[1px] text-muted hover:text-secondary transition-colors"
+                        aria-label={`Copier la commande ${t.name}`}
+                      >
+                        ⧉
+                      </button>
+                      <pre className="bg-base/70 border border-line px-2.5 py-2 overflow-x-auto text-[11px] leading-relaxed text-secondary/90 font-mono">
+                        <span className="text-success">$ </span>
+                        {t.cmd}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </ScrollReveal>
     </div>
   );
 }

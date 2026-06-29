@@ -8,6 +8,7 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion, motion } from "framer-motion";
 import { CveSkeletonCard } from "@/components/ui/Skeletons";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 
 
 interface ApiCve {
@@ -256,6 +257,8 @@ export default function VeillePage() {
         </GUIPanel>
       </div>
 
+      <div className="divider-gradient my-6" />
+
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         {/* Flux CVE */}
         <section>
@@ -410,7 +413,7 @@ export default function VeillePage() {
         </section>
 
         {/* Bookmarks */}
-        <aside>
+        <ScrollReveal direction="right" delay={100} as="aside">
           <h2 className="label mb-4">Sources & bookmarks</h2>
           <ul className="space-y-2">
             {BOOKMARKS.map((b) => (
@@ -436,7 +439,7 @@ export default function VeillePage() {
               </li>
             ))}
           </ul>
-        </aside>
+        </ScrollReveal>
       </div>
     </div>
   );
