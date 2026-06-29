@@ -143,7 +143,7 @@ export function AccountsPanel() {
                 </div>
               </a>
 
-              <div className="mt-4 grid grid-cols-3 gap-px border border-line-strong bg-line-strong text-center">
+              <div className="mt-4 grid grid-cols-3 gap-px bg-line-strong text-center clip-chamfer-sm overflow-hidden">
                 <Mini value={p.publicRepos} label="repos" />
                 <Mini value={p.followers} label="followers" />
                 <Mini value={p.following} label="following" />

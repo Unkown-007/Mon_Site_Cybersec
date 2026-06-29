@@ -825,6 +825,84 @@
   filter: none !important;
 }
 
+/* ── Panneau HUD chanfreiné : relief + liseré dégradé violet→cyan, petit
+   ergot d'angle. Remplace les rectangles plats des gros conteneurs. ── */
+@layer components {
+  .hud-panel {
+    --chamfer: 14px;
+    --panel-edge: linear-gradient(
+      135deg,
+      rgba(123, 92, 240, 0.55),
+      rgba(123, 92, 240, 0.06) 38%,
+      transparent 50%,
+      rgba(0, 245, 212, 0.07) 62%,
+      rgba(0, 245, 212, 0.42)
+    );
+    position: relative;
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer)) 0,
+      100% var(--chamfer),
+      100% 100%,
+      var(--chamfer) 100%,
+      0 calc(100% - var(--chamfer))
+    );
+    background: linear-gradient(165deg, rgba(18, 18, 30, 0.62), rgba(10, 10, 18, 0.6));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition:
+      transform var(--dur-base) var(--ease-out-soft),
+      filter var(--dur-base) var(--ease-out-soft);
+  }
+  /* liseré chanfreiné (rim 1px via masque, comme .card) */
+  .hud-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    clip-path: inherit;
+    padding: 1px;
+    background: var(--panel-edge);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  /* ergot d'angle HUD (coin haut-gauche, non chanfreiné) */
+  .hud-panel::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    width: 9px;
+    height: 9px;
+    border-top: 1px solid rgba(0, 245, 212, 0.55);
+    border-left: 1px solid rgba(0, 245, 212, 0.55);
+    pointer-events: none;
+  }
+  .hud-panel--focal {
+    --panel-edge: linear-gradient(135deg, rgba(123, 92, 240, 0.75), rgba(123, 92, 240, 0.1) 50%, rgba(0, 245, 212, 0.55));
+    background: linear-gradient(165deg, rgba(22, 22, 36, 0.7), rgba(12, 12, 22, 0.62));
+  }
+  .hud-panel--interactive:hover {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.5));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-panel--interactive:hover { transform: none; }
+}
+.lite .hud-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--surface) !important;
+}
+.lite .hud-panel--interactive:hover {
+  transform: none !important;
+  filter: none !important;
+}
+
 /* ============================================================
    UnknownX-077 — Custom styles for Immersive 404 (Alarm Red) & Skeletons
    ============================================================ */

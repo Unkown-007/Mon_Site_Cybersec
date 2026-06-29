@@ -178,7 +178,7 @@ export default function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 gap-px rounded-md overflow-hidden border border-line-strong bg-line-strong lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
         <Stat value={STATS.resources} label="Ressources indexées" variant={item} />
         <Stat value={STATS.writeups} label="Write-ups publiés" variant={item} />
@@ -379,14 +379,13 @@ function Stat({
   variant: Variants;
 }) {
   const color = accent === "danger" ? "text-danger" : "text-ink-strong";
-  const glow = accent === "danger"
-    ? "shadow-[inset_0_0_30px_rgba(255,61,96,0.06)]"
-    : "shadow-[inset_0_0_30px_rgba(123,92,240,0.04)]";
+  const line = accent === "danger" ? "from-danger via-danger" : "from-secondary via-primary";
   return (
-    <motion.div variants={variant} className={`bg-surface/80 backdrop-blur-sm px-5 py-6 text-center ${glow} hover:bg-surface transition-colors duration-base`}>
+    <motion.div variants={variant} className="hud-panel hud-panel--interactive px-5 py-6 text-center">
       <div className={`font-display text-h1 font-bold tabular-nums ${color}`}>
         <CountUp value={value} pad={0} />
       </div>
+      <div className={`mx-auto mt-2 h-px w-12 bg-gradient-to-r ${line} to-transparent`} />
       <div className="label mt-2 justify-center">{label}</div>
     </motion.div>
   );
