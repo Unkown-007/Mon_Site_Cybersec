@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { currentSession } from "@/lib/auth-server";
+import { OWNER_EMAILS } from "@/lib/access";
 
 /*
- * Envoi du code de récupération du coffre par email, à l'adresse de la session
- * EN COURS uniquement (impossible de l'exfiltrer vers une autre adresse). Le
- * code est généré côté client : le serveur ne le voit que de passage, ne le
- * stocke jamais. Si l'envoi d'email n'est pas configuré (RESEND_API_KEY absent),
- * on renvoie { sent:false, reason:"not_configured" } et le client affiche le
- * code à l'écran à la place.
+ * Envoi du code de récupération du coffre par email. Le destinataire est TOUJOURS
+ * l'adresse du propriétaire (jamais une adresse fournie par le client) : on ne
+ * peut donc pas exfiltrer le code ailleurs. Le code est généré côté client : le
+ * serveur ne le voit que de passage, ne le stocke jamais. Si l'envoi d'email
+ * n'est pas configuré (RESEND_API_KEY absent), on renvoie
+ * { sent:false, reason:"not_configured" } et le client affiche le code à l'écran.
  */
 export const runtime = "nodejs";
 
 const FROM = process.env.VAULT_EMAIL_FROM || "UnknownX-077 <onboarding@resend.dev>";
+// Destinataire fixe = le propriétaire du site (surchargeable par env).
+const RECIPIENT = process.env.VAULT_RECOVERY_EMAIL || OWNER_EMAILS[0];
 
 function maskEmail(email: string): string {
   const [user, domain] = email.split("@");
@@ -69,12 +72,12 @@ export async function POST(req: Request) {
         authorization: `Bearer ${apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ from: FROM, to: session.email, subject, html }),
+      body: JSON.stringify({ from: FROM, to: RECIPIENT, subject, html }),
     });
     if (!res.ok) {
       return NextResponse.json({ sent: false, reason: "send_failed" }, { status: 502 });
     }
-    return NextResponse.json({ sent: true, to: maskEmail(session.email) });
+    return NextResponse.json({ sent: true, to: maskEmail(RECIPIENT) });
   } catch {
     return NextResponse.json({ sent: false, reason: "send_failed" }, { status: 502 });
   }
