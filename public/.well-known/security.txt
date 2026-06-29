@@ -1,0 +1,7 @@
+# UnknownX-077 — Politique de divulgation responsable
+# https://securitytxt.org/
+
+Contact: mailto:clem.berton.92@gmail.com
+Expires: 2027-06-29T00:00:00.000Z
+Preferred-Languages: fr, en
+Canonical: https://unknownx-077.vercel.app/.well-known/security.txt

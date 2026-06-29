@@ -8,6 +8,8 @@ import { NextResponse } from "next/server";
  * Appel REST direct (pas de dépendance SDK ajoutée).
  */
 
+import { clientIp, sameOrigin, forbiddenOrigin, rateLimit, tooManyRequests } from "@/lib/security";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -21,6 +23,12 @@ interface InMsg {
 }
 
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
+
+  // Anti-abus du proxy : 30 requêtes / 5 min par IP.
+  const limit = await rateLimit({ key: `ai:${clientIp(req)}`, limit: 30, windowSec: 300 });
+  if (!limit.ok) return tooManyRequests(limit.retryAfter);
+
   const key = req.headers.get("x-anthropic-key");
   if (!key) {
     return NextResponse.json({ error: "Clé API Anthropic manquante." }, { status: 401 });

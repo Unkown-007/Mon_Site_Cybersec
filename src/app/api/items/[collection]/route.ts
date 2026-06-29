@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { isCollection, listItems, addItem, deleteItem } from "@/lib/collections";
 import { kvReady } from "@/lib/kv";
+import { sameOrigin, forbiddenOrigin } from "@/lib/security";
 
 /* API générique des collections : liste publique + ajout/suppression admin. */
 export const runtime = "nodejs";
@@ -15,6 +16,7 @@ export async function GET(_req: Request, { params }: { params: { collection: str
 }
 
 export async function POST(req: Request, { params }: { params: { collection: string } }) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!isCollection(params.collection)) return NextResponse.json({ error: "collection inconnue" }, { status: 400 });
@@ -62,6 +64,7 @@ export async function POST(req: Request, { params }: { params: { collection: str
 }
 
 export async function DELETE(req: Request, { params }: { params: { collection: string } }) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!isCollection(params.collection)) return NextResponse.json({ error: "collection inconnue" }, { status: 400 });

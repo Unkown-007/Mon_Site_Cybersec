@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentSession } from "@/lib/auth-server";
 import { OWNER_EMAILS } from "@/lib/access";
+import { clientIp, sameOrigin, forbiddenOrigin, rateLimit, tooManyRequests } from "@/lib/security";
 
 /*
  * Envoi du code de récupération du coffre par email. Le destinataire est TOUJOURS
@@ -24,10 +25,16 @@ function maskEmail(email: string): string {
 }
 
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
+
   const session = await currentSession();
   if (!session) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
+
+  // Anti-spam d'emails : 5 envois / heure par IP.
+  const limit = await rateLimit({ key: `vault-mail:${clientIp(req)}`, limit: 5, windowSec: 3600 });
+  if (!limit.ok) return tooManyRequests(limit.retryAfter);
 
   const body = (await req.json().catch(() => ({}))) as {
     code?: unknown;
