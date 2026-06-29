@@ -20,6 +20,15 @@ npm run dev
 # http://localhost:3000  → redirige vers /login
 ```
 
+### Connexion
+
+Les identifiants admin sont **définis par variables d'environnement** (`ADMIN_EMAIL`,
+`ADMIN_PASSWORD`, `AUTH_SECRET`) — jamais en clair dans le code. Voir
+[.env.local.example](.env.local.example). En dev sans `.env.local`, un repli
+générique non sensible est utilisé ; en production ces variables sont **obligatoires**
+(l'authentification est refusée à défaut).
+
+OAuth GitHub/Google : optionnel ; restreins l'accès avec `ALLOWED_EMAILS`.
 ## Structure
 
 ```

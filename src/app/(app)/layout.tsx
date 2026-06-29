@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { NewsTicker } from "@/components/NewsTicker";
@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { AsciiLogo } from "@/components/AsciiLogo";
 import { ArasakaLogo } from "@/components/ArasakaLogo";
 import { useAuth } from "@/lib/auth";
+import { usePerf } from "@/lib/perf";
 
 export default function AppLayout({
   children,
@@ -19,14 +20,30 @@ export default function AppLayout({
 }) {
   const { user, ready } = useAuth();
   const router = useRouter();
+  const [bootFinished, setBootFinished] = useState(false);
+  const { lite } = usePerf();
 
   useEffect(() => {
-    if (ready && !user) router.replace("/login");
+    // If auth state resolved and no user, immediately redirect to login without waiting for boot animation
+    if (ready && !user) {
+      router.replace("/login");
+    }
   }, [ready, user, router]);
 
-  // Tant que la session n'est pas résolue (ou en cours de redirection) : boot.
-  if (!ready || !user) return <BootScreen />;
+  // If session is loaded and user is unauthenticated, redirect to login instantly
+  // without waiting for the full boot animation.
+  if (ready && !user) {
+    return null;
+  }
 
+  // Keep BootScreen mounted until the auth state is ready AND the user object is validated.
+  // Additionally, if the user is authenticated, wait for the BootScreen loading sequence to complete (bootFinished = true)
+  // before transitioning into the main system dashboard.
+  if (!ready || (user && !bootFinished && !lite)) {
+    return <BootScreen onComplete={() => setBootFinished(true)} />;
+  }
+
+  // Once authenticated and boot sequence is fully completed:
   return (
     <>
       <Navbar />

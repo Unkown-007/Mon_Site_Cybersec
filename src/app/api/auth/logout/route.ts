@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/session";
+import { sameOrigin, forbiddenOrigin } from "@/lib/security";
 
 /* Déconnexion : efface le cookie de session. */
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: Request) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, "", {
     httpOnly: true,

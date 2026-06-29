@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/hardware", label: "Hardware", code: "HW", desc: "Projets ESP32 & élec." },
   { href: "/veille", label: "Veille", code: "INT", desc: "Threat intel & CVE" },
   { href: "/news", label: "News", code: "NWS", desc: "Actu cyber en direct" },
+  { href: "/ai", label: "AI", code: "AI", desc: "Assistant IA cybersécurité" },
   { href: "/map", label: "Attack Map", code: "MAP", desc: "Carte des attaques en direct" },
   { href: "/vault", label: "Vault", code: "VLT", desc: "Zone classifiée" },
 ];

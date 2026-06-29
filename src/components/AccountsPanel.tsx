@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { StatusDot } from "@/components/StatusDot";
 import { Panel, Button } from "@/components/ui";
+import { useAuth } from "@/lib/auth";
 
 /*
  * Panneau "Comptes" — données GitHub réelles (via /api/github) + lien TryHackMe.
- * TryHackMe n'expose pas d'API publique libre (anti-bot), d'où un simple lien
- * vers le profil plutôt qu'une synchro automatique.
+ * Confidentialité : ces comptes sont PERSONNELS au propriétaire (rôle admin).
+ * Un visiteur non-propriétaire (operator) ne les voit pas ; il est invité à
+ * connecter les siens. Aucune donnée perso n'est exposée ni même requêtée.
  */
 
 const THM_PROFILE = "https://tryhackme.com/p/ThalesX01";
@@ -42,19 +44,42 @@ interface GithubData {
 }
 
 export function AccountsPanel() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "admin";
   const [data, setData] = useState<GithubData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isOwner) return; // pas de requête de données perso pour les visiteurs
     fetch("/api/github")
       .then((r) => r.json())
       .then((d: GithubData) => setData(d))
       .catch(() => setData({ source: "error", profile: null, repos: [] }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isOwner]);
 
   const p = data?.profile ?? null;
   const ok = !!p;
+
+  // Visiteur non-propriétaire : version générique, aucune donnée perso.
+  if (!isOwner) {
+    return (
+      <section>
+        <div className="mb-4 flex items-end justify-between">
+          <h2 className="label">COMPTES</h2>
+          <span className="text-label text-muted">espace visiteur</span>
+        </div>
+        <Panel>
+          <p className="text-body-sm text-muted">
+            Les comptes liés (GitHub, TryHackMe…) sont privés au propriétaire de l&apos;espace.
+            Connecte les tiens via tes propres liens — et utilise{" "}
+            <span className="text-ink">ta propre clé</span> dans la section{" "}
+            <span className="text-secondary">AI</span>.
+          </p>
+        </Panel>
+      </section>
+    );
+  }
 
   return (
     <section>

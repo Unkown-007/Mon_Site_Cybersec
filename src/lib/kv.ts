@@ -36,3 +36,8 @@ export const kvDel = (key: string) => redis(["DEL", key]);
 export const kvSadd = (set: string, member: string) => redis(["SADD", set, member]);
 export const kvSrem = (set: string, member: string) => redis(["SREM", set, member]);
 export const kvSmembers = (set: string) => redis<string[]>(["SMEMBERS", set]);
+
+// Compteurs atomiques — utilisés par le limiteur de débit (rate limiting).
+export const kvIncr = (key: string) => redis<number>(["INCR", key]);
+export const kvExpire = (key: string, seconds: number) => redis<number>(["EXPIRE", key, seconds]);
+export const kvTtl = (key: string) => redis<number>(["TTL", key]);

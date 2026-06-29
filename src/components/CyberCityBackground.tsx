@@ -17,7 +17,10 @@ interface Building {
   w: number;
   top: number;
   depth: number; // 0 lointain → 1 proche
-  lights: { x: number; y: number; warm: boolean }[];
+  lights: { x: number; y: number; warm: boolean; flicker: number }[];
+  roofType: 'flat' | 'antenna' | 'tank' | 'ac' | 'dish' | 'spire';
+  hasPipes: boolean;
+  hasBalconies: boolean;
 }
 interface Sign {
   x: number;
@@ -168,9 +171,13 @@ export function CyberCityBackground() {
           const rows = Math.max(1, Math.floor(bh / 15));
           for (let c = 0; c < cols; c++)
             for (let r = 0; r < rows; r++)
-              if (Math.random() > 0.62)
-                lights.push({ x: 4 + c * 13, y: 8 + r * 15, warm: Math.random() > 0.5 });
-          buildings.push({ x, w: bw, top, depth, lights });
+              if (Math.random() > 0.58)
+                lights.push({ x: 4 + c * 13, y: 8 + r * 15, warm: Math.random() > 0.5, flicker: Math.random() });
+          const roofTypes: Building['roofType'][] = ['flat', 'antenna', 'tank', 'ac', 'dish', 'spire'];
+          const roofType = depth > 0.3 ? roofTypes[Math.floor(Math.random() * roofTypes.length)] : 'flat';
+          const hasPipes = depth > 0.5 && Math.random() > 0.6;
+          const hasBalconies = depth > 0.7 && bw > 40 && Math.random() > 0.55;
+          buildings.push({ x, w: bw, top, depth, lights, roofType, hasPipes, hasBalconies });
           x += bw + rand(2, 16);
         }
       }
@@ -334,13 +341,40 @@ export function CyberCityBackground() {
         octx.fillRect(s.x, s.y, 1, 1);
       }
 
-      // lune rouge (Akira) + halo
-      const halo = octx.createRadialGradient(moon.x, moon.y, 0, moon.x, moon.y, moon.r * 4);
-      halo.addColorStop(0, "rgba(255,80,90,0.30)");
-      halo.addColorStop(0.4, "rgba(170,40,90,0.12)");
+      // lune rouge (Akira) + halo + god rays
+      const halo = octx.createRadialGradient(moon.x, moon.y, 0, moon.x, moon.y, moon.r * 5);
+      halo.addColorStop(0, "rgba(255,80,90,0.35)");
+      halo.addColorStop(0.3, "rgba(170,40,90,0.15)");
+      halo.addColorStop(0.7, "rgba(100,20,60,0.05)");
       halo.addColorStop(1, "rgba(0,0,0,0)");
       octx.fillStyle = halo;
-      octx.fillRect(moon.x - moon.r * 4, moon.y - moon.r * 4, moon.r * 8, moon.r * 8);
+      octx.fillRect(moon.x - moon.r * 5, moon.y - moon.r * 5, moon.r * 10, moon.r * 10);
+
+      // god rays from moon
+      octx.save();
+      octx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 6; i++) {
+        const ang = (Math.PI * 2 * i) / 6 + Math.PI / 12;
+        const rayLen = moon.r * (3.5 + Math.random() * 2);
+        const spread = 0.04 + Math.random() * 0.03;
+        const x1 = moon.x + Math.cos(ang - spread) * rayLen;
+        const y1 = moon.y + Math.sin(ang - spread) * rayLen;
+        const x2 = moon.x + Math.cos(ang + spread) * rayLen;
+        const y2 = moon.y + Math.sin(ang + spread) * rayLen;
+        const rg = octx.createLinearGradient(moon.x, moon.y, (x1 + x2) / 2, (y1 + y2) / 2);
+        rg.addColorStop(0, "rgba(255,100,110,0.12)");
+        rg.addColorStop(0.5, "rgba(255,60,80,0.04)");
+        rg.addColorStop(1, "rgba(0,0,0,0)");
+        octx.fillStyle = rg;
+        octx.beginPath();
+        octx.moveTo(moon.x, moon.y);
+        octx.lineTo(x1, y1);
+        octx.lineTo(x2, y2);
+        octx.closePath();
+        octx.fill();
+      }
+      octx.restore();
+
       const disc = octx.createRadialGradient(
         moon.x - moon.r * 0.3, moon.y - moon.r * 0.3, moon.r * 0.2,
         moon.x, moon.y, moon.r
@@ -360,19 +394,106 @@ export function CyberCityBackground() {
         const base = 10 + (1 - fog) * 26;
         octx.fillStyle = `rgb(${base + 6},${base},${base + 16})`;
         octx.fillRect(b.x, b.top, b.w, horizon - b.top);
+
+        // ── Rooftop structures (varied silhouettes) ──
+        if (b.roofType === 'antenna') {
+          // thin antenna mast + small red light
+          const ax = b.x + b.w * (0.3 + Math.random() * 0.4);
+          const ah = rand(12, 30);
+          octx.strokeStyle = 'rgba(140,140,170,0.5)';
+          octx.lineWidth = 1;
+          octx.beginPath(); octx.moveTo(ax, b.top); octx.lineTo(ax, b.top - ah); octx.stroke();
+          // crossbar
+          octx.beginPath(); octx.moveTo(ax - 3, b.top - ah * 0.6); octx.lineTo(ax + 3, b.top - ah * 0.6); octx.stroke();
+        } else if (b.roofType === 'tank') {
+          // water tank cylinder
+          const tw = Math.min(b.w * 0.35, 18);
+          const th = rand(8, 14);
+          const tx = b.x + (b.w - tw) / 2;
+          octx.fillStyle = `rgb(${base + 14},${base + 8},${base + 20})`;
+          octx.fillRect(tx, b.top - th, tw, th);
+          octx.fillStyle = 'rgba(0,245,212,0.15)';
+          octx.fillRect(tx, b.top - th, tw, 1);
+        } else if (b.roofType === 'ac') {
+          // AC units (small boxes)
+          const count = Math.floor(rand(1, 4));
+          for (let i = 0; i < count; i++) {
+            const aw = rand(5, 9);
+            const ah = rand(4, 7);
+            const ax = b.x + rand(3, Math.max(4, b.w - aw - 3));
+            octx.fillStyle = `rgb(${base + 18},${base + 12},${base + 22})`;
+            octx.fillRect(ax, b.top - ah, aw, ah);
+          }
+        } else if (b.roofType === 'dish') {
+          // satellite dish (arc)
+          const dx = b.x + b.w * 0.5;
+          const dr = Math.min(b.w * 0.15, 8);
+          octx.strokeStyle = 'rgba(160,160,190,0.4)';
+          octx.lineWidth = 1.2;
+          octx.beginPath(); octx.arc(dx, b.top - 2, dr, Math.PI, 0); octx.stroke();
+          // mast
+          octx.beginPath(); octx.moveTo(dx, b.top - 2); octx.lineTo(dx, b.top - 2 - dr * 1.5); octx.stroke();
+        } else if (b.roofType === 'spire') {
+          // pointed spire
+          const sw = Math.min(b.w * 0.15, 6);
+          const sh = rand(14, 28);
+          const sx = b.x + b.w / 2;
+          octx.fillStyle = `rgb(${base + 8},${base + 4},${base + 14})`;
+          octx.beginPath();
+          octx.moveTo(sx - sw, b.top);
+          octx.lineTo(sx, b.top - sh);
+          octx.lineTo(sx + sw, b.top);
+          octx.closePath();
+          octx.fill();
+        }
+
+        // ── Pipes / fire escapes on side ──
+        if (b.hasPipes) {
+          const px = Math.random() > 0.5 ? b.x + 1 : b.x + b.w - 2;
+          const pipeLen = Math.min(horizon - b.top, 120);
+          octx.strokeStyle = 'rgba(100,100,130,0.35)';
+          octx.lineWidth = 1.5;
+          octx.beginPath(); octx.moveTo(px, b.top + 8); octx.lineTo(px, b.top + 8 + pipeLen); octx.stroke();
+          // horizontal rungs every ~18px
+          for (let ry = b.top + 18; ry < b.top + 8 + pipeLen; ry += rand(14, 22)) {
+            octx.beginPath(); octx.moveTo(px - 3, ry); octx.lineTo(px + 3, ry); octx.stroke();
+          }
+        }
+
+        // ── Balconies ──
+        if (b.hasBalconies) {
+          const bside = Math.random() > 0.5 ? b.x : b.x + b.w - 6;
+          for (let by = b.top + rand(20, 40); by < horizon - 20; by += rand(18, 30)) {
+            octx.fillStyle = `rgba(${base + 20},${base + 14},${base + 26},0.8)`;
+            octx.fillRect(bside, by, 6, 3);
+          }
+        }
+
         // liseré toit
         octx.fillStyle =
           b.depth > 0.6 ? "rgba(0,245,212,0.30)" : "rgba(123,92,240,0.20)";
         octx.fillRect(b.x, b.top, b.w, 1.5);
-        // fenêtres
+
+        // fenêtres (varied colors: warm yellow, cool cyan, TV blue flicker, pink apartment)
         for (const l of b.lights) {
           if (l.x > b.w - 3) continue;
           const a = (0.35 + b.depth * 0.5);
-          octx.fillStyle = l.warm
-            ? `rgba(254,188,46,${a * 0.5})`
-            : `rgba(0,245,212,${a * 0.45})`;
-          octx.fillRect(b.x + l.x, b.top + l.y, 2.5, 3.5);
+          if (l.flicker > 0.85) {
+            // TV-like blue-white flicker
+            octx.fillStyle = `rgba(140,170,255,${a * 0.6})`;
+            octx.fillRect(b.x + l.x, b.top + l.y, 3, 4);
+          } else if (l.flicker > 0.7) {
+            // pink/magenta apartment
+            octx.fillStyle = `rgba(255,122,196,${a * 0.4})`;
+            octx.fillRect(b.x + l.x, b.top + l.y, 2.5, 3.5);
+          } else {
+            octx.fillStyle = l.warm
+              ? `rgba(254,188,46,${a * 0.5})`
+              : `rgba(0,245,212,${a * 0.45})`;
+            octx.fillRect(b.x + l.x, b.top + l.y, 2.5, 3.5);
+          }
         }
+
         // voile de brume sur les couches lointaines
         if (fog < 1) {
           octx.fillStyle = `rgba(26,16,40,${(1 - fog) * 0.35})`;
@@ -577,10 +698,10 @@ export function CyberCityBackground() {
     };
 
     const drawReflection = () => {
-      // reflet de la ville sur l'asphalte (image statique retournée)
+      // reflet de la ville sur l'asphalte (image statique retournée) — stronger
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = 0.14;
+      ctx.globalAlpha = 0.22;
       const hzPx = horizon * dpr;
       ctx.translate(0, 2 * hzPx);
       ctx.scale(1, -1);
@@ -589,8 +710,9 @@ export function CyberCityBackground() {
       // distorsion / fondu du reflet
       ctx.save();
       const g = ctx.createLinearGradient(0, horizon, 0, h);
-      g.addColorStop(0, "rgba(7,5,16,0.25)");
-      g.addColorStop(1, "rgba(7,5,16,0.9)");
+      g.addColorStop(0, "rgba(7,5,16,0.20)");
+      g.addColorStop(0.5, "rgba(7,5,16,0.55)");
+      g.addColorStop(1, "rgba(7,5,16,0.88)");
       ctx.fillStyle = g;
       ctx.fillRect(0, horizon, w, h - horizon);
       ctx.restore();
@@ -651,6 +773,23 @@ export function CyberCityBackground() {
         ctx.moveTo(d.x, d.y);
         ctx.lineTo(d.x - 2, d.y + d.len);
         ctx.stroke();
+        // splash effect at horizon
+        if (d.y + d.len > horizon - 5 && d.y + d.len < horizon + 8) {
+          ctx.globalAlpha = d.a * 0.6;
+          ctx.fillStyle = "rgba(150,180,255,0.3)";
+          ctx.beginPath();
+          ctx.arc(d.x - 2, horizon, rand(0.8, 1.6), 0, Math.PI * 2);
+          ctx.fill();
+          // tiny splash lines
+          ctx.strokeStyle = "rgba(150,180,255,0.25)";
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(d.x - 4, horizon); ctx.lineTo(d.x - 5, horizon - 2);
+          ctx.moveTo(d.x, horizon); ctx.lineTo(d.x + 1, horizon - 2);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(150,180,255,0.5)";
+          ctx.lineWidth = 1;
+        }
       }
       ctx.globalAlpha = 1;
     };
@@ -658,14 +797,25 @@ export function CyberCityBackground() {
     let fogX = 0;
     const drawFog = () => {
       fogX += 0.15;
-      for (let i = 0; i < 2; i++) {
-        const cx = ((fogX * (i + 1) * 0.4) % (w + 400)) - 200;
-        const g = ctx.createRadialGradient(cx, horizon - 40, 0, cx, horizon - 40, 260);
-        g.addColorStop(0, `rgba(123,92,240,${0.05 - i * 0.015})`);
+      // multi-layer volumetric fog
+      for (let i = 0; i < 3; i++) {
+        const cx = ((fogX * (i + 1) * 0.35) % (w + 500)) - 250;
+        const cy = horizon - 40 + i * 20;
+        const radius = 280 + i * 40;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        g.addColorStop(0, `rgba(123,92,240,${0.06 - i * 0.012})`);
+        g.addColorStop(0.5, `rgba(80,50,160,${0.025 - i * 0.006})`);
         g.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = g;
-        ctx.fillRect(cx - 260, horizon - 300, 520, 360);
+        ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
       }
+      // ground-level atmospheric haze (warmer)
+      const haze = ctx.createLinearGradient(0, horizon - 60, 0, horizon + 10);
+      haze.addColorStop(0, "rgba(0,0,0,0)");
+      haze.addColorStop(0.5, "rgba(30,15,45,0.06)");
+      haze.addColorStop(1, "rgba(20,10,35,0.08)");
+      ctx.fillStyle = haze;
+      ctx.fillRect(0, horizon - 60, w, 70);
     };
 
     const vignette = () => {

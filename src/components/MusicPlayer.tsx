@@ -253,7 +253,7 @@ export function MusicPlayer() {
       {/* Panneau de contrôle */}
       {panelOpen && (
         <div
-          className="z-[9999] w-[300px] card corner-frame animate-fade-up shadow-[0_0_40px_-12px_#7b5cf0]"
+          className="z-[9999] w-[300px] max-w-[calc(100vw-2.5rem)] card corner-frame animate-fade-up shadow-[0_0_40px_-12px_#7b5cf0] before:opacity-100 backdrop-blur-md bg-surface/70"
           style={{ position: "fixed", bottom: "5rem", left: "1.25rem" }}
         >
           {/* En-tête */}

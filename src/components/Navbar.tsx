@@ -9,13 +9,14 @@ import { StatusDot } from "@/components/StatusDot";
 import { NAV_ITEMS, ADMIN_ITEM, type NavItem } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
 
+
 const item = (href: string): NavItem =>
   NAV_ITEMS.find((n) => n.href === href) ?? ADMIN_ITEM;
 
 const GROUPS: { label: string; hrefs: string[] }[] = [
   { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/arsenal"] },
   { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map"] },
-  { label: "Intel", hrefs: ["/veille", "/news"] },
+  { label: "Intel", hrefs: ["/veille", "/news", "/ai"] },
 ];
 
 const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal"));
@@ -37,7 +38,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-line-strong bg-base/70 backdrop-blur-[8px]">
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-primary/20 bg-base/60 backdrop-blur-[12px]" style={{ boxShadow: '0 1px 12px rgba(123,92,240,0.15), inset 0 -1px 0 rgba(123,92,240,0.1)' }}>
       <nav className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between gap-4">
         <Link href="/" className="shrink-0" aria-label="Accueil UnknownX-077">
           <LogoWordmark />
@@ -60,12 +61,14 @@ export function Navbar() {
             >
               <button
                 onClick={() => setOpenGroup((v) => (v === g.label ? null : g.label))}
-                className={`px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors flex items-center gap-1 ${
-                  groupActive(g) ? "text-secondary" : "text-muted hover:text-ink"
+                className={`hud-tab px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] flex items-center ${
+                  groupActive(g) ? "is-active text-secondary" : "text-muted hover:text-ink"
                 }`}
               >
-                {g.label}
-                <span className="text-[8px]">▾</span>
+                <span className="relative z-10 flex items-center gap-1">
+                  {g.label}
+                  <span className="text-[8px]">▾</span>
+                </span>
               </button>
 
               <AnimatePresence>
@@ -75,8 +78,8 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute left-0 top-full w-64 p-1.5 rounded-sm border bg-surface/95 backdrop-blur-md"
-                    style={{ borderColor: "rgba(123,92,240,0.25)" }}
+                    className="absolute left-0 top-full w-64 p-1.5 rounded-sm border bg-surface/90 backdrop-blur-xl"
+                    style={{ borderColor: "rgba(123,92,240,0.3)", boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 1px rgba(123,92,240,0.3)' }}
                   >
                     {g.hrefs.map((h) => {
                       const it = item(h);
@@ -125,9 +128,9 @@ export function Navbar() {
           <li>
             <button
               onClick={openTerminal}
-              className="px-3 py-2 text-xs font-mono uppercase tracking-[2px] text-muted hover:text-secondary transition-colors"
+              className="hud-tab px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] text-muted hover:text-secondary"
             >
-              ❯_ Terminal
+              <span className="relative z-10">❯_ Terminal</span>
             </button>
           </li>
         </ul>
@@ -147,7 +150,7 @@ export function Navbar() {
             </>
           ) : (
             <Link href="/login" className="btn btn-primary !py-2 !px-4">
-              // Connect
+              {"// Connect"}
             </Link>
           )}
         </div>
@@ -241,7 +244,7 @@ export function Navbar() {
                   </button>
                 ) : (
                   <Link href="/login" className="btn btn-primary w-full justify-center">
-                    // Connect
+                    {"// Connect"}
                   </Link>
                 )}
               </div>
@@ -265,11 +268,11 @@ function NavTopLink({
   return (
     <Link
       href={href}
-      className={`px-3 py-2 text-xs font-mono uppercase tracking-[2px] transition-colors ${
-        active ? "text-secondary" : "text-muted hover:text-ink"
+      className={`hud-tab inline-block px-3.5 py-2 text-xs font-mono uppercase tracking-[2px] ${
+        active ? "is-active text-secondary" : "text-muted hover:text-ink"
       }`}
     >
-      {children}
+      <span className="relative z-10">{children}</span>
     </Link>
   );
 }
@@ -289,8 +292,8 @@ function MobLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`py-3 border-b border-line font-mono text-sm uppercase tracking-[2px] ${
-        active ? "text-secondary" : "text-ink"
+      className={`block py-3 border-b border-line border-l-2 font-mono text-sm uppercase tracking-[2px] pl-3 transition-all ${
+        active ? "border-l-secondary text-secondary bg-secondary/5" : "border-l-transparent text-ink hover:text-ink-strong"
       }`}
     >
       {children}

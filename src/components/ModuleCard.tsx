@@ -1,6 +1,43 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
+"use client";
 
+import Link from "next/link";
+import { useRef, type ReactNode, type MouseEvent } from "react";
+
+const DEFAULT_ICONS: Record<string, ReactNode> = {
+  RES: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+      <path d="M6 6h10" />
+      <path d="M6 10h10" />
+    </svg>
+  ),
+  WUP: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  ),
+  TLS: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  ),
+  INT: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      <path d="M2 12h20" />
+    </svg>
+  ),
+};
+
+/*
+ * <ModuleCard> — carte de module du dashboard avec spotlight cursor-following.
+ * Le gradient radial suit le curseur via CSS custom properties (pas de re-render).
+ * Accent glow + icon animation au hover.
+ */
 export function ModuleCard({
   href,
   code,
@@ -18,22 +55,60 @@ export function ModuleCard({
   accent?: "primary" | "secondary";
   icon?: ReactNode;
 }) {
+  const ref = useRef<HTMLAnchorElement>(null);
   const accentText = accent === "primary" ? "text-primary" : "text-secondary";
+  const glowText = accent === "primary" ? "group-hover:text-glow-primary" : "group-hover:text-glow-secondary";
+  const spotColor = accent === "primary" ? "rgba(123, 92, 240, 0.10)" : "rgba(0, 245, 212, 0.08)";
+  const resolvedIcon = icon ?? DEFAULT_ICONS[code] ?? (
+    <span className="transition-transform duration-fast ease-out-soft group-hover:translate-x-0.5">→</span>
+  );
+
+  const handleMove = (e: MouseEvent<HTMLAnchorElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+  };
+
+  const handleLeave = () => {
+    ref.current?.style.setProperty("--spot-x", "-200px");
+    ref.current?.style.setProperty("--spot-y", "-200px");
+  };
+
   return (
-    <Link href={href} className="card group block p-5">
+    <Link
+      ref={ref}
+      href={href}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      className="spotlight-card card corner-frame scan-hover group block p-5 rounded-md focus-ring hover-lift transition-all duration-base ease-out-soft"
+      style={{
+        "--glow-color": accent === "primary" ? "var(--primary)" : "var(--secondary)",
+        "--spot-color": spotColor,
+        "--spot-x": "-200px",
+        "--spot-y": "-200px",
+      } as React.CSSProperties}
+    >
+      {/* Icon background glow */}
       <div className="flex items-start justify-between mb-4">
         <span className={`label ${accentText}`}>{code}</span>
-        <span className={`${accentText} opacity-60 group-hover:opacity-100 transition-opacity`}>
-          {icon ?? "→"}
+        <span
+          className={`${accentText} opacity-60 group-hover:opacity-100 transition-all duration-base group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_currentColor]`}
+        >
+          {resolvedIcon}
         </span>
       </div>
-      <h3 className="font-display text-lg text-ink mb-1.5 group-hover:text-glow-primary transition-all">
+      <h3 className={`font-display text-lg text-ink mb-1.5 ${glowText} transition-all`}>
         {title}
       </h3>
       <p className="text-sm text-muted leading-relaxed">{desc}</p>
       {meta ? (
-        <div className="mt-4 pt-3 border-t border-line text-xs font-mono text-muted">
-          {meta}
+        <div className="mt-4 pt-3 border-t border-line text-xs font-mono text-muted flex items-center justify-between">
+          <span>{meta}</span>
+          <span className={`${accentText} opacity-0 group-hover:opacity-100 transition-all duration-base translate-x-0 group-hover:translate-x-1`}>
+            →
+          </span>
         </div>
       ) : null}
     </Link>

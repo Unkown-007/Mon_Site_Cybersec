@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { GUIPanel } from "@/components/GUIPanel";
+import { Badge } from "@/components/ui";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion, motion } from "framer-motion";
+import { CveSkeletonCard } from "@/components/ui/Skeletons";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
+
 
 interface ApiCve {
   id: string;
@@ -80,11 +87,20 @@ const SCORE_FILTERS = [
 ];
 
 export default function VeillePage() {
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+
   const [items, setItems] = useState<ApiCve[]>([]);
   const [source, setSource] = useState<"nvd" | "fallback" | null>(null);
   const [loading, setLoading] = useState(true);
   const [minScore, setMinScore] = useState(0);
   const [vendor, setVendor] = useState<string | null>(null);
+  const [kev, setKev] = useState<Set<string>>(new Set());
+  const [kevRansom, setKevRansom] = useState<Set<string>>(new Set());
+  const [epss, setEpss] = useState<Record<string, { epss: number; percentile: number }>>({});
+  const [watch, setWatch] = useLocalStorage<string[]>("ux077:watchlist", []);
+  const [term, setTerm] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -102,6 +118,43 @@ export default function VeillePage() {
     };
   }, []);
 
+  // B1 — catalogue CISA KEV (failles activement exploitées).
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/kev")
+      .then((r) => r.json())
+      .then((d: { ids?: string[]; ransomware?: string[] }) => {
+        if (!alive) return;
+        setKev(new Set(d.ids ?? []));
+        setKevRansom(new Set(d.ransomware ?? []));
+      })
+      .catch(() => {
+        /* repli silencieux : pas de badge KEV si la source tombe */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // B2 — scores EPSS pour les CVE chargées (probabilité d'exploitation).
+  useEffect(() => {
+    if (items.length === 0) return;
+    let alive = true;
+    const ids = items.map((c) => c.id).filter((id) => /^CVE-\d{4}-\d{4,}$/.test(id));
+    if (ids.length === 0) return;
+    fetch(`/api/epss?cve=${ids.join(",")}`)
+      .then((r) => r.json())
+      .then((d: { scores?: Record<string, { epss: number; percentile: number }> }) => {
+        if (alive) setEpss(d.scores ?? {});
+      })
+      .catch(() => {
+        /* repli silencieux : pas d'EPSS si la source tombe */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [items]);
+
   const vendors = useMemo(
     () => Array.from(new Set(items.map((c) => c.vendor))).filter((v) => v !== "n/a").sort(),
     [items]
@@ -112,6 +165,37 @@ export default function VeillePage() {
       items.filter((c) => c.score >= minScore && (!vendor || c.vendor === vendor)),
     [items, minScore, vendor]
   );
+
+  // B3 — watchlist : une CVE matche si un terme suivi est dans son vendor/résumé.
+  const isWatched = (c: ApiCve) =>
+    watch.some((t) => `${c.vendor} ${c.summary}`.toLowerCase().includes(t));
+
+  // Les CVE suivies remontent en tête (tri stable, ordre par score conservé).
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => Number(isWatched(b)) - Number(isWatched(a))),
+    [filtered, watch] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const addTerm = (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = term.trim().toLowerCase();
+    if (t && !watch.includes(t)) setWatch((w) => [...w, t]);
+    setTerm("");
+  };
+  const removeTerm = (t: string) => setWatch((w) => w.filter((x) => x !== t));
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: disableAnimation ? 0 : 0.05 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: disableAnimation ? 0 : 6 },
+    visible: { opacity: 1, y: 0, transition: { duration: disableAnimation ? 0 : 0.25 } }
+  };
 
   return (
     <div>
@@ -173,6 +257,8 @@ export default function VeillePage() {
         </GUIPanel>
       </div>
 
+      <div className="divider-gradient my-6" />
+
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         {/* Flux CVE */}
         <section>
@@ -194,6 +280,48 @@ export default function VeillePage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* B3 — Watchlist persistée (localStorage) */}
+          <div className="mb-4 rounded-md border border-line bg-surface p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="label">Watchlist</span>
+              <span className="font-mono text-label text-muted">{watch.length} suivi(s)</span>
+            </div>
+            <form onSubmit={addTerm} className="mb-2 flex gap-2">
+              <input
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder="vendor / produit (fortinet, vmware…)"
+                spellCheck={false}
+                className="field flex-1"
+                aria-label="Ajouter un terme à suivre"
+              />
+              <button
+                type="submit"
+                className="focus-ring shrink-0 rounded-sm border border-secondary/70 bg-secondary/10 px-3 py-2 font-mono text-label uppercase text-secondary transition-colors duration-fast ease-out-soft hover:bg-secondary/20"
+              >
+                + Suivre
+              </button>
+            </form>
+            {watch.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {watch.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => removeTerm(t)}
+                    aria-label={`Retirer ${t}`}
+                    className="focus-ring inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-2 py-0.5 font-mono text-label text-muted transition-colors duration-fast ease-out-soft hover:border-danger/50 hover:text-danger"
+                  >
+                    {t} <span aria-hidden>✕</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="font-mono text-label text-muted">
+                Ajoute des vendors/produits — les CVE correspondantes remontent en tête.
+              </p>
+            )}
           </div>
 
           {vendors.length > 0 && (
@@ -222,17 +350,28 @@ export default function VeillePage() {
           )}
 
           {loading ? (
-            <div className="card p-8 text-center font-mono text-sm text-muted">
-              interrogation de l&apos;API NVD<span className="cursor" aria-hidden="true" />
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <CveSkeletonCard key={i} disableAnimation={disableAnimation} />
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="card p-8 text-center font-mono text-sm text-muted">
               [ aucune CVE pour ce filtre ]
             </div>
           ) : (
-            <ul className="space-y-2">
-              {filtered.map((c) => (
-                <li key={c.id} className="card p-4">
+            <motion.ul
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-2"
+            >
+              {sorted.map((c) => (
+                <motion.li
+                  variants={itemVariants}
+                  key={c.id}
+                  className="card p-4"
+                >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <a
                       href={`https://nvd.nist.gov/vuln/detail/${c.id}`}
@@ -243,6 +382,12 @@ export default function VeillePage() {
                       {c.id} ↗
                     </a>
                     <div className="flex items-center gap-2 shrink-0">
+                      {isWatched(c) && <Badge variant="accent">watch</Badge>}
+                      {kev.has(c.id) && (
+                        <Badge variant="danger" dot>
+                          {kevRansom.has(c.id) ? "KEV · ransomware" : "KEV exploité"}
+                        </Badge>
+                      )}
                       <span
                         className={`text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SEV_COLOR[c.severity] ?? SEV_COLOR.LOW}`}
                       >
@@ -255,17 +400,20 @@ export default function VeillePage() {
                   </div>
                   <p className="text-xs text-muted leading-relaxed">{c.summary}</p>
                   <div className="mt-2 text-[10px] font-mono text-muted uppercase tracking-[1px]">
+                    {epss[c.id] != null && (
+                      <span className="text-ink">EPSS {(epss[c.id].epss * 100).toFixed(1)}% · </span>
+                    )}
                     {c.vendor !== "n/a" ? `${c.vendor} · ` : ""}
                     {c.published}
                   </div>
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           )}
         </section>
 
         {/* Bookmarks */}
-        <aside>
+        <ScrollReveal direction="right" delay={100} as="aside">
           <h2 className="label mb-4">Sources & bookmarks</h2>
           <ul className="space-y-2">
             {BOOKMARKS.map((b) => (
@@ -291,7 +439,7 @@ export default function VeillePage() {
               </li>
             ))}
           </ul>
-        </aside>
+        </ScrollReveal>
       </div>
     </div>
   );

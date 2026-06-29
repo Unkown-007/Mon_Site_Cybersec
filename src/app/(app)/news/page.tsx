@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { usePerf } from "@/lib/perf";
+import { useReducedMotion } from "framer-motion";
+import { NewsSkeletonCard } from "@/components/ui/Skeletons";
 
 interface NewsItem {
   title: string;
@@ -28,6 +31,10 @@ const ago = (iso: string) => {
 };
 
 export default function NewsPage() {
+  const { lite } = usePerf();
+  const shouldReduceMotion = useReducedMotion();
+  const disableAnimation = lite || (shouldReduceMotion ?? false);
+
   const [items, setItems] = useState<NewsItem[]>([]);
   const [sources, setSources] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,8 +102,10 @@ export default function NewsPage() {
       )}
 
       {loading ? (
-        <div className="card p-8 text-center font-mono text-sm text-muted">
-          récupération des flux RSS<span className="cursor" aria-hidden="true" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <NewsSkeletonCard key={i} disableAnimation={disableAnimation} />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="card p-8 text-center font-mono text-sm text-muted">

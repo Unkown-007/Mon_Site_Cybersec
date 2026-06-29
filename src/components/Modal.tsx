@@ -26,7 +26,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-base/80 backdrop-blur-sm p-4 pt-[8vh]"
+      className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-base/70 backdrop-blur-md p-4 pt-[8vh]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth-server";
 import { listAccounts, updateAccount, type Account } from "@/lib/users";
 import { isOwner } from "@/lib/access";
 import { kvReady } from "@/lib/kv";
+import { sameOrigin, forbiddenOrigin } from "@/lib/security";
 
 /* Gestion des comptes (admin) : lister + changer rôle / statut. */
 export const runtime = "nodejs";
@@ -15,6 +16,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  if (!sameOrigin(req)) return forbiddenOrigin();
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 

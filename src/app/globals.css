@@ -113,18 +113,40 @@
     color: var(--secondary);
   }
 
-  /* Carte standard — bordure neutre, survol calme (le violet recule) */
+  /* Carte standard — premium glassmorphism */
   .card {
-    background: var(--surface);
+    background: rgba(12, 12, 21, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--line);
     position: relative;
+    border-radius: var(--radius-md);
     transition:
       border-color var(--dur-base) var(--ease-out-soft),
-      transform var(--dur-base) var(--ease-out-soft);
+      transform var(--dur-base) var(--ease-out-soft),
+      box-shadow var(--dur-base) var(--ease-out-soft);
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(123, 92, 240, 0.4) 0%, transparent 40%, transparent 60%, rgba(0, 245, 212, 0.2) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out-soft);
   }
   .card:hover {
-    border-color: var(--line-strong);
-    transform: translateY(-1px);
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 20px rgba(123, 92, 240, 0.15), 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+  .card:hover::before {
+    opacity: 1;
   }
 
   /* Curseur clignotant terminal */
@@ -154,12 +176,28 @@
     box-shadow: var(--ring);
   }
   .btn-primary {
-    background: rgba(123, 92, 240, 0.12);
+    background: linear-gradient(135deg, rgba(123, 92, 240, 0.2) 0%, rgba(123, 92, 240, 0.05) 100%);
     border: 1px solid var(--primary);
     color: #d7ccff;
+    position: relative;
+    overflow: hidden;
   }
   .btn-primary:hover {
-    background: rgba(123, 92, 240, 0.22);
+    background: linear-gradient(135deg, rgba(123, 92, 240, 0.3) 0%, rgba(123, 92, 240, 0.1) 100%);
+    box-shadow: 0 0 15px rgba(123, 92, 240, 0.4), inset 0 0 10px rgba(123, 92, 240, 0.2);
+  }
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transform: skewX(-20deg);
+  }
+  .btn-primary:hover::after {
+    animation: btn-sweep 0.8s ease-out;
+  }
+  @keyframes btn-sweep {
+    100% { left: 200%; }
   }
   .btn-ghost {
     background: transparent;
@@ -229,6 +267,76 @@
   }
   .text-glow-secondary {
     text-shadow: 0 0 18px rgba(0, 245, 212, 0.5);
+  }
+
+  /* ── SpotlightCard : gradient radial suivant le curseur (Apple-style) ── */
+  .spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .spotlight-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      350px circle at var(--spot-x) var(--spot-y),
+      var(--spot-color, rgba(123, 92, 240, 0.08)),
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 1;
+  }
+  .spotlight-card:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Gradient text (titres premium) ── */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, #7b5cf0, #a78bfa, #00f5d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-cyber {
+    background: linear-gradient(90deg, #00f5d4, #7b5cf0, #ff3d60);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Gradient dividers (premium separator) ── */
+  .divider-gradient {
+    height: 1px;
+    border: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(123, 92, 240, 0.4),
+      rgba(0, 245, 212, 0.2),
+      transparent
+    );
+  }
+
+  /* ── Stagger animation delay utilities ── */
+  .stagger-1 { animation-delay: 80ms; }
+  .stagger-2 { animation-delay: 160ms; }
+  .stagger-3 { animation-delay: 240ms; }
+  .stagger-4 { animation-delay: 320ms; }
+  .stagger-5 { animation-delay: 400ms; }
+  .stagger-6 { animation-delay: 480ms; }
+  .stagger-7 { animation-delay: 560ms; }
+  .stagger-8 { animation-delay: 640ms; }
+
+  /* ── Smooth hover lift (reusable) ── */
+  .hover-lift {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -478,11 +586,38 @@
 .lite .gui-pulse:hover,
 .lite .animate-flicker,
 .lite .card.scan-hover:hover::after,
-.lite .cursor::after {
+.lite .cursor::after,
+.lite .btn-primary:hover::after,
+.lite .animate-fade-up {
   animation: none !important;
 }
 .lite .eq > i {
   height: 40% !important;
+}
+.lite .card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.lite .card::before {
+  display: none !important;
+}
+.lite .glitch.is-glitching,
+.lite .glitch.is-glitching::before,
+.lite .glitch.is-glitching::after {
+  animation: none !important;
+}
+.lite .card:hover,
+.lite .btn-primary:hover {
+  box-shadow: none !important;
+}
+.lite .spotlight-card::after {
+  display: none !important;
+}
+.lite .hover-lift:hover {
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* ── Banderole news/CVE : défilement horizontal continu ── */
@@ -590,3 +725,261 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   CHANFREIN CYBERPUNK — onglets / chips à coins coupés + liseré néon.
+   La silhouette vient d'un clip-path (coins opposés coupés) ; le liseré
+   reprend la technique de masque de .card mais suit la découpe. Néon multi-
+   accent (cyan → violet) sur l'état actif, avec pulsation event-light.
+   ============================================================ */
+@layer utilities {
+  .clip-chamfer {
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer, 9px)) 0,
+      100% var(--chamfer, 9px),
+      100% 100%,
+      var(--chamfer, 9px) 100%,
+      0 calc(100% - var(--chamfer, 9px))
+    );
+  }
+  .clip-chamfer-sm { --chamfer: 6px; }
+  .clip-chamfer-lg { --chamfer: 13px; }
+}
+
+@layer components {
+  /* Onglet HUD chanfreiné (navbar). Liseré invisible au repos, néon à
+     l'état actif / focus, faible au survol. */
+  .hud-tab {
+    --tab-edge: transparent;
+    --chamfer: 9px;
+    position: relative;
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer)) 0,
+      100% var(--chamfer),
+      100% 100%,
+      var(--chamfer) 100%,
+      0 calc(100% - var(--chamfer))
+    );
+    transition:
+      color var(--dur-fast) var(--ease-out-soft),
+      background-color var(--dur-base) var(--ease-out-soft);
+  }
+  .hud-tab::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    clip-path: inherit;
+    padding: 1px;
+    background: var(--tab-edge);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    transition: background var(--dur-base) var(--ease-out-soft);
+  }
+  .hud-tab:hover {
+    --tab-edge: rgba(0, 245, 212, 0.45);
+  }
+  .hud-tab:focus-visible {
+    outline: none;
+    --tab-edge: var(--secondary);
+  }
+  .hud-tab.is-active {
+    --tab-edge: linear-gradient(120deg, var(--secondary), var(--primary));
+    background: rgba(0, 245, 212, 0.07);
+    animation: hud-tab-pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes hud-tab-pulse {
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(0, 245, 212, 0.32)); }
+    50% { filter: drop-shadow(0 0 7px rgba(0, 245, 212, 0.55)); }
+  }
+
+  /* Variante « chip » : liseré toujours visible, plus petit chanfrein. */
+  .hud-tab--chip {
+    --tab-edge: var(--line-strong);
+    --chamfer: 6px;
+  }
+  .hud-tab--chip:hover {
+    --tab-edge: rgba(0, 245, 212, 0.5);
+  }
+  .hud-tab--chip.is-active {
+    --tab-edge: linear-gradient(120deg, var(--secondary), var(--primary));
+    background: rgba(0, 245, 212, 0.07);
+    animation: none;
+    filter: drop-shadow(0 0 5px rgba(0, 245, 212, 0.4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-tab.is-active { animation: none; }
+}
+.lite .hud-tab.is-active {
+  animation: none !important;
+  filter: none !important;
+}
+.lite .hud-tab--chip.is-active {
+  filter: none !important;
+}
+
+/* ============================================================
+   UnknownX-077 — Custom styles for Immersive 404 (Alarm Red) & Skeletons
+   ============================================================ */
+
+/* Red Glow effect for alarm headings */
+.text-glow-danger {
+  text-shadow: 0 0 18px rgba(255, 61, 96, 0.6);
+}
+
+/* Red HUD Scanlines (similar pattern to hud-scanlines but in danger red) */
+.hud-scanlines-danger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 61, 96, 0.03) 0px,
+    rgba(255, 61, 96, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Cyberpunk Alarm Corners for the main panel */
+.corner-frame-danger {
+  position: relative;
+}
+.corner-frame-danger::before,
+.corner-frame-danger::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity var(--dur-base) var(--ease-out-soft);
+}
+.corner-frame-danger::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--danger);
+  border-left: 2px solid var(--danger);
+}
+.corner-frame-danger::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--danger);
+  border-right: 2px solid var(--danger);
+}
+
+/* Alarm-themed Buttons */
+.btn-primary-danger {
+  background: rgba(255, 61, 96, 0.12);
+  border: 1px solid var(--danger);
+  color: #ffccd5;
+}
+.btn-primary-danger:hover {
+  background: rgba(255, 61, 96, 0.22);
+  box-shadow: 0 0 12px rgba(255, 61, 96, 0.2);
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+.btn-ghost-danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(255, 61, 96, 0.05);
+}
+
+/* Slow warning pulsing animation */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.55; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite ease-in-out;
+}
+
+/* Cyberpunk terminal skeleton shimmer block */
+.terminal-skeleton {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.terminal-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(123, 92, 240, 0.08), /* Subtle violet primary glow */
+    transparent
+  );
+  animation: terminal-shimmer 1.8s infinite;
+}
+
+@keyframes terminal-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Terminal stepped pulsing for skeletons */
+@keyframes pulse-stepped {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.75; }
+}
+.animate-pulse-stepped {
+  animation: pulse-stepped 1.6s steps(4) infinite;
+}
+
+/* Technical Compliance Overrides */
+.lite .hud-scanlines-danger::after {
+  display: none !important;
+}
+.lite .text-glow-danger {
+  text-shadow: none !important;
+}
+.lite .animate-pulse-slow {
+  animation: none !important;
+  opacity: 1 !important;
+}
+.lite .btn-primary-danger:hover {
+  box-shadow: none !important;
+}
+.lite .terminal-skeleton::after {
+  display: none !important;
+}
+.lite .animate-pulse-stepped {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow,
+  .corner-frame-danger::before,
+  .corner-frame-danger::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .terminal-skeleton::after {
+    animation: none !important;
+  }
+  .animate-pulse-stepped {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+

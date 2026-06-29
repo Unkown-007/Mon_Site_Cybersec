@@ -93,7 +93,7 @@ export function NewsTicker() {
   const loop = [...entries, ...entries];
 
   return (
-    <div className="fixed top-14 inset-x-0 z-40 h-8 border-b border-line-strong bg-base/85 backdrop-blur-sm overflow-hidden">
+    <div className="fixed top-14 inset-x-0 z-40 h-8 border-b border-primary/15 bg-base/80 backdrop-blur-md overflow-hidden" style={{ boxShadow: 'inset 0 -1px 0 rgba(123,92,240,0.08), 0 1px 8px rgba(0,0,0,0.3)' }}>
       <div className="marquee-mask relative flex h-full items-center">
         {/* badge LIVE fixe à gauche */}
         <div className="absolute left-0 top-0 z-10 flex h-full items-center gap-1.5 bg-base/95 pl-3 pr-4 border-r border-line-strong">

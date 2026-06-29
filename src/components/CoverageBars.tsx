@@ -54,7 +54,7 @@ export function CoverageBars({
               style={{
                 width: shown ? `${(e.count / max) * 100}%` : "0%",
                 background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 25%, transparent), ${accent})`,
-                boxShadow: `0 0 8px -3px ${accent}`,
+                boxShadow: `0 0 12px -1px ${accent}`,
                 transition: `width var(--dur-slow) var(--ease-out-soft) ${i * 60}ms`,
               }}
             />
