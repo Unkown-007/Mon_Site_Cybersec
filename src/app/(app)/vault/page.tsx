@@ -72,6 +72,7 @@ export default function VaultPage() {
   const [opening, setOpening] = useState(false);
   const [lockIn, setLockIn] = useState(300);
   const [pending, setPending] = useState<PendingRecovery | null>(null);
+  const [confirmWipe, setConfirmWipe] = useState(false);
 
   // champs de formulaire (verrouillé)
   const [pwd, setPwd] = useState("");
@@ -227,6 +228,19 @@ export default function VaultPage() {
     setReveal(null);
     setScreen("unlock");
     push("warn", "Coffre verrouillé.");
+  };
+
+  // Effacement total : supprime le blob chiffré local et repart sur la création.
+  const wipeVault = () => {
+    localStorage.removeItem(STORAGE);
+    setBlob(null);
+    setHasVault(false);
+    setDek(null);
+    setNotes([]);
+    setConfirmWipe(false);
+    resetForm();
+    setScreen("setup");
+    push("warn", "Coffre effacé — crée-en un nouveau.");
   };
 
   const persist = async (next: VaultNote[]) => {
@@ -511,6 +525,44 @@ export default function VaultPage() {
               ← retour au déverrouillage
             </button>
           </form>
+        )}
+
+        {/* ─── Zone dangereuse : tout effacer (mdp ET code perdus) ─── */}
+        {hasVault && screen !== "setup" && (
+          <div className="mt-4">
+            {!confirmWipe ? (
+              <button
+                type="button"
+                onClick={() => setConfirmWipe(true)}
+                className="text-[10px] font-mono text-muted hover:text-danger w-full text-center"
+              >
+                Tout perdu (mot de passe ET code) ? Effacer le coffre et repartir de zéro
+              </button>
+            ) : (
+              <div className="card p-4 border-danger/40 space-y-3">
+                <p className="font-mono text-xs text-danger leading-relaxed">
+                  ⚠ // EFFACEMENT DÉFINITIF — les notes chiffrées seront perdues
+                  pour toujours, sans aucun retour possible.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmWipe(false)}
+                    className="btn btn-ghost flex-1 justify-center text-xs"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={wipeVault}
+                    className="btn flex-1 justify-center text-xs border border-danger text-danger hover:bg-danger hover:text-ink"
+                  >
+                    Effacer définitivement
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
