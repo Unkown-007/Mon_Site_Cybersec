@@ -177,7 +177,7 @@ export default function LoginPage() {
       {/* Encart de connexion */}
       <motion.div
         className="card w-full max-w-sm p-7 relative backdrop-blur-xl"
-        style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "0 0 60px -12px rgba(123,92,240,0.3), inset 0 0 40px rgba(123,92,240,0.06)" }}
+        style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "inset 0 0 40px rgba(123,92,240,0.06)", filter: "drop-shadow(0 0 22px rgba(123,92,240,0.28))" }}
         variants={isFastMode ? undefined : cardVariants}
       >
         {/* coins HUD */}

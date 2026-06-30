@@ -32,7 +32,7 @@ export function Modal({
       aria-modal="true"
     >
       <div
-        className="card corner-frame w-full max-w-lg animate-fade-up shadow-[0_0_50px_-12px_#7b5cf0]"
+        className="card corner-frame w-full max-w-lg animate-fade-up drop-shadow-[0_0_20px_rgba(123,92,240,0.5)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="gui-stream flex items-center justify-between gap-2 px-4 py-2.5 border-b border-line-strong bg-base/40">

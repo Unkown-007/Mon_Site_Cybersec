@@ -238,7 +238,7 @@ export function MusicPlayer() {
         aria-label="Lecteur audio"
         style={{ position: "fixed", bottom: "1.25rem", left: "1.25rem" }}
         className={`z-[9999] h-11 w-11 grid place-items-center card text-secondary hover:text-ink transition-colors ${
-          playing ? "shadow-[0_0_22px_-3px_#00f5d4]" : "shadow-[0_0_18px_-4px_#7b5cf0]"
+          playing ? "drop-shadow-[0_0_10px_#00f5d4]" : "drop-shadow-[0_0_8px_#7b5cf0]"
         }`}
       >
         {playing ? (
@@ -253,7 +253,7 @@ export function MusicPlayer() {
       {/* Panneau de contrôle */}
       {panelOpen && (
         <div
-          className="z-[9999] w-[300px] max-w-[calc(100vw-2.5rem)] card corner-frame animate-fade-up shadow-[0_0_40px_-12px_#7b5cf0] before:opacity-100 backdrop-blur-md bg-surface/70"
+          className="z-[9999] w-[300px] max-w-[calc(100vw-2.5rem)] card corner-frame animate-fade-up drop-shadow-[0_0_16px_rgba(123,92,240,0.5)] before:opacity-100 backdrop-blur-md bg-surface/70"
           style={{ position: "fixed", bottom: "5rem", left: "1.25rem" }}
         >
           {/* En-tête */}

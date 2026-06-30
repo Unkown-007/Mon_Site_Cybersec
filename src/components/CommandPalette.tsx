@@ -124,7 +124,7 @@ export function CommandPalette() {
         >
           <motion.div
             className="w-full max-w-xl card overflow-hidden"
-            style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "0 0 50px -16px #7b5cf0" }}
+            style={{ borderColor: "rgba(123,92,240,0.5)", filter: "drop-shadow(0 0 20px rgba(123,92,240,0.55))" }}
             initial={{ y: -12, scale: 0.98 }}
             animate={{ y: 0, scale: 1 }}
             exit={{ y: -12, scale: 0.98 }}
