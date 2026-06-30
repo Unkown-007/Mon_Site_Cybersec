@@ -139,23 +139,25 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-20 lg:space-y-28">
       {/* HERO */}
-      <motion.section variants={item} initial="hidden" animate="show">
-        <div className="mb-6 flex items-center gap-3">
-          <StatusDot state="online" />
-          <span className="label text-secondary">SYSTÈME OPÉRATIONNEL</span>
+      <motion.section variants={item} initial="hidden" animate="show" className="pt-2 lg:pt-6">
+        <div className="mb-7">
+          <span className="clip-chamfer-sm inline-flex items-center gap-2.5 border border-secondary/40 bg-secondary/5 px-3.5 py-1.5">
+            <StatusDot state="online" />
+            <span className="label text-secondary">SYSTÈME OPÉRATIONNEL</span>
+          </span>
         </div>
-        <h1 className="max-w-3xl font-display text-display text-ink-strong">
+        <h1 className="max-w-4xl font-display text-display text-ink-strong leading-[1.03]">
           Centre de commande <span className="text-gradient-primary">cyber</span>
           <br />
           de {user?.name ?? "l'opérateur"}.
         </h1>
-        <p className="mt-6 max-w-2xl text-body text-muted">
+        <p className="mt-7 max-w-2xl text-body text-muted leading-relaxed">
           Base de ressources, write-ups CTF, arsenal d&apos;outils et veille
           threat-intel — centralisés dans un espace de travail unique.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-10 flex flex-wrap gap-3">
           {/* Unique CTA focal cyan de la vue */}
           <Link
             href="/resources"
@@ -189,18 +191,14 @@ export default function Dashboard() {
       {/* COMPTES — données externes réelles */}
       <AccountsPanel />
 
-      {/* GRADIENT DIVIDER */}
-      <div className="divider-gradient" />
-
       {/* COUVERTURE — dérivée des vraies données */}
       <ScrollReveal>
         <section>
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="label">COUVERTURE DU COFFRE</h2>
-            <span className="text-label text-muted">
-              {STATS.domains} domaines · {STATS.resolved}/{STATS.writeups} write-ups résolus
-            </span>
-          </div>
+          <SectionHead
+            eyebrow="COUVERTURE DU COFFRE"
+            title="Couverture"
+            right={`${STATS.domains} domaines · ${STATS.resolved}/${STATS.writeups} write-ups résolus`}
+          />
           <motion.div
             variants={container}
             initial="hidden"
@@ -229,13 +227,10 @@ export default function Dashboard() {
         </section>
       </ScrollReveal>
 
-      {/* GRADIENT DIVIDER */}
-      <div className="divider-gradient" />
-
       {/* MODULES */}
       <ScrollReveal delay={100}>
         <section>
-          <h2 className="label mb-4">MODULES</h2>
+          <SectionHead eyebrow="MODULES" title="Accès rapide" />
           <motion.div
             variants={container}
             initial="hidden"
@@ -258,9 +253,6 @@ export default function Dashboard() {
           </motion.div>
         </section>
       </ScrollReveal>
-
-      {/* GRADIENT DIVIDER */}
-      <div className="divider-gradient" />
 
       {/* TERMINAL + SIDEBAR */}
       <section id="terminal" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -363,6 +355,27 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SectionHead({
+  eyebrow,
+  title,
+  right,
+}: {
+  eyebrow: string;
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-7">
+      <span className="label text-secondary">{eyebrow}</span>
+      <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
+        <h2 className="font-display text-h2 text-ink-strong">{title}</h2>
+        {right ? <div className="shrink-0 pb-1 font-mono text-label text-muted">{right}</div> : null}
+      </div>
+      <div className="mt-3.5 h-px w-full bg-gradient-to-r from-secondary/50 via-primary/25 to-transparent" />
     </div>
   );
 }
