@@ -3,9 +3,13 @@
 // Politique de sécurité du contenu — pragmatique : 'self' par défaut, inline
 // styles/scripts tolérés (requis par Next App Router), images/connexions https.
 // connect-src https: couvre les fetchs côté navigateur (carte, futurs flux).
+// Domaines YouTube autorisés (lecteur audio via l'IFrame API) — on n'ouvre que
+// ce qui est strictement nécessaire, le reste de la CSP reste verrouillé.
+const YT = "https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline' ${YT}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
@@ -13,7 +17,7 @@ const csp = [
   "media-src 'self' blob: data:",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
-  "frame-src 'none'",
+  `frame-src ${YT}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

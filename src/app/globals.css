@@ -611,7 +611,6 @@
 .lite .hud-scanlines::after {
   display: none !important;
 }
-.lite .marquee-track,
 .lite .eq > i,
 .lite .gui-stream::after,
 .lite .holo-flicker,
