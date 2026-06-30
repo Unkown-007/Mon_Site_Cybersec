@@ -113,17 +113,26 @@
     color: var(--secondary);
   }
 
-  /* Carte standard — premium glassmorphism */
+  /* Carte standard — premium glassmorphism, chanfreinée (coins coupés). */
   .card {
+    --chamfer: 10px;
     background: rgba(12, 12, 21, 0.65);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--line);
     position: relative;
-    border-radius: var(--radius-md);
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer)) 0,
+      100% var(--chamfer),
+      100% 100%,
+      var(--chamfer) 100%,
+      0 calc(100% - var(--chamfer))
+    );
     transition:
       border-color var(--dur-base) var(--ease-out-soft),
       transform var(--dur-base) var(--ease-out-soft),
+      filter var(--dur-base) var(--ease-out-soft),
       box-shadow var(--dur-base) var(--ease-out-soft);
   }
   .card::before {
@@ -131,7 +140,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border-radius: inherit;
+    clip-path: inherit;
     padding: 1px;
     background: linear-gradient(135deg, rgba(123, 92, 240, 0.4) 0%, transparent 40%, transparent 60%, rgba(0, 245, 212, 0.2) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -143,7 +152,8 @@
   .card:hover {
     border-color: transparent;
     transform: translateY(-2px);
-    box-shadow: inset 0 0 20px rgba(123, 92, 240, 0.15), 0 8px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 0 20px rgba(123, 92, 240, 0.15);
+    filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.5));
   }
   .card:hover::before {
     opacity: 1;
@@ -157,23 +167,33 @@
     margin-left: 2px;
   }
 
-  /* Bouton (classe héritée — primitive <Button> recommandée) */
+  /* Bouton (classe héritée — primitive <Button> recommandée). Chanfreiné. */
   .btn {
+    --chamfer: 7px;
     @apply font-mono uppercase text-xs px-5 py-3 inline-flex items-center gap-2;
     letter-spacing: 0.12em;
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer)) 0,
+      100% var(--chamfer),
+      100% 100%,
+      var(--chamfer) 100%,
+      0 calc(100% - var(--chamfer))
+    );
     transition:
       color var(--dur-fast) var(--ease-out-soft),
       background-color var(--dur-fast) var(--ease-out-soft),
       border-color var(--dur-fast) var(--ease-out-soft),
-      box-shadow var(--dur-fast) var(--ease-out-soft),
+      filter var(--dur-fast) var(--ease-out-soft),
       transform var(--dur-fast) var(--ease-out-soft);
   }
   .btn:active {
     transform: translateY(1px);
   }
+  /* clip-path masque les box-shadow : focus visible via halo néon (drop-shadow). */
   .btn:focus-visible {
     outline: none;
-    box-shadow: var(--ring);
+    filter: drop-shadow(0 0 2px var(--secondary)) drop-shadow(0 0 5px rgba(0, 245, 212, 0.6));
   }
   .btn-primary {
     background: linear-gradient(135deg, rgba(123, 92, 240, 0.2) 0%, rgba(123, 92, 240, 0.05) 100%);
@@ -184,7 +204,8 @@
   }
   .btn-primary:hover {
     background: linear-gradient(135deg, rgba(123, 92, 240, 0.3) 0%, rgba(123, 92, 240, 0.1) 100%);
-    box-shadow: 0 0 15px rgba(123, 92, 240, 0.4), inset 0 0 10px rgba(123, 92, 240, 0.2);
+    box-shadow: inset 0 0 10px rgba(123, 92, 240, 0.2);
+    filter: drop-shadow(0 0 7px rgba(123, 92, 240, 0.45));
   }
   .btn-primary::after {
     content: "";
@@ -209,19 +230,28 @@
     color: var(--secondary);
   }
 
-  /* Champ de saisie style terminal */
+  /* Champ de saisie style terminal — chanfreiné. */
   .field {
+    --chamfer: 7px;
     @apply w-full bg-base font-mono text-ink px-4 py-3 outline-none;
     border: 1px solid var(--line-strong);
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--chamfer)) 0,
+      100% var(--chamfer),
+      100% 100%,
+      var(--chamfer) 100%,
+      0 calc(100% - var(--chamfer))
+    );
     transition:
       border-color var(--dur-fast) var(--ease-out-soft),
-      box-shadow var(--dur-fast) var(--ease-out-soft);
+      filter var(--dur-fast) var(--ease-out-soft);
   }
   .field:focus,
   .field:focus-visible {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 1px rgba(123, 92, 240, 0.4);
+    filter: drop-shadow(0 0 3px rgba(123, 92, 240, 0.6));
   }
   .field::placeholder {
     color: var(--muted);
@@ -235,10 +265,12 @@
 }
 
 @layer utilities {
-  /* Focus-ring réutilisable (primitives, liens, boutons custom) */
+  /* Focus-ring réutilisable. Box-shadow + halo néon : reste visible même sous
+     clip-path (le halo drop-shadow épouse la silhouette chanfreinée). */
   .focus-ring:focus-visible {
     outline: none;
     box-shadow: var(--ring);
+    filter: drop-shadow(0 0 3px rgba(0, 245, 212, 0.6));
   }
   .focus-ring-danger:focus-visible {
     outline: none;
@@ -611,6 +643,7 @@
 .lite .card:hover,
 .lite .btn-primary:hover {
   box-shadow: none !important;
+  filter: none !important;
 }
 .lite .spotlight-card::after {
   display: none !important;
