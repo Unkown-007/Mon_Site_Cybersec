@@ -157,7 +157,7 @@ export function AccountsPanel() {
                         href={r.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="focus-ring block rounded-md border border-line bg-base p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
+                        className="focus-ring card block p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate font-mono text-body-sm text-ink">{r.name}</span>

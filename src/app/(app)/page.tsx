@@ -296,7 +296,7 @@ export default function Dashboard() {
                   <li key={w.id}>
                     <Link
                       href="/writeups"
-                      className="focus-ring block rounded-md border border-line bg-surface p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
+                      className="focus-ring card block p-3"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-body-sm text-ink">{w.name}</span>
@@ -324,7 +324,7 @@ export default function Dashboard() {
               </Link>
             </div>
             {/* Distribution de sévérité — barre empilée + légende */}
-            <div className="mb-3 rounded-md border border-line bg-surface p-3">
+            <div className="mb-3 card p-3">
               <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-base">
                 {SEV_COUNTS.filter((x) => x.n > 0).map((x) => (
                   <div key={x.s} className={SEV_BAR[x.s]} style={{ flex: x.n }} />
@@ -342,7 +342,7 @@ export default function Dashboard() {
 
             <ul className="space-y-2">
               {CVES.slice(0, 5).map((c) => (
-                <li key={c.id} className="rounded-md border border-line bg-surface p-3">
+                <li key={c.id} className="card p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-body-sm text-ink">{c.id}</span>
                     <span className={`font-mono text-body-sm font-bold tabular-nums ${SEV_SCORE[c.severity]}`}>

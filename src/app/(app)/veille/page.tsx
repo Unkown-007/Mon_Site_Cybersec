@@ -283,7 +283,7 @@ export default function VeillePage() {
           </div>
 
           {/* B3 — Watchlist persistée (localStorage) */}
-          <div className="mb-4 rounded-md border border-line bg-surface p-3">
+          <div className="mb-4 card p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="label">Watchlist</span>
               <span className="font-mono text-label text-muted">{watch.length} suivi(s)</span>
@@ -299,7 +299,7 @@ export default function VeillePage() {
               />
               <button
                 type="submit"
-                className="focus-ring shrink-0 rounded-sm border border-secondary/70 bg-secondary/10 px-3 py-2 font-mono text-label uppercase text-secondary transition-colors duration-fast ease-out-soft hover:bg-secondary/20"
+                className="focus-ring shrink-0 clip-chamfer-sm border border-secondary/70 bg-secondary/10 px-3 py-2 font-mono text-label uppercase text-secondary transition-colors duration-fast ease-out-soft hover:bg-secondary/20"
               >
                 + Suivre
               </button>
@@ -311,7 +311,7 @@ export default function VeillePage() {
                     key={t}
                     onClick={() => removeTerm(t)}
                     aria-label={`Retirer ${t}`}
-                    className="focus-ring inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-2 py-0.5 font-mono text-label text-muted transition-colors duration-fast ease-out-soft hover:border-danger/50 hover:text-danger"
+                    className="focus-ring inline-flex items-center gap-1.5 clip-chamfer-sm border border-line-strong px-2 py-0.5 font-mono text-label text-muted transition-colors duration-fast ease-out-soft hover:border-danger/50 hover:text-danger"
                   >
                     {t} <span aria-hidden>✕</span>
                   </button>

@@ -156,13 +156,11 @@ function Toggle({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring rounded-sm border px-2.5 py-1 font-mono text-label uppercase transition-colors duration-fast ease-out-soft ${
-        active
-          ? "border-secondary bg-secondary/10 text-secondary"
-          : "border-line-strong text-muted hover:text-ink"
+      className={`hud-tab hud-tab--chip focus-ring px-3 py-1.5 font-mono text-label uppercase ${
+        active ? "is-active text-secondary" : "text-muted hover:text-ink"
       }`}
     >
-      {children}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }
@@ -252,7 +250,7 @@ function RevShell() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {shells.map((s) => (
-          <div key={s.name} className="rounded-md border border-line bg-surface p-3">
+          <div key={s.name} className="card p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono text-body-sm text-ink">{s.name}</span>
               <Badge>{s.os}</Badge>
@@ -266,7 +264,7 @@ function RevShell() {
         <h2 className="label mb-3">Listeners</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {LISTENERS.map((l) => (
-            <div key={l.name} className="rounded-md border border-line bg-surface p-3">
+            <div key={l.name} className="card p-3">
               <div className="font-mono text-body-sm text-ink mb-2">{l.name}</div>
               <CopyBlock value={fillTpl(l.parts, ip, port)} />
             </div>
@@ -302,7 +300,7 @@ function Gtfobins() {
       </p>
 
       {/* Recherche — élément focal cyan */}
-      <div className="flex items-center gap-3 rounded-md border border-secondary/40 bg-surface px-4 py-3 transition-[border-color,box-shadow] duration-base ease-out-soft [--glow-color:var(--secondary)] focus-within:border-secondary focus-within:shadow-glow">
+      <div className="flex items-center gap-3 clip-chamfer border border-secondary/40 bg-surface px-4 py-3 transition-[border-color] duration-base ease-out-soft focus-within:border-secondary">
         <span className="shrink-0 font-mono text-sm text-secondary">{"// SEARCH"}</span>
         <input
           value={q}
@@ -343,7 +341,7 @@ function Gtfobins() {
         <span className="font-mono text-label text-muted">{results.length} binaire(s)</span>
       </div>
       {results.length === 0 ? (
-        <div className="rounded-md border border-line bg-surface p-8 text-center font-mono text-body-sm text-muted">
+        <div className="card p-8 text-center font-mono text-body-sm text-muted">
           [ aucun binaire ]
         </div>
       ) : (
@@ -354,7 +352,7 @@ function Gtfobins() {
                 href={b.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="focus-ring block rounded-md border border-line bg-surface p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
+                className="focus-ring block card p-3 transition-[transform,border-color] duration-base ease-out-soft hover:-translate-y-0.5 hover:border-line-strong"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="font-mono text-body-sm text-ink">
@@ -554,7 +552,7 @@ function Pipeline() {
           {steps.map((id, i) => (
             <li
               key={`${id}-${i}`}
-              className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2"
+              className="flex items-center gap-3 card px-3 py-2"
             >
               <span className="label text-primary">{String(i + 1).padStart(2, "0")}</span>
               <span className="flex-1 font-mono text-body-sm text-ink">{PIPE_MAP.get(id)?.label}</span>
@@ -590,7 +588,7 @@ function IconBtn({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="focus-ring rounded-sm border border-line-strong px-2 py-1 font-mono text-xs text-muted transition-colors duration-fast ease-out-soft hover:text-secondary disabled:opacity-30 disabled:pointer-events-none"
+      className="focus-ring clip-chamfer-sm border border-line-strong px-2.5 py-1 font-mono text-xs text-muted transition-colors duration-fast ease-out-soft hover:text-secondary disabled:opacity-30 disabled:pointer-events-none"
     >
       {children}
     </button>
@@ -789,7 +787,7 @@ function JwtTool() {
           <div className="space-y-4">
             <CopyBlock label="Header" value={JSON.stringify(parsed.header, null, 2)} />
             <CopyBlock label="Payload" value={JSON.stringify(parsed.payload, null, 2)} />
-            <div className="rounded-md border border-line bg-surface p-3 font-mono text-body-sm space-y-1 text-muted">
+            <div className="card p-3 font-mono text-body-sm space-y-1 text-muted">
               {parsed.payload.exp && (
                 <div>
                   exp → <span className="text-ink">{human(parsed.payload.exp)}</span>
@@ -1031,7 +1029,7 @@ function CvssTool() {
             onSet={(k, v) => setS40((p) => ({ ...p, [k]: v }))}
           />
           <CopyBlock label="Vecteur CVSS v4.0" value={vec40} />
-          <div className="rounded-md border border-line bg-surface p-4 space-y-3">
+          <div className="card p-4 space-y-3">
             <p className="text-body-sm text-muted">
               Le score numérique v4.0 repose sur la table de correspondance officielle
               de FIRST. Ouvre le vecteur dans le calculateur de référence pour l&apos;obtenir :
