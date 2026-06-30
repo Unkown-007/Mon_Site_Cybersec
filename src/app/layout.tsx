@@ -3,7 +3,9 @@ import { Orbitron, Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
-import { CyberCityBackground } from "@/components/CyberCityBackground";
+import { BackgroundProvider } from "@/lib/background";
+import { BackgroundLayer } from "@/components/BackgroundLayer";
+import { WallpaperPicker } from "@/components/WallpaperPicker";
 import { CrosshairCursor } from "@/components/CrosshairCursor";
 import { SfxClicks } from "@/components/SfxClicks";
 import { MusicPlayer } from "@/components/MusicPlayer";
@@ -43,19 +45,22 @@ export default function RootLayout({
     <html lang="fr" className={`${orbitron.variable} ${shareTechMono.variable}`}>
       <body>
         <PerfProvider>
-          <MotionComplianceConfig>
-            <CyberCityBackground />
-            <CrosshairCursor />
-            <SfxClicks />
-            <div className="scanline" aria-hidden="true" />
-            <PerfToggle />
-            <AuthProvider>
-              <ToastProvider>
-                <div className="relative z-10">{children}</div>
-                <MusicPlayer />
-              </ToastProvider>
-            </AuthProvider>
-          </MotionComplianceConfig>
+          <BackgroundProvider>
+            <MotionComplianceConfig>
+              <BackgroundLayer />
+              <CrosshairCursor />
+              <SfxClicks />
+              <div className="scanline" aria-hidden="true" />
+              <PerfToggle />
+              <WallpaperPicker />
+              <AuthProvider>
+                <ToastProvider>
+                  <div className="relative z-10">{children}</div>
+                  <MusicPlayer />
+                </ToastProvider>
+              </AuthProvider>
+            </MotionComplianceConfig>
+          </BackgroundProvider>
         </PerfProvider>
         <Analytics />
       </body>

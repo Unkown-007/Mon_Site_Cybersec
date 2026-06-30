@@ -936,6 +936,19 @@
   filter: none !important;
 }
 
+/* ── Fond Synthwave : défilement de la grille en perspective ── */
+.cybergrid-floor {
+  animation: cybergrid-scroll 1.5s linear infinite;
+}
+@keyframes cybergrid-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 0 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cybergrid-floor { animation: none; }
+}
+.lite .cybergrid-floor { animation: none; }
+
 /* ============================================================
    UnknownX-077 — Custom styles for Immersive 404 (Alarm Red) & Skeletons
    ============================================================ */
