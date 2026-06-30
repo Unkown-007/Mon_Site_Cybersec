@@ -24,7 +24,7 @@ function Swatch({
   ring?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-line bg-surface overflow-hidden">
+    <div className="card overflow-hidden">
       <div
         className="h-16 w-full"
         style={{

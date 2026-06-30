@@ -159,14 +159,14 @@ export default function Dashboard() {
           {/* Unique CTA focal cyan de la vue */}
           <Link
             href="/resources"
-            className="focus-ring inline-flex items-center gap-2 rounded-sm border border-secondary/70 bg-secondary/10 px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-secondary shadow-glow transition-[color,background-color,border-color,box-shadow,transform] duration-fast ease-out-soft hover:bg-secondary/20 active:translate-y-px"
+            className="focus-ring clip-chamfer-sm inline-flex items-center gap-2 border border-secondary/70 bg-secondary/10 px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-secondary drop-shadow-[0_0_8px_rgba(0,245,212,0.35)] transition-[color,background-color,border-color,filter,transform] duration-fast ease-out-soft hover:bg-secondary/20 active:translate-y-px"
           >
             Accéder aux ressources
           </Link>
           <button
             type="button"
             onClick={openTerminal}
-            className="focus-ring inline-flex items-center gap-2 rounded-sm border border-line-strong bg-transparent px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink transition-[color,border-color,transform] duration-fast ease-out-soft hover:border-secondary hover:text-secondary active:translate-y-px"
+            className="focus-ring clip-chamfer-sm inline-flex items-center gap-2 border border-line-strong bg-transparent px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink transition-[color,border-color,transform] duration-fast ease-out-soft hover:border-secondary hover:text-secondary active:translate-y-px"
           >
             ❯_ Terminal
           </button>

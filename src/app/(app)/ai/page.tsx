@@ -225,7 +225,7 @@ function Bubble({
     <div className={isUser ? "flex justify-end" : "flex justify-start"}>
       <div
         className={[
-          "max-w-[85%] rounded-md border px-3 py-2",
+          "max-w-[85%] clip-chamfer border px-3.5 py-2.5",
           isUser ? "border-primary/40 bg-primary/5" : "border-line bg-base",
         ].join(" ")}
       >

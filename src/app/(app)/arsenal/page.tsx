@@ -111,7 +111,7 @@ export default function ArsenalPage() {
                     href={t.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-xs text-ink bg-surface border border-line hover:border-secondary/50 hover:text-secondary transition-colors px-2.5 py-1.5"
+                    className="clip-chamfer-sm font-mono text-xs text-ink bg-surface border border-line hover:border-secondary/50 hover:text-secondary transition-colors px-3 py-1.5"
                   >
                     {t.name} <span className="text-muted">↗</span>
                   </a>
