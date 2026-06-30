@@ -48,12 +48,12 @@ export default function AppLayout({
     <>
       <Navbar />
       <NewsTicker />
-      <main className="mx-auto max-w-7xl px-4 pt-24 pb-16 min-h-screen">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-24 min-h-screen">
         <Breadcrumb />
         {children}
       </main>
       <footer className="border-t border-line-strong bg-base/60 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex justify-center mb-5">
             <ArasakaLogo size={76} />
           </div>
