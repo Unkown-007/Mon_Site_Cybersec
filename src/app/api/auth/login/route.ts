@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { pbkdf2Sync, timingSafeEqual } from "node:crypto";
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { recordLogin } from "@/lib/users";
 import { clientIp, sameOrigin, forbiddenOrigin, rateLimit, tooManyRequests } from "@/lib/security";
+import { SEED_ACCOUNTS, SEED_ITER } from "@/lib/seed-accounts";
 
 /*
  * Connexion réelle : la vérification des identifiants se fait CÔTÉ SERVEUR
@@ -63,6 +65,17 @@ function safeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
+/** Vérifie un mot de passe contre un hachage PBKDF2 (comptes en dur, versionnés). */
+function verifyHash(password: string, saltHex: string, hashHex: string): boolean {
+  try {
+    const derived = pbkdf2Sync(password, Buffer.from(saltHex, "hex"), SEED_ITER, 32, "sha256");
+    const expected = Buffer.from(hashHex, "hex");
+    return derived.length === expected.length && timingSafeEqual(derived, expected);
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   // Anti-CSRF : la requête doit provenir de notre origine.
   if (!sameOrigin(req)) return forbiddenOrigin();
@@ -103,12 +116,19 @@ export async function POST(req: Request) {
   // Petit délai anti-bruteforce (atténue les tentatives en rafale).
   await new Promise((r) => setTimeout(r, 350));
 
-  // Cherche un compte credentials correspondant (comparaison à temps constant).
-  let matched: Cred | null = null;
+  // Cherche un compte correspondant (comparaison à temps constant).
+  // 1) admin + EXTRA_LOGINS (env, comparaison directe)
+  // 2) comptes en dur versionnés (mot de passe haché PBKDF2)
+  let matched: { email: string; name: string; role: Role } | null = null;
   for (const acc of credentialAccounts()) {
     const emailOk = safeEqual(email.toLowerCase(), acc.email.toLowerCase());
     const passOk = acc.password.length > 0 && safeEqual(password, acc.password);
-    if (emailOk && passOk) matched = acc;
+    if (emailOk && passOk) matched = { email: acc.email, name: acc.name, role: acc.role };
+  }
+  for (const s of SEED_ACCOUNTS) {
+    const emailOk = safeEqual(email.toLowerCase(), s.email.toLowerCase());
+    const passOk = verifyHash(password, s.salt, s.hash);
+    if (emailOk && passOk) matched = { email: s.email, name: s.name, role: s.role };
   }
 
   if (!matched) {
