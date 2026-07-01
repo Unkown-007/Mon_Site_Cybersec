@@ -4,7 +4,22 @@ import { PageHeader } from "@/components/PageHeader";
 import { Panel, Badge } from "@/components/ui";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { CountUp } from "@/components/animations/CountUp";
-import { OPERATOR, XP_BREAKDOWN, SKILLS, ACHIEVEMENTS, OPERATOR_XP, type Skill } from "@/lib/stats";
+import {
+  OPERATOR,
+  XP_BREAKDOWN,
+  SKILLS,
+  ACHIEVEMENTS,
+  ACHIEVEMENTS_BY_RARITY,
+  OPERATOR_XP,
+  TOTALS,
+  RES_BY_DOMAIN,
+  RES_BY_TYPE,
+  TOOLS_BY_PHASE,
+  CVE_TOP_VENDORS,
+  CVE_AVG,
+  type Skill,
+  type Rarity,
+} from "@/lib/stats";
 import { CVES } from "@/data/mock";
 
 const SEV = [
@@ -13,6 +28,13 @@ const SEV = [
   { k: "MEDIUM", color: "#00f5d4" },
   { k: "LOW", color: "#818aa8" },
 ] as const;
+
+const RARITY_STYLE: Record<Rarity, { text: string; border: string; dot: string }> = {
+  commun: { text: "text-muted", border: "border-line-strong", dot: "bg-muted" },
+  rare: { text: "text-secondary", border: "border-secondary/50", dot: "bg-secondary" },
+  épique: { text: "text-primary", border: "border-primary/50", dot: "bg-primary" },
+  légendaire: { text: "text-warning", border: "border-warning/60", dot: "bg-warning" },
+};
 
 export default function StatsPage() {
   const rank = OPERATOR.rank;
@@ -37,6 +59,18 @@ export default function StatsPage() {
           </Badge>
         }
       />
+
+      {/* Totaux */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <Tile label="Ressources" value={TOTALS.resources} />
+        <Tile label="Outils" value={TOTALS.tools} />
+        <Tile label="Scripts" value={TOTALS.scripts} />
+        <Tile label="CVE" value={TOTALS.cves} accent="text-danger" />
+        <Tile label="Domaines" value={TOTALS.domains} sub={`/ 8`} />
+        <Tile label="Phases" value={TOTALS.phases} sub={`/ 5`} />
+        <Tile label="Tags" value={TOTALS.tags} />
+        <Tile label="Éditeurs" value={TOTALS.vendors} />
+      </div>
 
       {/* Rang + XP */}
       <Panel className="mb-6">
@@ -107,30 +141,104 @@ export default function StatsPage() {
         </div>
       </div>
 
+      {/* Répartitions détaillées */}
+      <ScrollReveal>
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <Panel code="RES" title="Ressources par domaine">
+            <Bars data={RES_BY_DOMAIN} />
+          </Panel>
+          <div className="space-y-6">
+            <Panel code="ARS" title="Outils par phase (kill-chain)">
+              <Bars data={TOOLS_BY_PHASE} />
+            </Panel>
+            <Panel code="TYP" title="Ressources par type">
+              <Bars data={RES_BY_TYPE} />
+            </Panel>
+          </div>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal>
+        <Panel code="CVE" title="Top éditeurs suivis" className="mb-6">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="font-display text-h1 text-secondary">{CVE_AVG}</span>
+            <span className="label !text-muted">score CVSS moyen</span>
+          </div>
+          <Bars data={CVE_TOP_VENDORS} />
+        </Panel>
+      </ScrollReveal>
+
       {/* Hauts faits */}
       <ScrollReveal>
         <section>
-          <h2 className="label mb-4">
-            HAUTS FAITS · {OPERATOR.achievements}/{OPERATOR.achievementsTotal}
-          </h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="label">
+              HAUTS FAITS · {OPERATOR.achievements}/{ACHIEVEMENTS.length}
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {ACHIEVEMENTS_BY_RARITY.map((r) => (
+                <span key={r.rarity} className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[1px] text-muted">
+                  <span className={`h-2 w-2 rounded-full ${RARITY_STYLE[r.rarity].dot}`} />
+                  {r.rarity} {r.unlocked}/{r.total}
+                </span>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {ACHIEVEMENTS.map((a) => (
-              <div key={a.id} className={`card flex items-start gap-3 p-4 ${a.unlocked ? "" : "opacity-45"}`}>
-                <span className={`text-2xl ${a.unlocked ? "text-secondary" : "text-muted"}`}>{a.glyph}</span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-ink-strong">{a.name}</span>
-                    {a.unlocked && <span className="text-[9px] text-success">✓</span>}
+            {ACHIEVEMENTS.map((a) => {
+              const st = RARITY_STYLE[a.rarity];
+              return (
+                <div key={a.id} className={`card flex items-start gap-3 p-4 ${a.unlocked ? st.border : "opacity-45"}`}>
+                  <span className={`text-2xl ${a.unlocked ? st.text : "text-muted"}`}>{a.glyph}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-mono text-sm text-ink-strong">{a.name}</span>
+                      {a.unlocked && <span className="text-[9px] text-success">✓</span>}
+                    </div>
+                    <p className="mt-0.5 text-label text-muted">{a.desc}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className={`text-[8px] font-mono uppercase tracking-[1px] ${st.text}`}>{a.rarity}</span>
+                      <span className="font-mono text-[9px] text-muted">{a.progress}</span>
+                    </div>
                   </div>
-                  <p className="mt-0.5 text-label text-muted">{a.desc}</p>
-                  <span className="font-mono text-[9px] text-muted">{a.progress}</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </ScrollReveal>
     </div>
+  );
+}
+
+function Tile({ label, value, sub, accent = "text-ink-strong" }: { label: string; value: number; sub?: string; accent?: string }) {
+  return (
+    <div className="hud-panel px-4 py-4 text-center">
+      <div className={`font-display text-h2 tabular-nums ${accent}`}>
+        <CountUp value={value} pad={0} />
+        {sub && <span className="text-body-sm text-muted"> {sub}</span>}
+      </div>
+      <div className="label mt-1 justify-center">{label}</div>
+    </div>
+  );
+}
+
+function Bars({ data }: { data: { label: string; count: number }[] }) {
+  const max = Math.max(...data.map((d) => d.count), 1);
+  return (
+    <ul className="space-y-2.5">
+      {data.map((d) => (
+        <li key={d.label}>
+          <div className="mb-1 flex justify-between text-body-sm">
+            <span className="text-ink">{d.label}</span>
+            <span className="font-mono text-muted">{d.count}</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded bg-line">
+            <div className="h-full bg-gradient-to-r from-primary to-secondary" style={{ width: `${(d.count / max) * 100}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 

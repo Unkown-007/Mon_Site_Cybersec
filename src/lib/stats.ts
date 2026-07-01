@@ -7,6 +7,7 @@
 
 import {
   RESOURCES,
+  RESOURCE_TYPES,
   WRITEUPS,
   EXTERNAL_TOOLS,
   SCRIPTS,
@@ -104,11 +105,14 @@ export const SKILLS: Skill[] = (() => {
 
 /* ── Badges / hauts faits ─────────────────────────────────────────────── */
 
+export type Rarity = "commun" | "rare" | "épique" | "légendaire";
+
 export interface Achievement {
   id: string;
   name: string;
   desc: string;
   glyph: string;
+  rarity: Rarity;
   unlocked: boolean;
   progress: string; // ex. "7/8"
 }
@@ -121,106 +125,93 @@ const adWriteups = WRITEUPS.filter((w) => w.category === "AD").length;
 const cryptoWriteups = WRITEUPS.filter((w) => w.category === "Crypto").length;
 const criticalCves = CVES.filter((c) => c.severity === "CRITICAL").length;
 
+/* Métriques additionnelles pour les succès. */
+const resByDomain = (d: Domain) => RESOURCES.filter((r) => r.domain === d).length;
+const resByType = (t: string) => RESOURCES.filter((r) => r.type === t).length;
+const toolsByPhase = (p: string) => EXTERNAL_TOOLS.filter((t) => t.phase === p).length;
+const cveVendors = new Set(CVES.map((c) => c.vendor)).size;
+const avgCvss = CVES.length ? CVES.reduce((s, c) => s + c.score, 0) / CVES.length : 0;
+const allResTypes = RESOURCE_TYPES.every((t) => resByType(t) > 0);
+const tagCount = new Set(RESOURCES.flatMap((r) => r.tags)).size;
+const mk = (x: number, n: number) => `${Math.min(x, n)}/${n}`;
+
 export const ACHIEVEMENTS: Achievement[] = [
-  {
-    id: "first-blood",
-    name: "Première intrusion",
-    desc: "Résoudre un premier write-up.",
-    glyph: "⚑",
-    unlocked: resolved >= 1,
-    progress: `${Math.min(resolved, 1)}/1`,
-  },
-  {
-    id: "box-breaker",
-    name: "Briseur de boîtes",
-    desc: "Publier 10 write-ups.",
-    glyph: "▣",
-    unlocked: WRITEUPS.length >= 10,
-    progress: `${Math.min(WRITEUPS.length, 10)}/10`,
-  },
-  {
-    id: "librarian",
-    name: "Bibliothécaire",
-    desc: "Indexer 40 ressources.",
-    glyph: "❒",
-    unlocked: RESOURCES.length >= 40,
-    progress: `${Math.min(RESOURCES.length, 40)}/40`,
-  },
-  {
-    id: "polymath",
-    name: "Touche-à-tout",
-    desc: "Couvrir les 8 domaines avec au moins une ressource.",
-    glyph: "✦",
-    unlocked: domainsCovered >= DOMAINS.length,
-    progress: `${domainsCovered}/${DOMAINS.length}`,
-  },
-  {
-    id: "arsenal",
-    name: "Arsenal complet",
-    desc: "Référencer 50 outils externes.",
-    glyph: "⚔",
-    unlocked: EXTERNAL_TOOLS.length >= 50,
-    progress: `${Math.min(EXTERNAL_TOOLS.length, 50)}/50`,
-  },
-  {
-    id: "scripter",
-    name: "Scripteur",
-    desc: "Écrire 10 scripts personnels.",
-    glyph: "⌨",
-    unlocked: SCRIPTS.length >= 10,
-    progress: `${Math.min(SCRIPTS.length, 10)}/10`,
-  },
-  {
-    id: "polyglot",
-    name: "Polyglotte",
-    desc: "Scripter dans au moins 3 langages.",
-    glyph: "❖",
-    unlocked: scriptLangs >= 3,
-    progress: `${Math.min(scriptLangs, 3)}/3`,
-  },
-  {
-    id: "killchain",
-    name: "Kill-chain",
-    desc: "Couvrir les 5 phases d'attaque.",
-    glyph: "⛓",
-    unlocked: phasesCovered >= PHASES.length,
-    progress: `${phasesCovered}/${PHASES.length}`,
-  },
-  {
-    id: "threat-hunter",
-    name: "Chasseur de failles",
-    desc: "Suivre 10 CVE.",
-    glyph: "☣",
-    unlocked: CVES.length >= 10,
-    progress: `${Math.min(CVES.length, 10)}/10`,
-  },
-  {
-    id: "watcher",
-    name: "Veilleur",
-    desc: "Suivre une CVE critique (score ≥ 9).",
-    glyph: "◎",
-    unlocked: criticalCves >= 1,
-    progress: `${Math.min(criticalCves, 1)}/1`,
-  },
-  {
-    id: "ad-master",
-    name: "Spécialiste AD",
-    desc: "Résoudre 2 challenges Active Directory.",
-    glyph: "🜲",
-    unlocked: adWriteups >= 2,
-    progress: `${Math.min(adWriteups, 2)}/2`,
-  },
-  {
-    id: "cryptographer",
-    name: "Cryptographe",
-    desc: "S'attaquer à un challenge de cryptographie.",
-    glyph: "🔑",
-    unlocked: cryptoWriteups >= 1,
-    progress: `${Math.min(cryptoWriteups, 1)}/1`,
-  },
+  // ── Write-ups ──
+  { id: "first-blood", name: "Première intrusion", desc: "Résoudre un premier write-up.", glyph: "⚑", rarity: "commun", unlocked: resolved >= 1, progress: mk(resolved, 1) },
+  { id: "box-breaker", name: "Briseur de boîtes", desc: "Publier 10 write-ups.", glyph: "▣", rarity: "rare", unlocked: WRITEUPS.length >= 10, progress: mk(WRITEUPS.length, 10) },
+  { id: "box-legend", name: "Légende des boîtes", desc: "Publier 25 write-ups.", glyph: "◈", rarity: "épique", unlocked: WRITEUPS.length >= 25, progress: mk(WRITEUPS.length, 25) },
+  { id: "ad-master", name: "Spécialiste AD", desc: "Résoudre 2 challenges Active Directory.", glyph: "🜲", rarity: "rare", unlocked: adWriteups >= 2, progress: mk(adWriteups, 2) },
+  { id: "cryptographer", name: "Cryptographe", desc: "S'attaquer à un challenge de crypto.", glyph: "🔑", rarity: "rare", unlocked: cryptoWriteups >= 1, progress: mk(cryptoWriteups, 1) },
+
+  // ── Ressources ──
+  { id: "curator", name: "Curateur", desc: "Indexer 10 ressources.", glyph: "❒", rarity: "commun", unlocked: RESOURCES.length >= 10, progress: mk(RESOURCES.length, 10) },
+  { id: "archivist", name: "Archiviste", desc: "Indexer 25 ressources.", glyph: "❑", rarity: "rare", unlocked: RESOURCES.length >= 25, progress: mk(RESOURCES.length, 25) },
+  { id: "librarian", name: "Bibliothécaire", desc: "Indexer 40 ressources.", glyph: "▤", rarity: "rare", unlocked: RESOURCES.length >= 40, progress: mk(RESOURCES.length, 40) },
+  { id: "grand-librarian", name: "Grand bibliothécaire", desc: "Indexer 60 ressources.", glyph: "▦", rarity: "épique", unlocked: RESOURCES.length >= 60, progress: mk(RESOURCES.length, 60) },
+  { id: "eclectic", name: "Éclectique", desc: "Au moins une ressource de chaque type.", glyph: "✧", rarity: "rare", unlocked: allResTypes, progress: mk(RESOURCE_TYPES.filter((t) => resByType(t) > 0).length, RESOURCE_TYPES.length) },
+  { id: "polymath", name: "Touche-à-tout", desc: "Couvrir les 8 domaines.", glyph: "✦", rarity: "épique", unlocked: domainsCovered >= DOMAINS.length, progress: mk(domainsCovered, DOMAINS.length) },
+  { id: "taxonomist", name: "Taxonomiste", desc: "Utiliser 40 tags distincts.", glyph: "⌗", rarity: "rare", unlocked: tagCount >= 40, progress: mk(tagCount, 40) },
+
+  // ── Domaines ──
+  { id: "web-adept", name: "Adepte du web", desc: "10 ressources Web.", glyph: "🌐", rarity: "commun", unlocked: resByDomain("Web") >= 10, progress: mk(resByDomain("Web"), 10) },
+  { id: "osint-eye", name: "Œil ouvert", desc: "5 ressources OSINT.", glyph: "◉", rarity: "commun", unlocked: resByDomain("OSINT") >= 5, progress: mk(resByDomain("OSINT"), 5) },
+  { id: "reverser", name: "Rétro-ingénieur", desc: "4 ressources Reverse.", glyph: "⟲", rarity: "rare", unlocked: resByDomain("Reverse") >= 4, progress: mk(resByDomain("Reverse"), 4) },
+  { id: "cloud-head", name: "Tête dans les nuages", desc: "3 ressources Cloud.", glyph: "☁", rarity: "commun", unlocked: resByDomain("Cloud") >= 3, progress: mk(resByDomain("Cloud"), 3) },
+  { id: "cracker", name: "Casseur de codes", desc: "3 ressources Crypto.", glyph: "⚿", rarity: "commun", unlocked: resByDomain("Crypto") >= 3, progress: mk(resByDomain("Crypto"), 3) },
+  { id: "forensicator", name: "Fouilleur", desc: "Une ressource Forensics.", glyph: "🔬", rarity: "commun", unlocked: resByDomain("Forensics") >= 1, progress: mk(resByDomain("Forensics"), 1) },
+
+  // ── Arsenal / outils ──
+  { id: "armorer", name: "Armurier", desc: "Référencer 25 outils.", glyph: "⚒", rarity: "rare", unlocked: EXTERNAL_TOOLS.length >= 25, progress: mk(EXTERNAL_TOOLS.length, 25) },
+  { id: "arsenal", name: "Arsenal complet", desc: "Référencer 50 outils.", glyph: "⚔", rarity: "épique", unlocked: EXTERNAL_TOOLS.length >= 50, progress: mk(EXTERNAL_TOOLS.length, 50) },
+  { id: "scout", name: "Éclaireur", desc: "6 outils de reconnaissance.", glyph: "🛰", rarity: "commun", unlocked: toolsByPhase("Recon") >= 6, progress: mk(toolsByPhase("Recon"), 6) },
+  { id: "ghost-net", name: "Fantôme du réseau", desc: "5 outils de post-exploitation.", glyph: "👻", rarity: "rare", unlocked: toolsByPhase("Post-exploit") >= 5, progress: mk(toolsByPhase("Post-exploit"), 5) },
+  { id: "killchain", name: "Kill-chain", desc: "Couvrir les 5 phases d'attaque.", glyph: "⛓", rarity: "épique", unlocked: phasesCovered >= PHASES.length, progress: mk(phasesCovered, PHASES.length) },
+  { id: "scripter", name: "Scripteur", desc: "Écrire 10 scripts personnels.", glyph: "⌨", rarity: "rare", unlocked: SCRIPTS.length >= 10, progress: mk(SCRIPTS.length, 10) },
+  { id: "polyglot", name: "Polyglotte", desc: "Scripter dans 3 langages.", glyph: "❖", rarity: "rare", unlocked: scriptLangs >= 3, progress: mk(scriptLangs, 3) },
+
+  // ── Veille / CVE ──
+  { id: "threat-hunter", name: "Chasseur de failles", desc: "Suivre 10 CVE.", glyph: "☣", rarity: "commun", unlocked: CVES.length >= 10, progress: mk(CVES.length, 10) },
+  { id: "watcher", name: "Veilleur", desc: "Suivre une CVE critique.", glyph: "◎", rarity: "commun", unlocked: criticalCves >= 1, progress: mk(criticalCves, 1) },
+  { id: "critical-mass", name: "Masse critique", desc: "Suivre 3 CVE critiques.", glyph: "☢", rarity: "rare", unlocked: criticalCves >= 3, progress: mk(criticalCves, 3) },
+  { id: "cartographer", name: "Cartographe des menaces", desc: "CVE de 8 éditeurs distincts.", glyph: "🗺", rarity: "rare", unlocked: cveVendors >= 8, progress: mk(cveVendors, 8) },
+  { id: "elite-hunter", name: "Chasseur d'élite", desc: "Score CVSS moyen ≥ 7.", glyph: "★", rarity: "épique", unlocked: avgCvss >= 7, progress: `${avgCvss.toFixed(1)}/7` },
+
+  // ── Rang ──
+  { id: "legend-077", name: "Légende 077", desc: "Atteindre le rang maximal (6500 XP).", glyph: "👑", rarity: "légendaire", unlocked: OPERATOR_XP >= 6500, progress: mk(OPERATOR_XP, 6500) },
 ];
 
 export const ACHIEVEMENTS_UNLOCKED = ACHIEVEMENTS.filter((a) => a.unlocked).length;
+
+export const RARITY_ORDER: Rarity[] = ["commun", "rare", "épique", "légendaire"];
+export const ACHIEVEMENTS_BY_RARITY = RARITY_ORDER.map((r) => ({
+  rarity: r,
+  total: ACHIEVEMENTS.filter((a) => a.rarity === r).length,
+  unlocked: ACHIEVEMENTS.filter((a) => a.rarity === r && a.unlocked).length,
+}));
+
+/* ── Agrégats additionnels pour la page /stats ── */
+export const RES_BY_TYPE = RESOURCE_TYPES.map((t) => ({ label: t, count: resByType(t) }));
+export const RES_BY_DOMAIN = DOMAINS.map((d) => ({ label: d, count: resByDomain(d) })).sort((a, b) => b.count - a.count);
+export const TOOLS_BY_PHASE = PHASES.map((p) => ({ label: p, count: toolsByPhase(p) }));
+export const CVE_TOP_VENDORS = (() => {
+  const m: Record<string, number> = {};
+  for (const c of CVES) m[c.vendor] = (m[c.vendor] ?? 0) + 1;
+  return Object.entries(m)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+})();
+export const CVE_AVG = Math.round(avgCvss * 10) / 10;
+export const TOTALS = {
+  resources: RESOURCES.length,
+  tools: EXTERNAL_TOOLS.length,
+  scripts: SCRIPTS.length,
+  cves: CVES.length,
+  domains: domainsCovered,
+  phases: phasesCovered,
+  tags: tagCount,
+  vendors: cveVendors,
+};
 
 /* ── Synthèse opérateur ───────────────────────────────────────────────── */
 
