@@ -17,6 +17,7 @@ import {
   TOOLS_BY_PHASE,
   CVE_TOP_VENDORS,
   CVE_AVG,
+  TOP_TAGS,
   type Skill,
   type Rarity,
 } from "@/lib/stats";
@@ -165,6 +166,18 @@ export default function StatsPage() {
             <span className="label !text-muted">score CVSS moyen</span>
           </div>
           <Bars data={CVE_TOP_VENDORS} />
+        </Panel>
+      </ScrollReveal>
+
+      <ScrollReveal>
+        <Panel code="TAG" title="Tags les plus utilisés" className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            {TOP_TAGS.map((t) => (
+              <span key={t.label} className="clip-chamfer-sm border border-line-strong px-2.5 py-1 font-mono text-xs text-muted">
+                {t.label} <span className="text-secondary">{t.count}</span>
+              </span>
+            ))}
+          </div>
         </Panel>
       </ScrollReveal>
 

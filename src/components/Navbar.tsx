@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogoWordmark } from "@/components/Logo";
-import { StatusDot } from "@/components/StatusDot";
+import { Avatar } from "@/components/Avatar";
 import { NAV_ITEMS, ADMIN_ITEM, type NavItem } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
 
@@ -29,6 +29,18 @@ export function Navbar() {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const [acc, setAcc] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!user) {
+      setAvatar(undefined);
+      return;
+    }
+    fetch("/api/profile", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { account?: { avatar?: string } }) => setAvatar(d.account?.avatar))
+      .catch(() => {});
+  }, [user]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -141,11 +153,13 @@ export function Navbar() {
         <div className="hidden lg:flex items-center gap-3 shrink-0">
           {user ? (
             <>
-              <StatusDot state="online" />
-              <span className="font-mono text-xs text-muted">
-                {user.name}
-                <span className="text-primary"> · {user.role}</span>
-              </span>
+              <Link href="/profile" className="flex items-center gap-2 focus-ring" title="Mon profil">
+                <Avatar src={avatar} name={user.name} size={26} />
+                <span className="font-mono text-xs text-muted">
+                  {user.name}
+                  <span className="text-primary"> · {user.role}</span>
+                </span>
+              </Link>
               <button onClick={handleLogout} className="btn btn-ghost !py-2 !px-3">
                 Déconnexion
               </button>

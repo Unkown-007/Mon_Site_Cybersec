@@ -176,6 +176,24 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "cartographer", name: "Cartographe des menaces", desc: "CVE de 8 éditeurs distincts.", glyph: "🗺", rarity: "rare", unlocked: cveVendors >= 8, progress: mk(cveVendors, 8) },
   { id: "elite-hunter", name: "Chasseur d'élite", desc: "Score CVSS moyen ≥ 7.", glyph: "★", rarity: "épique", unlocked: avgCvss >= 7, progress: `${avgCvss.toFixed(1)}/7` },
 
+  // ── Ressources (paliers étendus) ──
+  { id: "res-80", name: "Encyclopédiste", desc: "80 ressources.", glyph: "📚", rarity: "légendaire", unlocked: RESOURCES.length >= 80, progress: mk(RESOURCES.length, 80) },
+  { id: "cheatsheets", name: "Antisèche", desc: "10 cheatsheets.", glyph: "▤", rarity: "commun", unlocked: resByType("cheatsheet") >= 10, progress: mk(resByType("cheatsheet"), 10) },
+  { id: "outils-type", name: "Boîte à outils", desc: "20 ressources de type outil.", glyph: "🛠", rarity: "rare", unlocked: resByType("outil") >= 20, progress: mk(resByType("outil"), 20) },
+  { id: "tags-60", name: "Grand taxonomiste", desc: "60 tags distincts.", glyph: "⌗", rarity: "épique", unlocked: tagCount >= 60, progress: mk(tagCount, 60) },
+  { id: "reseau-adept", name: "Maître réseau", desc: "15 ressources Réseau.", glyph: "🖧", rarity: "rare", unlocked: resByDomain("Réseau") >= 15, progress: mk(resByDomain("Réseau"), 15) },
+  { id: "mobile", name: "Nomade", desc: "Une ressource Mobile.", glyph: "📱", rarity: "commun", unlocked: resByDomain("Mobile") >= 1, progress: mk(resByDomain("Mobile"), 1) },
+
+  // ── Arsenal (paliers étendus) ──
+  { id: "tools-collector", name: "Collectionneur", desc: "20 outils référencés.", glyph: "🧰", rarity: "commun", unlocked: EXTERNAL_TOOLS.length >= 20, progress: mk(EXTERNAL_TOOLS.length, 20) },
+  { id: "tools-40", name: "Quincaillier", desc: "40 outils.", glyph: "🔧", rarity: "rare", unlocked: EXTERNAL_TOOLS.length >= 40, progress: mk(EXTERNAL_TOOLS.length, 40) },
+  { id: "enum-master", name: "Énumérateur", desc: "5 outils d'énumération.", glyph: "🔎", rarity: "commun", unlocked: toolsByPhase("Enum") >= 5, progress: mk(toolsByPhase("Enum"), 5) },
+  { id: "exploit-master", name: "Sapeur", desc: "5 outils d'exploitation.", glyph: "💥", rarity: "rare", unlocked: toolsByPhase("Exploit") >= 5, progress: mk(toolsByPhase("Exploit"), 5) },
+  { id: "reporter", name: "Rapporteur", desc: "Un outil de reporting.", glyph: "📝", rarity: "commun", unlocked: toolsByPhase("Reporting") >= 1, progress: mk(toolsByPhase("Reporting"), 1) },
+
+  // ── Veille (paliers étendus) ──
+  { id: "high-cves", name: "Sentinelle", desc: "5 CVE de sévérité haute+.", glyph: "⚠", rarity: "rare", unlocked: CVES.filter((c) => c.severity === "HIGH" || c.severity === "CRITICAL").length >= 5, progress: mk(CVES.filter((c) => c.severity === "HIGH" || c.severity === "CRITICAL").length, 5) },
+
   // ── Rang ──
   { id: "legend-077", name: "Légende 077", desc: "Atteindre le rang maximal (6500 XP).", glyph: "👑", rarity: "légendaire", unlocked: OPERATOR_XP >= 6500, progress: mk(OPERATOR_XP, 6500) },
 ];
@@ -202,6 +220,14 @@ export const CVE_TOP_VENDORS = (() => {
     .slice(0, 6);
 })();
 export const CVE_AVG = Math.round(avgCvss * 10) / 10;
+export const TOP_TAGS = (() => {
+  const m: Record<string, number> = {};
+  for (const r of RESOURCES) for (const t of r.tags) m[t] = (m[t] ?? 0) + 1;
+  return Object.entries(m)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
+})();
 export const TOTALS = {
   resources: RESOURCES.length,
   tools: EXTERNAL_TOOLS.length,
