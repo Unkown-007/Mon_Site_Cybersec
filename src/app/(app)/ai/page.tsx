@@ -10,8 +10,17 @@ interface ChatMsg {
   content: string;
 }
 
+const PROVIDERS = [
+  { id: "anthropic", label: "Claude", model: "Opus 4.8", placeholder: "sk-ant-…", help: "console.anthropic.com → API Keys" },
+  { id: "openai", label: "ChatGPT", model: "GPT-4o", placeholder: "sk-…", help: "platform.openai.com → API keys" },
+  { id: "google", label: "Gemini", model: "2.0 Flash", placeholder: "AIza…", help: "aistudio.google.com → Get API key" },
+] as const;
+
+type ProviderId = (typeof PROVIDERS)[number]["id"];
+
 export default function AiPage() {
-  const [apiKey, setApiKey, hydrated] = useLocalStorage<string>("ux077:anthropic-key", "");
+  const [provider, setProvider] = useLocalStorage<ProviderId>("ux077:ai-provider", "anthropic");
+  const [keys, setKeys, hydrated] = useLocalStorage<Record<string, string>>("ux077:ai-keys", {});
   const [keyDraft, setKeyDraft] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
@@ -20,11 +29,35 @@ export default function AiPage() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const meta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
+  const apiKey = keys[provider] ?? "";
+  const hasKey = hydrated && apiKey.trim().length > 0;
+
+  // Migration : récupère l'ancienne clé Anthropic stockée séparément.
+  useEffect(() => {
+    if (!hydrated || keys.anthropic) return;
+    try {
+      const raw = localStorage.getItem("ux077:anthropic-key");
+      if (raw) {
+        const v = JSON.parse(raw);
+        if (typeof v === "string" && v.trim()) setKeys({ ...keys, anthropic: v });
+      }
+    } catch {
+      /* rien à migrer */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, streaming]);
 
-  const hasKey = hydrated && apiKey.trim().length > 0;
+  const commitKey = () => {
+    const k = keyDraft.trim();
+    if (!k) return;
+    setKeys({ ...keys, [provider]: k });
+    setKeyDraft("");
+  };
 
   const send = async () => {
     const text = draft.trim();
@@ -39,8 +72,8 @@ export default function AiPage() {
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-anthropic-key": apiKey },
-        body: JSON.stringify({ messages: next }),
+        headers: { "content-type": "application/json", "x-ai-key": apiKey },
+        body: JSON.stringify({ provider, messages: next }),
       });
 
       if (!res.ok || !res.body) {
@@ -67,19 +100,15 @@ export default function AiPage() {
           const data = t.slice(5).trim();
           if (!data || data === "[DONE]") continue;
           try {
-            const ev = JSON.parse(data) as {
-              type?: string;
-              delta?: { type?: string; text?: string };
-              error?: { message?: string };
-            };
-            if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") {
-              acc += ev.delta.text ?? "";
+            const ev = JSON.parse(data) as { text?: string; error?: string };
+            if (ev.text) {
+              acc += ev.text;
               setStreaming(acc);
-            } else if (ev.type === "error") {
-              setError(ev.error?.message ?? "Erreur de flux.");
+            } else if (ev.error) {
+              setError(ev.error);
             }
           } catch {
-            /* ligne SSE partielle/non-JSON : ignorée */
+            /* ligne SSE partielle : ignorée */
           }
         }
       }
@@ -98,45 +127,81 @@ export default function AiPage() {
       <PageHeader
         code="AI // ASSISTANT"
         title="Assistant IA"
-        desc="Chat Claude pour la cybersécurité — pédagogie, CVE, write-ups, déchiffrage de commandes."
+        desc="Chat multi-modèles (Claude · ChatGPT · Gemini) pour la cybersécurité — pédagogie, CVE, write-ups, déchiffrage de commandes."
         right={<Badge variant={hasKey ? "success" : "neutral"} dot>{hasKey ? "clé OK" : "clé requise"}</Badge>}
       />
 
-      {/* Clé API — focal tant qu'elle manque */}
+      {/* Sélecteur de modèle */}
+      <div className="mb-5">
+        <span className="label !text-muted mb-2 block">Modèle</span>
+        <div className="flex flex-wrap items-center gap-2">
+          {PROVIDERS.map((p) => {
+            const active = provider === p.id;
+            const configured = (keys[p.id] ?? "").trim().length > 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setProvider(p.id);
+                  setKeyDraft("");
+                  setError(null);
+                }}
+                className={`hud-tab hud-tab--chip flex items-center gap-2 px-3 py-1.5 font-mono text-xs ${
+                  active ? "is-active text-secondary" : "text-muted hover:text-ink"
+                }`}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {p.label}
+                  <span className="text-[9px] text-muted">{p.model}</span>
+                  {configured && <span className="h-1.5 w-1.5 rounded-full bg-success" aria-label="configuré" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Clé API du fournisseur sélectionné */}
       {!hasKey ? (
-        <Panel code="CONFIG" title="Connecte ta clé Anthropic" focal>
+        <Panel code="CONFIG" title={`Connecte ta clé ${meta.label}`} focal>
           <p className="text-body-sm text-muted">
-            Le chat utilise <span className="text-ink">ta propre clé API Anthropic</span>. Elle est
-            stockée uniquement dans ton navigateur (localStorage) et n&apos;est jamais enregistrée sur
-            le serveur — elle ne sert qu&apos;à relayer tes messages vers Anthropic.
+            Le chat utilise <span className="text-ink">ta propre clé API {meta.label}</span>. Elle est
+            stockée uniquement dans ton navigateur (localStorage), jamais sur le serveur — elle ne sert
+            qu&apos;à relayer tes messages vers {meta.label}.
           </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              commitKey();
+            }}
+            className="mt-4 flex flex-col gap-3 sm:flex-row"
+          >
             <input
               type="password"
               value={keyDraft}
               onChange={(e) => setKeyDraft(e.target.value)}
-              placeholder="sk-ant-…"
+              placeholder={meta.placeholder}
               spellCheck={false}
               autoComplete="off"
               className="field flex-1"
-              aria-label="Clé API Anthropic"
+              aria-label={`Clé API ${meta.label}`}
             />
-            <Button variant="signal" onClick={() => apiKeyCommit(keyDraft, setApiKey, setKeyDraft)}>
+            <Button variant="signal" type="submit">
               Enregistrer
             </Button>
-          </div>
-          <p className="mt-3 text-label text-muted">
-            Obtiens une clé sur console.anthropic.com → API Keys.
-          </p>
+          </form>
+          <p className="mt-3 text-label text-muted">Obtiens une clé sur {meta.help}.</p>
         </Panel>
       ) : (
         <div className="mb-4 flex items-center justify-between gap-3">
-          <span className="label">Session locale</span>
+          <span className="label">
+            {meta.label} · {meta.model}
+          </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              setApiKey("");
+              setKeys({ ...keys, [provider]: "" });
               setMessages([]);
               setKeyDraft("");
             }}
@@ -148,10 +213,7 @@ export default function AiPage() {
 
       {hasKey && (
         <Panel className="flex flex-col">
-          <div
-            ref={scrollRef}
-            className="max-h-[55vh] min-h-[16rem] space-y-4 overflow-y-auto pr-1"
-          >
+          <div ref={scrollRef} className="max-h-[55vh] min-h-[16rem] space-y-4 overflow-y-auto pr-1">
             {messages.length === 0 && !streaming ? (
               <p className="font-mono text-body-sm text-muted">
                 [ pose ta question — ex. « explique CVE-2021-44228 », « que fait cette commande nmap ? » ]
@@ -159,9 +221,9 @@ export default function AiPage() {
             ) : null}
 
             {messages.map((m, i) => (
-              <Bubble key={i} role={m.role} content={m.content} />
+              <Bubble key={i} role={m.role} content={m.content} botLabel={meta.label} />
             ))}
-            {streaming !== null && <Bubble role="assistant" content={streaming || "…"} live />}
+            {streaming !== null && <Bubble role="assistant" content={streaming || "…"} botLabel={meta.label} live />}
           </div>
 
           <form
@@ -199,25 +261,15 @@ export default function AiPage() {
   );
 }
 
-function apiKeyCommit(
-  draft: string,
-  setApiKey: (v: string) => void,
-  setKeyDraft: (v: string) => void,
-) {
-  const k = draft.trim();
-  if (k) {
-    setApiKey(k);
-    setKeyDraft("");
-  }
-}
-
 function Bubble({
   role,
   content,
+  botLabel,
   live,
 }: {
   role: "user" | "assistant";
   content: string;
+  botLabel: string;
   live?: boolean;
 }) {
   const isUser = role === "user";
@@ -231,7 +283,7 @@ function Bubble({
       >
         <div className="mb-1 flex items-center gap-2">
           <span className={`label ${isUser ? "text-primary" : "text-secondary"}`}>
-            {isUser ? "TOI" : "CLAUDE"}
+            {isUser ? "TOI" : botLabel.toUpperCase()}
           </span>
           {live && <span className="cursor" aria-hidden />}
         </div>
