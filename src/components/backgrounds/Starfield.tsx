@@ -67,9 +67,12 @@ export function Starfield() {
       }
     };
 
-    const loop = () => {
-      frame();
+    let lastT = 0;
+    const loop = (now = 0) => {
       raf = requestAnimationFrame(loop);
+      if (now - lastT < 33) return; // ~30 FPS
+      lastT = now;
+      frame();
     };
 
     resize();

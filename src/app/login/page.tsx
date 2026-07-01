@@ -6,7 +6,7 @@ import { HexLogo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { LoginTransition } from "@/components/LoginTransition";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { usePerf } from "@/lib/perf";
 
 const LOGS = [
@@ -186,13 +186,11 @@ export default function LoginPage() {
         <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-secondary/70" />
         <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-secondary/70" />
 
-        <AnimatePresence mode="wait">
-          {!typingComplete ? (
+        {!isFastMode && !typingComplete ? (
             <motion.div
               key="terminal"
               className="font-mono text-xs text-success h-[260px] flex flex-col justify-between"
               initial={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
               <div className="space-y-2">
@@ -300,7 +298,6 @@ export default function LoginPage() {
               </form>
             </motion.div>
           )}
-        </AnimatePresence>
       </motion.div>
 
       <motion.p

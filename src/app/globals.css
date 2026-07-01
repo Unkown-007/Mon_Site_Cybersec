@@ -113,12 +113,11 @@
     color: var(--secondary);
   }
 
-  /* Carte standard — premium glassmorphism, chanfreinée (coins coupés). */
+  /* Carte standard — chanfreinée (coins coupés). Fond opaque (pas de
+     backdrop-filter : trop coûteux GPU quand il y a des dizaines de cartes). */
   .card {
     --chamfer: 10px;
-    background: rgba(12, 12, 21, 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(13, 13, 22, 0.9);
     border: 1px solid var(--line);
     position: relative;
     clip-path: polygon(
@@ -879,9 +878,7 @@
       var(--chamfer) 100%,
       0 calc(100% - var(--chamfer))
     );
-    background: linear-gradient(165deg, rgba(18, 18, 30, 0.62), rgba(10, 10, 18, 0.6));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(165deg, rgba(18, 18, 30, 0.92), rgba(10, 10, 18, 0.92));
     transition:
       transform var(--dur-base) var(--ease-out-soft),
       filter var(--dur-base) var(--ease-out-soft);

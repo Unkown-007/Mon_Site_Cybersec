@@ -989,7 +989,13 @@ export function CyberCityBackground() {
       vignette();
     };
 
-    const step = () => {
+    // Plafond ~30 FPS : ce fond est un décor, inutile de le rendre à 60 FPS.
+    // Divise par ~2 le coût CPU/GPU (reflet plein écran + gradients par frame).
+    let lastT = 0;
+    const step = (now = 0) => {
+      raf = requestAnimationFrame(step);
+      if (now - lastT < 33) return;
+      lastT = now;
       frame++;
       for (const c of cars) {
         c.x += c.sp * c.dir;
@@ -1029,7 +1035,6 @@ export function CyberCityBackground() {
       if (frame % 7 === 0)
         for (const s of stars) s.a = Math.max(0.08, Math.min(0.7, s.a + (Math.random() - 0.5) * 0.1));
       render();
-      raf = requestAnimationFrame(step);
     };
 
     const resize = () => {

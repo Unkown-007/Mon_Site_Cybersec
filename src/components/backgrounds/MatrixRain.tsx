@@ -54,9 +54,12 @@ export function MatrixRain() {
       }
     };
 
-    const loop = () => {
-      frame();
+    let lastT = 0;
+    const loop = (now = 0) => {
       raf = requestAnimationFrame(loop);
+      if (now - lastT < 40) return; // ~25 FPS (pluie de code, largement suffisant)
+      lastT = now;
+      frame();
     };
 
     resize();
