@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel, Button, Badge } from "@/components/ui";
 import { useLocalStorage } from "@/lib/useLocalStorage";
@@ -322,22 +322,175 @@ function Bubble({
   live?: boolean;
 }) {
   const isUser = role === "user";
+  const [copied, setCopied] = useState(false);
+  const copyAll = () => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
   return (
     <div className={isUser ? "flex justify-end" : "flex justify-start"}>
       <div
         className={[
-          "max-w-[85%] clip-chamfer border px-3.5 py-2.5",
-          isUser ? "border-primary/40 bg-primary/5" : "border-line bg-base",
+          "max-w-[85%] clip-chamfer border px-3.5 py-2.5 select-text",
+          isUser ? "border-primary/40 bg-primary/5" : "border-line bg-surface/70",
         ].join(" ")}
       >
-        <div className="mb-1 flex items-center gap-2">
-          <span className={`label ${isUser ? "text-primary" : "text-secondary"}`}>
+        <div className="mb-1.5 flex items-center justify-between gap-3">
+          <span className={`label ${isUser ? "text-primary" : "text-secondary"} flex items-center gap-2`}>
             {isUser ? "TOI" : botLabel.toUpperCase()}
+            {live && <span className="cursor" aria-hidden />}
           </span>
-          {live && <span className="cursor" aria-hidden />}
+          {content.trim() && !live && (
+            <button
+              onClick={copyAll}
+              data-no-sfx
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[1px] text-muted transition-colors hover:text-secondary"
+            >
+              {copied ? "copié ✓" : "copier"}
+            </button>
+          )}
         </div>
-        <p className="whitespace-pre-wrap break-words text-body-sm text-ink">{content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap break-words text-body text-ink-strong">{content}</p>
+        ) : (
+          <Markdown text={content} />
+        )}
       </div>
+    </div>
+  );
+}
+
+/* ── Rendu Markdown léger (sans dépendance) : blocs de code, listes, gras, code inline ── */
+type Block = { type: "code"; lang: string; code: string } | { type: "text"; text: string };
+
+function parseBlocks(src: string): Block[] {
+  const blocks: Block[] = [];
+  const re = /```([\w+-]*)\n?([\s\S]*?)```/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src))) {
+    if (m.index > last) blocks.push({ type: "text", text: src.slice(last, m.index) });
+    blocks.push({ type: "code", lang: m[1] || "", code: m[2].replace(/\n$/, "") });
+    last = m.index + m[0].length;
+  }
+  if (last < src.length) blocks.push({ type: "text", text: src.slice(last) });
+  return blocks;
+}
+
+function renderInline(str: string, keyBase: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(str))) {
+    if (m.index > last) nodes.push(str.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith("**")) {
+      nodes.push(
+        <strong key={`${keyBase}-${k++}`} className="font-semibold text-ink-strong">
+          {tok.slice(2, -2)}
+        </strong>,
+      );
+    } else {
+      nodes.push(
+        <code
+          key={`${keyBase}-${k++}`}
+          className="rounded-sm border border-line bg-base px-1 py-0.5 font-mono text-[0.85em] text-secondary"
+        >
+          {tok.slice(1, -1)}
+        </code>,
+      );
+    }
+    last = m.index + tok.length;
+  }
+  if (last < str.length) nodes.push(str.slice(last));
+  return nodes;
+}
+
+function TextBlock({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const out: ReactNode[] = [];
+  let bullets: string[] = [];
+  const flush = () => {
+    if (!bullets.length) return;
+    const items = bullets;
+    out.push(
+      <ul key={`ul-${out.length}`} className="list-disc space-y-0.5 pl-5">
+        {items.map((li, i) => (
+          <li key={i}>{renderInline(li, `li-${out.length}-${i}`)}</li>
+        ))}
+      </ul>,
+    );
+    bullets = [];
+  };
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    const bullet = t.match(/^[-*]\s+(.*)/);
+    const head = t.match(/^#{1,6}\s+(.*)/);
+    if (bullet) {
+      bullets.push(bullet[1]);
+      return;
+    }
+    flush();
+    if (t === "") return;
+    if (head) {
+      out.push(
+        <p key={`h-${i}`} className="font-display text-ink-strong">
+          {renderInline(head[1], `h-${i}`)}
+        </p>,
+      );
+      return;
+    }
+    out.push(
+      <p key={`p-${i}`} className="break-words">
+        {renderInline(line, `p-${i}`)}
+      </p>,
+    );
+  });
+  flush();
+  return <div className="space-y-2">{out}</div>;
+}
+
+function CodeBlock({ lang, code }: { lang: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="clip-chamfer overflow-hidden border border-line-strong bg-base/90">
+      <div className="flex items-center justify-between border-b border-line bg-surface/70 px-3 py-1">
+        <span className="label !text-muted">{lang || "code"}</span>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(code).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+          data-no-sfx
+          className="font-mono text-[10px] uppercase tracking-[1px] text-muted transition-colors hover:text-secondary"
+        >
+          {copied ? "copié ✓" : "copier"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-3">
+        <code className="font-mono text-[12.5px] leading-relaxed text-ink-strong">{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function Markdown({ text }: { text: string }) {
+  const blocks = parseBlocks(text);
+  return (
+    <div className="space-y-2.5 text-body leading-relaxed text-ink-strong">
+      {blocks.map((b, i) =>
+        b.type === "code" ? (
+          <CodeBlock key={i} lang={b.lang} code={b.code} />
+        ) : (
+          <TextBlock key={i} text={b.text} />
+        ),
+      )}
     </div>
   );
 }
