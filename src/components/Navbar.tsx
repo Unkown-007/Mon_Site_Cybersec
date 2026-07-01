@@ -18,6 +18,7 @@ const GROUPS: { label: string; hrefs: string[] }[] = [
   { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map", "/stats"] },
   { label: "Intel", hrefs: ["/veille", "/news", "/ai", "/reference"] },
   { label: "Apprendre", hrefs: ["/learn", "/certifications", "/events"] },
+  { label: "Social", hrefs: ["/leaderboard", "/team", "/profile"] },
 ];
 
 const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal"));

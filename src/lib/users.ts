@@ -9,6 +9,14 @@ import type { Role } from "@/lib/session";
 
 export type AccountStatus = "active" | "banned";
 
+/** Un "unlock" / résolution de challenge (CTF, box, etc.). */
+export interface Solve {
+  name: string;
+  points: number;
+  cat?: string;
+  at: number;
+}
+
 export interface Account {
   email: string;
   name: string;
@@ -18,7 +26,19 @@ export interface Account {
   firstSeen: number; // "qui a rejoint quand"
   lastSeen: number;
   logins: number;
+  // ── Profil social (optionnel) ──
+  displayName?: string;
+  avatar?: string; // data URL (photo redimensionnée) ou URL https
+  bio?: string;
+  handle?: string;
+  country?: string;
+  score?: number; // somme des points des solves (classement)
+  teamId?: string;
+  solves?: Solve[];
 }
+
+/** Champs de profil éditables par l'utilisateur lui-même. */
+export type ProfilePatch = Partial<Pick<Account, "displayName" | "avatar" | "bio" | "handle" | "country">>;
 
 const keyFor = (email: string) => `user:${email.toLowerCase()}`;
 const SET = "users";
@@ -91,4 +111,32 @@ export async function updateAccount(
   const next: Account = { ...a, ...patch };
   await kvSet(keyFor(email), JSON.stringify(next));
   return next;
+}
+
+/** Patch interne générique (score, teamId, solves…) — réservé au serveur. */
+export async function patchAccount(email: string, patch: Partial<Account>): Promise<Account | null> {
+  if (!kvReady) return null;
+  const a = await getAccount(email);
+  if (!a) return null;
+  const next: Account = { ...a, ...patch };
+  await kvSet(keyFor(email), JSON.stringify(next));
+  return next;
+}
+
+/** Mise à jour du profil par l'utilisateur (champs texte + avatar). */
+export async function updateProfile(email: string, patch: ProfilePatch): Promise<Account | null> {
+  const clean: ProfilePatch = {};
+  const cap = (s: unknown, n: number) => (typeof s === "string" ? s.slice(0, n) : undefined);
+  if (patch.displayName !== undefined) clean.displayName = cap(patch.displayName, 40);
+  if (patch.bio !== undefined) clean.bio = cap(patch.bio, 280);
+  if (patch.handle !== undefined) clean.handle = cap(patch.handle, 30)?.replace(/[^\w.-]/g, "");
+  if (patch.country !== undefined) clean.country = cap(patch.country, 40);
+  if (patch.avatar !== undefined) {
+    const a = patch.avatar;
+    // data URL image (≤ ~200 KB) ou URL https
+    if (typeof a === "string" && (/^data:image\/(png|jpe?g|webp);base64,/.test(a) ? a.length <= 200_000 : /^https:\/\//.test(a))) {
+      clean.avatar = a;
+    }
+  }
+  return patchAccount(email, clean);
 }
