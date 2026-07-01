@@ -18,12 +18,19 @@ const SYSTEM_PROMPT = `Tu es l'assistant IA de UnknownX-077, une plateforme pers
 Réponds en français, de façon technique, claire et concise. Formate en Markdown léger (listes, blocs de code).
 Cadre éducatif et défensif : tu peux expliquer des concepts offensifs (CVE, techniques, payloads publics de référence) à but pédagogique et pour du pentest autorisé / CTF / labo. Refuse d'aider à attaquer des systèmes tiers sans autorisation, et rappelle le cadre légal si besoin.`;
 
-// Modèles par défaut (les plus capables/récents au moment du build).
-const MODELS: Record<Provider, string> = {
-  anthropic: "claude-opus-4-8",
-  openai: "gpt-4o",
-  google: "gemini-2.0-flash",
+// Modèles autorisés par fournisseur — le 1er est le défaut. Pour Google, le
+// modèle part dans l'URL : la liste blanche empêche toute injection.
+const MODEL_ALLOW: Record<Provider, string[]> = {
+  anthropic: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+  openai: ["gpt-4o", "gpt-4o-mini"],
+  // gemini-1.5-flash d'abord : tier gratuit large (2.0-flash exige souvent la facturation).
+  google: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
 };
+
+function resolveModel(provider: Provider, requested: unknown): string {
+  const allow = MODEL_ALLOW[provider];
+  return typeof requested === "string" && allow.includes(requested) ? requested : allow[0];
+}
 
 interface Msg {
   role: "user" | "assistant";
@@ -36,13 +43,13 @@ interface Upstream {
   body: string;
 }
 
-function buildUpstream(provider: Provider, key: string, messages: Msg[]): Upstream {
+function buildUpstream(provider: Provider, model: string, key: string, messages: Msg[]): Upstream {
   if (provider === "openai") {
     return {
       url: "https://api.openai.com/v1/chat/completions",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODELS.openai,
+        model,
         stream: true,
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
       }),
@@ -50,7 +57,7 @@ function buildUpstream(provider: Provider, key: string, messages: Msg[]): Upstre
   }
   if (provider === "google") {
     return {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.google}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`,
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`,
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -66,7 +73,7 @@ function buildUpstream(provider: Provider, key: string, messages: Msg[]): Upstre
     url: "https://api.anthropic.com/v1/messages",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: MODELS.anthropic,
+      model,
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       stream: true,
@@ -103,7 +110,7 @@ export async function POST(req: Request) {
   const key = req.headers.get("x-ai-key");
   if (!key) return NextResponse.json({ error: "Clé API manquante." }, { status: 401 });
 
-  let body: { provider?: unknown; messages?: unknown };
+  let body: { provider?: unknown; model?: unknown; messages?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -112,6 +119,7 @@ export async function POST(req: Request) {
 
   const provider: Provider =
     body.provider === "openai" || body.provider === "google" ? body.provider : "anthropic";
+  const model = resolveModel(provider, body.model);
 
   const raw = Array.isArray(body.messages) ? (body.messages as { role?: unknown; content?: unknown }[]) : [];
   const messages: Msg[] = raw
@@ -124,7 +132,7 @@ export async function POST(req: Request) {
 
   if (messages.length === 0) return NextResponse.json({ error: "Aucun message." }, { status: 400 });
 
-  const up = buildUpstream(provider, key, messages);
+  const up = buildUpstream(provider, model, key, messages);
 
   let res: Response;
   try {

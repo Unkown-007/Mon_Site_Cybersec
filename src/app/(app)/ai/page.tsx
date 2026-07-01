@@ -11,9 +11,38 @@ interface ChatMsg {
 }
 
 const PROVIDERS = [
-  { id: "anthropic", label: "Claude", model: "Opus 4.8", placeholder: "sk-ant-…", help: "console.anthropic.com → API Keys" },
-  { id: "openai", label: "ChatGPT", model: "GPT-4o", placeholder: "sk-…", help: "platform.openai.com → API keys" },
-  { id: "google", label: "Gemini", model: "2.0 Flash", placeholder: "AIza…", help: "aistudio.google.com → Get API key" },
+  {
+    id: "anthropic",
+    label: "Claude",
+    placeholder: "sk-ant-…",
+    help: "console.anthropic.com → API Keys",
+    models: [
+      { id: "claude-opus-4-8", label: "Opus 4.8" },
+      { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+      { id: "claude-haiku-4-5-20251001", label: "Haiku 4.5" },
+    ],
+  },
+  {
+    id: "openai",
+    label: "ChatGPT",
+    placeholder: "sk-…",
+    help: "platform.openai.com → API keys",
+    models: [
+      { id: "gpt-4o", label: "GPT-4o" },
+      { id: "gpt-4o-mini", label: "GPT-4o mini" },
+    ],
+  },
+  {
+    id: "google",
+    label: "Gemini",
+    placeholder: "AIza…",
+    help: "aistudio.google.com → Get API key",
+    models: [
+      { id: "gemini-1.5-flash", label: "1.5 Flash (gratuit)" },
+      { id: "gemini-2.0-flash", label: "2.0 Flash" },
+      { id: "gemini-1.5-pro", label: "1.5 Pro" },
+    ],
+  },
 ] as const;
 
 type ProviderId = (typeof PROVIDERS)[number]["id"];
@@ -21,6 +50,7 @@ type ProviderId = (typeof PROVIDERS)[number]["id"];
 export default function AiPage() {
   const [provider, setProvider] = useLocalStorage<ProviderId>("ux077:ai-provider", "anthropic");
   const [keys, setKeys, hydrated] = useLocalStorage<Record<string, string>>("ux077:ai-keys", {});
+  const [models, setModels] = useLocalStorage<Record<string, string>>("ux077:ai-models", {});
   const [keyDraft, setKeyDraft] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
@@ -32,6 +62,9 @@ export default function AiPage() {
   const meta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
   const apiKey = keys[provider] ?? "";
   const hasKey = hydrated && apiKey.trim().length > 0;
+  const modelIds = meta.models.map((m) => m.id) as readonly string[];
+  const model = modelIds.includes(models[provider]) ? models[provider] : meta.models[0].id;
+  const modelLabel = meta.models.find((m) => m.id === model)?.label ?? model;
 
   // Migration : récupère l'ancienne clé Anthropic stockée séparément.
   useEffect(() => {
@@ -73,7 +106,7 @@ export default function AiPage() {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "content-type": "application/json", "x-ai-key": apiKey },
-        body: JSON.stringify({ provider, messages: next }),
+        body: JSON.stringify({ provider, model, messages: next }),
       });
 
       if (!res.ok || !res.body) {
@@ -131,34 +164,50 @@ export default function AiPage() {
         right={<Badge variant={hasKey ? "success" : "neutral"} dot>{hasKey ? "clé OK" : "clé requise"}</Badge>}
       />
 
-      {/* Sélecteur de modèle */}
-      <div className="mb-5">
-        <span className="label !text-muted mb-2 block">Modèle</span>
-        <div className="flex flex-wrap items-center gap-2">
-          {PROVIDERS.map((p) => {
-            const active = provider === p.id;
-            const configured = (keys[p.id] ?? "").trim().length > 0;
-            return (
-              <button
-                key={p.id}
-                onClick={() => {
-                  setProvider(p.id);
-                  setKeyDraft("");
-                  setError(null);
-                }}
-                className={`hud-tab hud-tab--chip flex items-center gap-2 px-3 py-1.5 font-mono text-xs ${
-                  active ? "is-active text-secondary" : "text-muted hover:text-ink"
-                }`}
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {p.label}
-                  <span className="text-[9px] text-muted">{p.model}</span>
-                  {configured && <span className="h-1.5 w-1.5 rounded-full bg-success" aria-label="configuré" />}
-                </span>
-              </button>
-            );
-          })}
+      {/* Sélecteur de fournisseur + modèle */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <span className="label !text-muted mb-2 block">Fournisseur</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {PROVIDERS.map((p) => {
+              const active = provider === p.id;
+              const configured = (keys[p.id] ?? "").trim().length > 0;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setProvider(p.id);
+                    setKeyDraft("");
+                    setError(null);
+                  }}
+                  className={`hud-tab hud-tab--chip flex items-center gap-2 px-3 py-1.5 font-mono text-xs ${
+                    active ? "is-active text-secondary" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    {p.label}
+                    {configured && <span className="h-1.5 w-1.5 rounded-full bg-success" aria-label="configuré" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+        <label className="block sm:w-52">
+          <span className="label !text-muted mb-2 block">Modèle {meta.label}</span>
+          <select
+            value={model}
+            onChange={(e) => setModels({ ...models, [provider]: e.target.value })}
+            className="field"
+            aria-label={`Modèle ${meta.label}`}
+          >
+            {meta.models.map((m) => (
+              <option key={m.id} value={m.id} className="bg-surface">
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* Clé API du fournisseur sélectionné */}
@@ -195,7 +244,7 @@ export default function AiPage() {
       ) : (
         <div className="mb-4 flex items-center justify-between gap-3">
           <span className="label">
-            {meta.label} · {meta.model}
+            {meta.label} · {modelLabel}
           </span>
           <Button
             variant="ghost"
