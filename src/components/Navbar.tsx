@@ -15,7 +15,7 @@ const item = (href: string): NavItem =>
 
 const GROUPS: { label: string; hrefs: string[] }[] = [
   { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/arsenal"] },
-  { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map"] },
+  { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map", "/stats"] },
   { label: "Intel", hrefs: ["/veille", "/news", "/ai"] },
 ];
 

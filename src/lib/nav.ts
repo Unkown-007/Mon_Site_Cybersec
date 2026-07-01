@@ -18,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/news", label: "News", code: "NWS", desc: "Actu cyber en direct" },
   { href: "/ai", label: "AI", code: "AI", desc: "Assistant IA cybersécurité" },
   { href: "/map", label: "Attack Map", code: "MAP", desc: "Carte des attaques en direct" },
+  { href: "/stats", label: "Stats", code: "STA", desc: "Progression & couverture opérateur" },
   { href: "/vault", label: "Vault", code: "VLT", desc: "Zone classifiée" },
 ];
 
