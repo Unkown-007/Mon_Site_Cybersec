@@ -20,6 +20,42 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@unknownx.local";
 const ADMIN_PASSWORD =
   process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "changeme-dev");
 
+type Role = "admin" | "operator";
+interface Cred {
+  email: string;
+  password: string;
+  name: string;
+  role: Role;
+}
+
+/*
+ * Comptes credentials : l'admin (ADMIN_EMAIL/ADMIN_PASSWORD) + une liste
+ * optionnelle d'opérateurs définie par la variable d'env EXTRA_LOGINS (JSON) :
+ *   EXTRA_LOGINS=[{"email":"x@y","password":"…","name":"X","role":"operator"}]
+ */
+function credentialAccounts(): Cred[] {
+  const list: Cred[] = [{ email: ADMIN_EMAIL, password: ADMIN_PASSWORD, name: "ADMIN", role: "admin" }];
+  const raw = process.env.EXTRA_LOGINS;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as { email?: unknown; password?: unknown; name?: unknown; role?: unknown }[];
+      for (const e of Array.isArray(parsed) ? parsed : []) {
+        if (typeof e.email === "string" && typeof e.password === "string" && e.email && e.password) {
+          list.push({
+            email: e.email,
+            password: e.password,
+            name: typeof e.name === "string" && e.name ? e.name : e.email.split("@")[0],
+            role: e.role === "admin" ? "admin" : "operator",
+          });
+        }
+      }
+    } catch {
+      /* EXTRA_LOGINS mal formé → ignoré */
+    }
+  }
+  return list;
+}
+
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let r = 0;
@@ -67,21 +103,25 @@ export async function POST(req: Request) {
   // Petit délai anti-bruteforce (atténue les tentatives en rafale).
   await new Promise((r) => setTimeout(r, 350));
 
-  const ok =
-    safeEqual(email.toLowerCase(), ADMIN_EMAIL.toLowerCase()) &&
-    safeEqual(password, ADMIN_PASSWORD);
+  // Cherche un compte credentials correspondant (comparaison à temps constant).
+  let matched: Cred | null = null;
+  for (const acc of credentialAccounts()) {
+    const emailOk = safeEqual(email.toLowerCase(), acc.email.toLowerCase());
+    const passOk = acc.password.length > 0 && safeEqual(password, acc.password);
+    if (emailOk && passOk) matched = acc;
+  }
 
-  if (!ok) {
+  if (!matched) {
     return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 });
   }
 
-  const user = { email: ADMIN_EMAIL, name: "ADMIN", role: "admin" as const };
-  // Enregistre le compte admin en base (création au 1er login, sinon MAJ).
+  const user = { email: matched.email, name: matched.name, role: matched.role };
+  // Enregistre le compte en base (création au 1er login, sinon MAJ).
   await recordLogin({
-    email: ADMIN_EMAIL,
-    name: "ADMIN",
+    email: matched.email,
+    name: matched.name,
     provider: "credentials",
-    defaultRole: "admin",
+    defaultRole: matched.role,
   });
   const token = await signSession(user);
 
