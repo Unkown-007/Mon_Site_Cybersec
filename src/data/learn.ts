@@ -13,6 +13,9 @@ export type LearnCat =
   | "OSINT"
   | "Blue team"
   | "CTF"
+  | "Bug Bounty"
+  | "Hardware / IoT"
+  | "Médias"
   | "Général";
 
 export type Level = "Débutant" | "Intermédiaire" | "Avancé" | "Tous";
@@ -34,6 +37,9 @@ export const LEARN_CATS: LearnCat[] = [
   "OSINT",
   "Blue team",
   "CTF",
+  "Bug Bounty",
+  "Hardware / IoT",
+  "Médias",
   "Général",
 ];
 
@@ -80,6 +86,30 @@ export const LEARN: LearnItem[] = [
   { name: "TryHackMe", url: "https://tryhackme.com/", category: "Général", level: "Débutant", free: true, desc: "Parcours guidés et rooms thématiques, progression pas à pas." },
   { name: "Hack The Box Academy", url: "https://academy.hackthebox.com/", category: "Général", level: "Tous", free: false, desc: "Modules structurés menant aux certifications HTB (CPTS, CBBH…)." },
   { name: "Root-Me", url: "https://www.root-me.org/", category: "Général", level: "Tous", free: true, desc: "Plateforme française de challenges variés (web, crackme, réseau…)." },
+
+  // ── Bug Bounty ──
+  { name: "YesWeHack", url: "https://www.yeswehack.com/", category: "Bug Bounty", level: "Tous", free: true, desc: "Plateforme de bug bounty européenne (FR) + YesWeHack EDU pour apprendre." },
+  { name: "HackerOne", url: "https://www.hackerone.com/", category: "Bug Bounty", level: "Tous", free: true, desc: "La plus grande plateforme de bug bounty et divulgation de vulnérabilités." },
+  { name: "Bugcrowd", url: "https://www.bugcrowd.com/", category: "Bug Bounty", level: "Tous", free: true, desc: "Plateforme de bug bounty avec université (Bugcrowd University)." },
+  { name: "Intigriti", url: "https://www.intigriti.com/", category: "Bug Bounty", level: "Tous", free: true, desc: "Plateforme de bug bounty européenne + challenges mensuels." },
+  { name: "Google Bug Hunters", url: "https://bughunters.google.com/", category: "Bug Bounty", level: "Intermédiaire", free: true, desc: "Programme de récompenses de Google + cours de sécurité web." },
+  { name: "HackerOne Hacktivity", url: "https://hackerone.com/hacktivity", category: "Bug Bounty", level: "Tous", free: true, desc: "Flux public des rapports divulgués — mine d'apprentissage." },
+
+  // ── Hardware / IoT ──
+  { name: "Hak5", url: "https://hak5.org/", category: "Hardware / IoT", level: "Tous", free: true, desc: "Matériel offensif (Rubber Ducky, WiFi Pineapple) + tutos." },
+  { name: "Flipper Zero — Docs", url: "https://docs.flipper.net/", category: "Hardware / IoT", level: "Débutant", free: true, desc: "Documentation du multi-outil de hacking hardware Flipper Zero." },
+  { name: "OWASP IoT Top 10", url: "https://owasp.org/www-project-internet-of-things/", category: "Hardware / IoT", level: "Tous", free: true, desc: "Les risques de sécurité majeurs des objets connectés." },
+  { name: "Great Scott Gadgets", url: "https://greatscottgadgets.com/", category: "Hardware / IoT", level: "Avancé", free: true, desc: "HackRF, GreatFET… + le cours « Software Defined Radio »." },
+  { name: "Exploitee.rs", url: "https://www.exploitee.rs/", category: "Hardware / IoT", level: "Intermédiaire", free: true, desc: "Wiki communautaire de hacking d'appareils grand public/IoT." },
+
+  // ── Médias (chaînes & podcasts) ──
+  { name: "IppSec (YouTube)", url: "https://www.youtube.com/c/ippsec", category: "Médias", level: "Tous", free: true, desc: "Write-ups vidéo HackTheBox, référence pour la méthodo." },
+  { name: "LiveOverflow (YouTube)", url: "https://www.youtube.com/c/LiveOverflow", category: "Médias", level: "Tous", free: true, desc: "Vulgarisation pointue : pwn, web, reverse, CTF." },
+  { name: "John Hammond (YouTube)", url: "https://www.youtube.com/c/JohnHammond010", category: "Médias", level: "Tous", free: true, desc: "CTF, analyse de malware, outils et actualité cyber." },
+  { name: "The Cyber Mentor (YouTube)", url: "https://www.youtube.com/c/TheCyberMentor", category: "Médias", level: "Débutant", free: true, desc: "Cours de pentest pratiques et accessibles (TCM Security)." },
+  { name: "Darknet Diaries", url: "https://darknetdiaries.com/", category: "Médias", level: "Tous", free: true, desc: "Podcast d'histoires vraies de hacking et de cybercriminalité." },
+  { name: "Le Comptoir Sécu", url: "https://www.comptoirsecu.fr/", category: "Médias", level: "Tous", free: true, desc: "Podcast francophone de vulgarisation cybersécurité." },
+  { name: "NoLimitSecu", url: "https://www.nolimitsecu.fr/", category: "Médias", level: "Tous", free: true, desc: "Podcast hebdo francophone sur la sécurité de l'information." },
 ];
 
 /* ═══════════════ Plateformes de CTF & événements CTF ═══════════════ */
