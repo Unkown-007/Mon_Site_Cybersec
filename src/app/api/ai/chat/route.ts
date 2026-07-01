@@ -23,8 +23,8 @@ Cadre éducatif et défensif : tu peux expliquer des concepts offensifs (CVE, te
 const MODEL_ALLOW: Record<Provider, string[]> = {
   anthropic: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
   openai: ["gpt-4o", "gpt-4o-mini"],
-  // gemini-1.5-flash d'abord : tier gratuit large (2.0-flash exige souvent la facturation).
-  google: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
+  // Modèles Gemini actuels (les 1.5/2.0 sont dépréciés/hors free tier).
+  google: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"],
 };
 
 function resolveModel(provider: Provider, requested: unknown): string {
