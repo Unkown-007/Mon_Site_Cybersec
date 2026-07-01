@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type BgId = "akira" | "matrix" | "grid" | "void";
+export type BgId = "akira" | "matrix" | "grid" | "stars" | "aurora" | "void";
 
 export const BACKGROUNDS: {
   id: BgId;
@@ -34,6 +34,18 @@ export const BACKGROUNDS: {
     swatch: "linear-gradient(135deg,#1a0b22,#00f5d4 55%,#ff3d60)",
   },
   {
+    id: "stars",
+    label: "Nébuleuse",
+    desc: "Champ d'étoiles + nébuleuses",
+    swatch: "linear-gradient(135deg,#05050c,#7b5cf0 70%,#00f5d4)",
+  },
+  {
+    id: "aurora",
+    label: "Aurora",
+    desc: "Halos néon en mouvement",
+    swatch: "linear-gradient(135deg,#07070c,#7b5cf0 50%,#00f5d4)",
+  },
+  {
     id: "void",
     label: "Void",
     desc: "Minimal — aucun fond animé",
@@ -42,7 +54,7 @@ export const BACKGROUNDS: {
 ];
 
 const STORAGE = "ux077.bg";
-const VALID: BgId[] = ["akira", "matrix", "grid", "void"];
+const VALID: BgId[] = ["akira", "matrix", "grid", "stars", "aurora", "void"];
 
 const Ctx = createContext<{ bg: BgId; setBg: (b: BgId) => void } | null>(null);
 

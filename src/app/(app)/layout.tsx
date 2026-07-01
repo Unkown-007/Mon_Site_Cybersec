@@ -46,9 +46,15 @@ export default function AppLayout({
   // Once authenticated and boot sequence is fully completed:
   return (
     <>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:clip-chamfer-sm focus:border focus:border-secondary focus:bg-base focus:px-3 focus:py-2 focus:font-mono focus:text-xs focus:uppercase focus:tracking-[1px] focus:text-secondary"
+      >
+        Aller au contenu
+      </a>
       <Navbar />
       <NewsTicker />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-24 min-h-screen">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-24 min-h-screen outline-none">
         <Breadcrumb />
         {children}
       </main>
