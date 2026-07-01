@@ -21,6 +21,9 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/ai", label: "AI", code: "AI", desc: "Assistant IA cybersécurité" },
   { href: "/map", label: "Attack Map", code: "MAP", desc: "Carte des attaques en direct" },
   { href: "/stats", label: "Stats", code: "STA", desc: "Progression & couverture opérateur" },
+  { href: "/learn", label: "Apprendre", code: "LRN", desc: "Plateformes d'entraînement & labs" },
+  { href: "/certifications", label: "Certifications", code: "CRT", desc: "Roadmap des certifications" },
+  { href: "/events", label: "Événements", code: "EVT", desc: "Conférences & communautés cyber" },
   { href: "/vault", label: "Vault", code: "VLT", desc: "Zone classifiée" },
 ];
 
