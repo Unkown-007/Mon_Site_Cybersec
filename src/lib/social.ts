@@ -147,6 +147,7 @@ export interface TeamRec {
   owner: string;
   members: string[];
   createdAt: number;
+  desc?: string;
 }
 
 const TEAM_SET = "teams";
@@ -290,4 +291,127 @@ export async function removeTask(teamId: string, id: string): Promise<TeamTask[]
   const tasks = (await getTasks(teamId)).filter((x) => x.id !== id);
   await setTasks(teamId, tasks);
   return tasks;
+}
+
+/* ─────────── Classement des équipes ─────────── */
+export interface TeamStanding {
+  team: TeamRec;
+  score: number;
+  unlocks: number;
+}
+
+export async function teamsLeaderboard(): Promise<TeamStanding[]> {
+  const teams = await listTeams();
+  const out: TeamStanding[] = [];
+  for (const t of teams) {
+    let score = 0;
+    let unlocks = 0;
+    for (const e of t.members) {
+      const a = await getAccount(e);
+      if (a) {
+        score += a.score ?? 0;
+        unlocks += a.solves?.length ?? 0;
+      }
+    }
+    out.push({ team: t, score, unlocks });
+  }
+  return out.sort((a, b) => b.score - a.score || b.unlocks - a.unlocks);
+}
+
+/* ─────────── Contrôles capitaine ─────────── */
+function requireCaptain(team: TeamRec | null, who: string): { ok: false; error: string } | { ok: true; team: TeamRec } {
+  if (!team) return { ok: false, error: "Équipe introuvable." };
+  if (lc(who) !== team.owner) return { ok: false, error: "Réservé au capitaine." };
+  return { ok: true, team };
+}
+
+export async function updateTeam(
+  teamId: string,
+  who: string,
+  patch: { name?: string; desc?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const g = requireCaptain(await getTeam(teamId), who);
+  if (!g.ok) return g;
+  const team = g.team;
+  if (typeof patch.name === "string" && patch.name.trim()) team.name = patch.name.trim().slice(0, 40);
+  if (typeof patch.desc === "string") team.desc = patch.desc.slice(0, 140);
+  await kvSet(teamKey(teamId), JSON.stringify(team));
+  return { ok: true };
+}
+
+export async function kickMember(teamId: string, who: string, target: string): Promise<{ ok: boolean; error?: string }> {
+  const g = requireCaptain(await getTeam(teamId), who);
+  if (!g.ok) return g;
+  const team = g.team;
+  target = lc(target);
+  if (target === team.owner) return { ok: false, error: "Le capitaine ne peut pas s'exclure (transfère d'abord)." };
+  if (!team.members.includes(target)) return { ok: false, error: "Pas un membre." };
+  team.members = team.members.filter((m) => m !== target);
+  await kvSet(teamKey(teamId), JSON.stringify(team));
+  await patchAccount(target, { teamId: undefined });
+  return { ok: true };
+}
+
+export async function transferCaptain(teamId: string, who: string, target: string): Promise<{ ok: boolean; error?: string }> {
+  const g = requireCaptain(await getTeam(teamId), who);
+  if (!g.ok) return g;
+  const team = g.team;
+  target = lc(target);
+  if (!team.members.includes(target)) return { ok: false, error: "Pas un membre." };
+  team.owner = target;
+  await kvSet(teamKey(teamId), JSON.stringify(team));
+  return { ok: true };
+}
+
+export async function deleteTeam(teamId: string, who: string): Promise<{ ok: boolean; error?: string }> {
+  const g = requireCaptain(await getTeam(teamId), who);
+  if (!g.ok) return g;
+  for (const e of g.team.members) await patchAccount(e, { teamId: undefined });
+  await kvDel(teamKey(teamId));
+  await kvDel(tasksKey(teamId));
+  await kvDel(wallKey(teamId));
+  await kvSrem(TEAM_SET, teamId);
+  return { ok: true };
+}
+
+/* ─────────── Mur d'équipe (messages) ─────────── */
+export interface WallMsg {
+  id: string;
+  by: string;
+  text: string;
+  at: number;
+}
+const wallKey = (id: string) => `team:${id}:wall`;
+
+export async function getWall(teamId: string): Promise<WallMsg[]> {
+  if (!kvReady || !teamId) return [];
+  const raw = await kvGet(wallKey(teamId));
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as WallMsg[];
+  } catch {
+    return [];
+  }
+}
+
+export async function postWall(teamId: string, by: string, text: string): Promise<WallMsg[]> {
+  const clean = String(text).trim().slice(0, 300);
+  if (!clean) return getWall(teamId);
+  const wall = await getWall(teamId);
+  wall.unshift({ id: Math.random().toString(36).slice(2, 9), by: lc(by), text: clean, at: Date.now() });
+  await kvSet(wallKey(teamId), JSON.stringify(wall.slice(0, 60)));
+  return wall.slice(0, 60);
+}
+
+export async function deleteWall(teamId: string, id: string, who: string): Promise<WallMsg[]> {
+  const team = await getTeam(teamId);
+  const wall = await getWall(teamId);
+  const msg = wall.find((m) => m.id === id);
+  // auteur ou capitaine
+  if (msg && (msg.by === lc(who) || team?.owner === lc(who))) {
+    const next = wall.filter((m) => m.id !== id);
+    await kvSet(wallKey(teamId), JSON.stringify(next));
+    return next;
+  }
+  return wall;
 }
