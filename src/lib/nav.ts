@@ -11,6 +11,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/writeups", label: "Write-ups", code: "WUP", desc: "Comptes-rendus CTF" },
   { href: "/tools", label: "Tools", code: "TLS", desc: "Outils & scripts perso" },
   { href: "/toolkit", label: "Toolkit", code: "KIT", desc: "Utilitaires offensifs en ligne" },
+  { href: "/playground", label: "Playground", code: "PLG", desc: "Outils réseau / dev / conversions" },
+  { href: "/reference", label: "Référence", code: "REF", desc: "Mémento ports / HTTP / hash" },
   { href: "/arsenal", label: "Arsenal", code: "ARS", desc: "Annuaire outils red team" },
   { href: "/lab", label: "Lab", code: "LAB", desc: "Environnement d'expé" },
   { href: "/hardware", label: "Hardware", code: "HW", desc: "Projets ESP32 & élec." },

@@ -14,9 +14,9 @@ const item = (href: string): NavItem =>
   NAV_ITEMS.find((n) => n.href === href) ?? ADMIN_ITEM;
 
 const GROUPS: { label: string; hrefs: string[] }[] = [
-  { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/arsenal"] },
+  { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/playground", "/arsenal"] },
   { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map", "/stats"] },
-  { label: "Intel", hrefs: ["/veille", "/news", "/ai"] },
+  { label: "Intel", hrefs: ["/veille", "/news", "/ai", "/reference"] },
 ];
 
 const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal"));
