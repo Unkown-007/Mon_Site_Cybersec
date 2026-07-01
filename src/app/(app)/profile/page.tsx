@@ -139,7 +139,7 @@ export default function ProfilePage() {
   const achievements = personalAchievements({
     solves, score, avatar: account?.avatar, bio: account?.bio, handle: account?.handle,
     country: account?.country, teamId: account?.teamId, logins: account?.logins,
-    firstSeen: account?.firstSeen, friends: friends.friends.length,
+    firstSeen: account?.firstSeen, friends: friends.friends.length, rank: rank?.pos,
   });
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
@@ -168,9 +168,17 @@ export default function ProfilePage() {
             </p>
             {account?.bio && <p className="mt-2 max-w-xl text-body-sm text-ink">{account.bio}</p>}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setEditOpen((o) => !o)}>
-            {editOpen ? "Fermer" : "Éditer le profil"}
-          </Button>
+          <div className="flex flex-col items-stretch gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditOpen((o) => !o)}>
+              {editOpen ? "Fermer" : "Éditer le profil"}
+            </Button>
+            <button
+              onClick={() => window.dispatchEvent(new Event("ux077:show-onboarding"))}
+              className="font-mono text-[10px] uppercase tracking-[1px] text-muted hover:text-secondary"
+            >
+              Revoir le tutoriel
+            </button>
+          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

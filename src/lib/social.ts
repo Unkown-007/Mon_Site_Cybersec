@@ -234,3 +234,60 @@ export async function teamWithMembers(
   members.sort((a, b) => b.score - a.score);
   return { team, members };
 }
+
+/* ─────────── Travaux de groupe (tâches d'équipe) ─────────── */
+export type TaskStatus = "todo" | "doing" | "done";
+export interface TeamTask {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  assignee?: string;
+  by: string;
+  at: number;
+}
+const tasksKey = (id: string) => `team:${id}:tasks`;
+
+export async function getTasks(teamId: string): Promise<TeamTask[]> {
+  if (!kvReady || !teamId) return [];
+  const raw = await kvGet(tasksKey(teamId));
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as TeamTask[];
+  } catch {
+    return [];
+  }
+}
+
+async function setTasks(teamId: string, tasks: TeamTask[]): Promise<void> {
+  await kvSet(tasksKey(teamId), JSON.stringify(tasks.slice(0, 100)));
+}
+
+export async function addTask(teamId: string, title: string, by: string): Promise<TeamTask[]> {
+  const clean = String(title).trim().slice(0, 120);
+  if (!clean) return getTasks(teamId);
+  const tasks = await getTasks(teamId);
+  tasks.unshift({ id: Math.random().toString(36).slice(2, 9), title: clean, status: "todo", by: lc(by), at: Date.now() });
+  await setTasks(teamId, tasks);
+  return tasks;
+}
+
+export async function updateTask(
+  teamId: string,
+  id: string,
+  patch: { status?: TaskStatus; assignee?: string },
+): Promise<TeamTask[]> {
+  const tasks = await getTasks(teamId);
+  const t = tasks.find((x) => x.id === id);
+  if (t) {
+    if (patch.status && ["todo", "doing", "done"].includes(patch.status)) t.status = patch.status;
+    if (patch.assignee !== undefined) t.assignee = patch.assignee ? lc(patch.assignee) : undefined;
+  }
+  await setTasks(teamId, tasks);
+  return tasks;
+}
+
+export async function removeTask(teamId: string, id: string): Promise<TeamTask[]> {
+  const tasks = (await getTasks(teamId)).filter((x) => x.id !== id);
+  await setTasks(teamId, tasks);
+  return tasks;
+}

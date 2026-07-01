@@ -8,6 +8,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { BootScreen } from "@/components/BootScreen";
 import { Terminal } from "@/components/Terminal";
 import { CommandPalette } from "@/components/CommandPalette";
+import { Onboarding } from "@/components/Onboarding";
 import { AsciiLogo } from "@/components/AsciiLogo";
 import { ArasakaLogo } from "@/components/ArasakaLogo";
 import { useAuth } from "@/lib/auth";
@@ -72,6 +73,7 @@ export default function AppLayout({
       </footer>
       <Terminal />
       <CommandPalette />
+      <Onboarding />
     </>
   );
 }

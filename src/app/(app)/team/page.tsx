@@ -27,6 +27,21 @@ interface TeamLite {
   tag: string;
   members: string[];
 }
+interface Task {
+  id: string;
+  title: string;
+  status: "todo" | "doing" | "done";
+  assignee?: string;
+  by: string;
+  at: number;
+}
+const STATUS_NEXT: Record<Task["status"], Task["status"]> = { todo: "doing", doing: "done", done: "todo" };
+const STATUS_STYLE: Record<Task["status"], string> = {
+  todo: "border-line-strong text-muted",
+  doing: "border-warning/50 text-warning",
+  done: "border-success/50 text-success",
+};
+const STATUS_LABEL: Record<Task["status"], string> = { todo: "à faire", doing: "en cours", done: "fait" };
 
 export default function TeamPage() {
   const { push } = useToast();
@@ -36,6 +51,8 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTitle, setTaskTitle] = useState("");
 
   const load = useCallback(() => {
     fetch("/api/social/teams", { cache: "no-store" })
@@ -50,6 +67,16 @@ export default function TeamPage() {
   }, []);
   useEffect(load, [load]);
 
+  const loadTasks = useCallback(() => {
+    fetch("/api/social/tasks", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { tasks?: Task[] }) => setTasks(d.tasks ?? []))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (my) loadTasks();
+  }, [my, loadTasks]);
+
   const act = async (payload: Record<string, unknown>, okMsg: string) => {
     const res = await fetch("/api/social/teams", {
       method: "POST",
@@ -62,6 +89,18 @@ export default function TeamPage() {
     setName("");
     setTag("");
     load();
+  };
+
+  const taskAct = async (payload: Record<string, unknown>) => {
+    const res = await fetch("/api/social/tasks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) return push("err", d.error ?? "Échec.");
+    setTasks(d.tasks ?? []);
+    if (payload.action === "add") setTaskTitle("");
   };
 
   return (
@@ -124,6 +163,63 @@ export default function TeamPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </section>
+
+          {/* Travaux de groupe */}
+          <section>
+            <h3 className="label mb-3">
+              Travaux de groupe · {tasks.filter((t) => t.status === "done").length}/{tasks.length}
+            </h3>
+            <div className="card p-5">
+              <div className="mb-4 flex gap-2">
+                <input
+                  className="field"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="Nouvelle tâche (ex. Résoudre la box Blue)"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && taskTitle.trim()) taskAct({ action: "add", title: taskTitle });
+                  }}
+                />
+                <Button variant="primary" size="sm" onClick={() => taskTitle.trim() && taskAct({ action: "add", title: taskTitle })}>
+                  + Tâche
+                </Button>
+              </div>
+              {tasks.length === 0 ? (
+                <p className="font-mono text-body-sm text-muted">[ aucune tâche — crée-en pour organiser l&apos;équipe ]</p>
+              ) : (
+                <ul className="space-y-2">
+                  {tasks.map((t) => (
+                    <li key={t.id} className="flex flex-wrap items-center gap-2 border-b border-line-subtle py-2 last:border-0">
+                      <button
+                        onClick={() => taskAct({ action: "update", id: t.id, status: STATUS_NEXT[t.status] })}
+                        className={`clip-chamfer-sm border px-2 py-0.5 font-mono text-[10px] uppercase ${STATUS_STYLE[t.status]}`}
+                        title="Changer le statut"
+                      >
+                        {STATUS_LABEL[t.status]}
+                      </button>
+                      <span className={`min-w-[140px] flex-1 font-mono text-body-sm ${t.status === "done" ? "text-muted line-through" : "text-ink"}`}>
+                        {t.title}
+                      </span>
+                      <select
+                        value={t.assignee ?? ""}
+                        onChange={(e) => taskAct({ action: "update", id: t.id, assignee: e.target.value })}
+                        className="field max-w-[140px] !px-2 !py-1 text-[11px]"
+                        title="Assigner"
+                      >
+                        <option value="">— non assigné</option>
+                        {my.members.map((m) => (
+                          <option key={m.email} value={m.email} className="bg-surface">{m.name}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => taskAct({ action: "remove", id: t.id })} className="font-mono text-[10px] uppercase text-muted hover:text-danger">
+                        suppr
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
         </div>

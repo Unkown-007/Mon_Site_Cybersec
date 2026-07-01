@@ -26,6 +26,7 @@ export interface PInput {
   logins?: number;
   firstSeen?: number;
   friends: number;
+  rank?: number; // position au leaderboard (1 = 1er)
 }
 
 const mk = (x: number, n: number) => `${Math.min(x, n)}/${n}`;
@@ -55,6 +56,10 @@ export function personalAchievements(a: PInput): PAch[] {
     { id: "friend5", name: "Populaire", desc: "5 amis.", glyph: "👥", rarity: "rare", unlocked: a.friends >= 5, progress: mk(a.friends, 5) },
     { id: "friend10", name: "Réseau", desc: "10 amis.", glyph: "🕸", rarity: "épique", unlocked: a.friends >= 10, progress: mk(a.friends, 10) },
     { id: "team", name: "Équipier", desc: "Rejoindre une équipe.", glyph: "🛡", rarity: "commun", unlocked: !!a.teamId, progress: mk(a.teamId ? 1 : 0, 1) },
+    { id: "complete", name: "Profil complet", desc: "Photo + bio + pseudo + pays.", glyph: "🪪", rarity: "rare", unlocked: !!(a.avatar && a.bio && a.handle && a.country), progress: mk((a.avatar ? 1 : 0) + (a.bio ? 1 : 0) + (a.handle ? 1 : 0) + (a.country ? 1 : 0), 4) },
+    { id: "top10", name: "Top 10", desc: "Entrer dans le top 10 du classement.", glyph: "🔟", rarity: "rare", unlocked: !!a.rank && a.rank <= 10, progress: a.rank ? `#${a.rank}` : "—" },
+    { id: "podium", name: "Podium", desc: "Atteindre le top 3.", glyph: "🏆", rarity: "épique", unlocked: !!a.rank && a.rank <= 3, progress: a.rank ? `#${a.rank}` : "—" },
+    { id: "throne", name: "N°1", desc: "Prendre la tête du classement.", glyph: "👑", rarity: "légendaire", unlocked: a.rank === 1, progress: a.rank ? `#${a.rank}` : "—" },
     { id: "versatile", name: "Polyvalent", desc: "Unlocks dans 3 catégories.", glyph: "❖", rarity: "rare", unlocked: cats >= 3, progress: mk(cats, 3) },
     { id: "regular", name: "Habitué", desc: "Se connecter 10 fois.", glyph: "↻", rarity: "commun", unlocked: (a.logins ?? 0) >= 10, progress: mk(a.logins ?? 0, 10) },
     { id: "veteran", name: "Vétéran", desc: "Compte de 30 jours.", glyph: "⏳", rarity: "rare", unlocked: ageDays >= 30, progress: `${Math.min(Math.floor(ageDays), 30)}/30` },
