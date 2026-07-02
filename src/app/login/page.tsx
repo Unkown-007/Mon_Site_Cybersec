@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { HexLogo } from "@/components/Logo";
+import { XLogo } from "@/components/XLogo";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { LoginTransition } from "@/components/LoginTransition";
@@ -166,7 +166,7 @@ export default function LoginPage() {
         variants={isFastMode ? undefined : cardVariants}
       >
         <div className="mb-3 drop-shadow-[0_0_12px_rgba(123,92,240,0.5)]">
-          <HexLogo size={48} />
+          <XLogo size={48} />
         </div>
         <h1 className="font-display font-bold text-2xl tracking-[2px] text-ink">
           UnknownX<span className="text-gradient-primary">-077</span>

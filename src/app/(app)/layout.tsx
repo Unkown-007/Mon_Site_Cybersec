@@ -10,7 +10,7 @@ import { Terminal } from "@/components/Terminal";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Onboarding } from "@/components/Onboarding";
 import { AsciiLogo } from "@/components/AsciiLogo";
-import { ArasakaLogo } from "@/components/ArasakaLogo";
+import { XLogo } from "@/components/XLogo";
 import { useAuth } from "@/lib/auth";
 import { usePerf } from "@/lib/perf";
 
@@ -62,7 +62,7 @@ export default function AppLayout({
       <footer className="border-t border-line-strong bg-base/60 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex justify-center mb-5">
-            <ArasakaLogo size={76} />
+            <XLogo size={76} />
           </div>
           <AsciiLogo />
           <p className="mt-4 text-center font-mono text-[10px] text-muted">
