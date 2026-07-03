@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/Toast";
 import { BackgroundProvider } from "@/lib/background";
 import { BackgroundLayer } from "@/components/BackgroundLayer";
 import { ClientFX, LazyMusicPlayer } from "@/components/ClientFX";
+import { KonamiEasterEgg } from "@/components/KonamiEasterEgg";
 import { PerfProvider, MotionComplianceConfig } from "@/lib/perf";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -60,6 +61,7 @@ export default function RootLayout({
                 <ToastProvider>
                   <div className="relative z-10">{children}</div>
                   <LazyMusicPlayer />
+                  <KonamiEasterEgg />
                 </ToastProvider>
               </AuthProvider>
             </MotionComplianceConfig>

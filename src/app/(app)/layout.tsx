@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
-import { KonamiEasterEgg } from "@/components/KonamiEasterEgg";
 import { NewsTicker } from "@/components/NewsTicker";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { BootScreen } from "@/components/BootScreen";
@@ -85,7 +84,6 @@ export default function AppLayout({
       <Terminal />
       <CommandPalette />
       <Onboarding />
-      <KonamiEasterEgg />
     </>
   );
 }

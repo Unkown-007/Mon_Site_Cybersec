@@ -22,20 +22,27 @@ export function KonamiEasterEgg() {
 
   useEffect(() => {
     let idx = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const k = e.key.toLowerCase();
+      // Les modificateurs seuls ne cassent pas la séquence.
+      if (["shift", "control", "alt", "meta"].includes(k)) return;
       idx = k === SEQ[idx] ? idx + 1 : k === SEQ[0] ? 1 : 0;
       if (idx === SEQ.length) {
         idx = 0;
         void celebrate(true);
         push("ok", "CODE KONAMI accepté — GOD MODE engagé");
-        setMatrix(true);
+        // Laisse le temps de voir confettis + toast avant la pluie matrix.
+        timer = setTimeout(() => setMatrix(true), 1300);
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (timer) clearTimeout(timer);
+    };
   }, [push]);
 
   useEffect(() => {
