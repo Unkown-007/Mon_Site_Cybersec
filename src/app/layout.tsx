@@ -5,14 +5,11 @@ import { AuthProvider } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { BackgroundProvider } from "@/lib/background";
 import { BackgroundLayer } from "@/components/BackgroundLayer";
-import { WallpaperPicker } from "@/components/WallpaperPicker";
-import { CrosshairCursor } from "@/components/CrosshairCursor";
-import { SfxClicks } from "@/components/SfxClicks";
-import { MusicPlayer } from "@/components/MusicPlayer";
+import { ClientFX, LazyMusicPlayer } from "@/components/ClientFX";
 import { PerfProvider, MotionComplianceConfig } from "@/lib/perf";
-import { PerfToggle } from "@/components/PerfToggle";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import HolyLoader from "holy-loader";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -33,6 +30,8 @@ export const metadata: Metadata = {
   description:
     "Plateforme personnelle de cybersécurité — ressources, write-ups CTF, outils, veille et notes de terrain.",
   robots: { index: false, follow: false },
+  manifest: "/site.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "UX-077" },
 };
 
 export const viewport: Viewport = {
@@ -45,19 +44,22 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${orbitron.variable} ${shareTechMono.variable}`}>
       <body>
+        <HolyLoader
+          color="#00f5d4"
+          height="2px"
+          boxShadow="0 0 12px rgba(0,245,212,0.7)"
+          zIndex={99}
+        />
         <PerfProvider>
           <BackgroundProvider>
             <MotionComplianceConfig>
               <BackgroundLayer />
-              <CrosshairCursor />
-              <SfxClicks />
               <div className="scanline" aria-hidden="true" />
-              <PerfToggle />
-              <WallpaperPicker />
+              <ClientFX />
               <AuthProvider>
                 <ToastProvider>
                   <div className="relative z-10">{children}</div>
-                  <MusicPlayer />
+                  <LazyMusicPlayer />
                 </ToastProvider>
               </AuthProvider>
             </MotionComplianceConfig>

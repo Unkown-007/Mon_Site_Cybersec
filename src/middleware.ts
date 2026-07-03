@@ -29,6 +29,6 @@ export const config = {
   // Protège toutes les pages SAUF : routes API, assets Next, fichiers statiques.
   // (/login est inclus pour gérer la redirection des utilisateurs déjà connectés.)
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:png|jpe?g|gif|svg|webp|ico|txt|xml|json|mp3|woff2?)).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:png|jpe?g|gif|svg|webp|ico|txt|xml|json|webmanifest|mp3|woff2?)).*)",
   ],
 };

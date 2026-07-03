@@ -1,4 +1,5 @@
 import { StatusDot } from "@/components/StatusDot";
+import { DecodeText } from "@/components/animations/DecodeText";
 import type { ReactNode } from "react";
 
 export function PageHeader({
@@ -25,7 +26,7 @@ export function PageHeader({
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display font-bold text-3xl sm:text-4xl text-ink-strong mb-2.5">
-            {title}
+            <DecodeText text={title} />
           </h1>
           <p className="max-w-2xl text-muted leading-relaxed text-sm sm:text-base">
             {desc}

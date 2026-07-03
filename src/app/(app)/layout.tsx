@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
+import { KonamiEasterEgg } from "@/components/KonamiEasterEgg";
 import { NewsTicker } from "@/components/NewsTicker";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { BootScreen } from "@/components/BootScreen";
@@ -21,6 +23,7 @@ export default function AppLayout({
 }) {
   const { user, ready } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [bootFinished, setBootFinished] = useState(false);
   const { lite } = usePerf();
 
@@ -57,7 +60,15 @@ export default function AppLayout({
       <NewsTicker />
       <main id="main" tabIndex={-1} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-24 min-h-screen outline-none">
         <Breadcrumb />
-        {children}
+        {/* Transition d'entrée à chaque changement de route (coupée en lite) */}
+        <motion.div
+          key={pathname}
+          initial={lite ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {children}
+        </motion.div>
       </main>
       <footer className="border-t border-line-strong bg-base/60 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
@@ -74,6 +85,7 @@ export default function AppLayout({
       <Terminal />
       <CommandPalette />
       <Onboarding />
+      <KonamiEasterEgg />
     </>
   );
 }

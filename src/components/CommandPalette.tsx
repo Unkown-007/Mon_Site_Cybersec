@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Fuse from "fuse.js";
 import { NAV_ITEMS, ADMIN_ITEM } from "@/lib/nav";
 import { RESOURCES, WRITEUPS, EXTERNAL_TOOLS, SCRIPTS } from "@/data/mock";
+import { usePerf } from "@/lib/perf";
+import { useToast } from "@/components/Toast";
 
 interface Item {
   label: string;
@@ -22,15 +25,29 @@ const KIND_COLOR: Record<Item["kind"], string> = {
   Action: "text-danger border-danger/40",
 };
 
+const RECENTS_KEY = "ux077:palette-recents";
+
 export function CommandPalette() {
   const router = useRouter();
+  const { lite, toggle } = usePerf();
+  const { push } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
+  const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Catalogue global indexé une fois.
+  // Historique des commandes récentes (persisté).
+  useEffect(() => {
+    try {
+      setRecents(JSON.parse(localStorage.getItem(RECENTS_KEY) ?? "[]"));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Catalogue global indexé.
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     out.push({
@@ -38,6 +55,29 @@ export function CommandPalette() {
       hint: "Ctrl+~",
       kind: "Action",
       action: () => window.dispatchEvent(new Event("ux077:open-terminal")),
+    });
+    out.push({
+      label: lite ? "Mode lite : désactiver" : "Mode lite : activer",
+      hint: "coupe/rallume les effets lourds",
+      kind: "Action",
+      action: toggle,
+    });
+    out.push({
+      label: "Pluie matrix",
+      hint: "easter egg — plein écran 10s",
+      kind: "Action",
+      action: () => window.dispatchEvent(new Event("ux077:matrix")),
+    });
+    out.push({
+      label: "Copier l'URL de la page",
+      hint: "presse-papiers",
+      kind: "Action",
+      action: () => {
+        navigator.clipboard
+          .writeText(window.location.href)
+          .then(() => push("ok", "URL copiée dans le presse-papiers"))
+          .catch(() => push("err", "Copie impossible"));
+      },
     });
     [...NAV_ITEMS, ADMIN_ITEM].forEach((n) =>
       out.push({ label: n.label, hint: n.desc, kind: "Nav", href: n.href })
@@ -55,15 +95,34 @@ export function CommandPalette() {
       out.push({ label: s.name, hint: `script · ${s.phase}`, kind: "Outil", href: "/tools" })
     );
     return out;
-  }, []);
+  }, [lite, toggle, push]);
+
+  // Recherche floue : tolère fautes de frappe et mots partiels.
+  const fuse = useMemo(
+    () =>
+      new Fuse(items, {
+        keys: [
+          { name: "label", weight: 2 },
+          { name: "hint", weight: 1 },
+        ],
+        threshold: 0.38,
+        ignoreLocation: true,
+      }),
+    [items]
+  );
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items.slice(0, 8);
-    return items
-      .filter((it) => (it.label + " " + it.hint).toLowerCase().includes(q))
-      .slice(0, 40);
-  }, [items, query]);
+    const q = query.trim();
+    if (!q) {
+      // Récents d'abord, puis le reste du catalogue.
+      const recent = recents
+        .map((label) => items.find((it) => it.label === label))
+        .filter((it): it is Item => Boolean(it));
+      const rest = items.filter((it) => !recents.includes(it.label));
+      return [...recent, ...rest].slice(0, 8);
+    }
+    return fuse.search(q, { limit: 40 }).map((r) => r.item);
+  }, [items, fuse, query, recents]);
 
   // Ouverture Ctrl+K / Cmd+K
   useEffect(() => {
@@ -89,6 +148,16 @@ export function CommandPalette() {
 
   const exec = (it: Item) => {
     setOpen(false);
+    // Mémorise la commande en tête des récents (dédupliquée, max 6).
+    setRecents((prev) => {
+      const next = [it.label, ...prev.filter((l) => l !== it.label)].slice(0, 6);
+      try {
+        localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
     if (it.action) it.action();
     else if (it.href?.startsWith("http")) window.open(it.href, "_blank", "noopener");
     else if (it.href) router.push(it.href);
@@ -166,7 +235,12 @@ export function CommandPalette() {
                       >
                         {it.kind}
                       </span>
-                      <span className="font-mono text-sm text-ink truncate flex-1">{it.label}</span>
+                      <span className="font-mono text-sm text-ink truncate flex-1">
+                        {it.label}
+                        {!query && recents.includes(it.label) && (
+                          <span className="ml-2 text-[9px] uppercase tracking-[1px] text-muted">récent</span>
+                        )}
+                      </span>
                       <span className="font-mono text-[11px] text-muted truncate hidden sm:block max-w-[40%]">
                         {it.hint}
                       </span>
@@ -180,6 +254,7 @@ export function CommandPalette() {
             <div className="flex items-center gap-4 px-4 py-2 border-t border-line font-mono text-[10px] text-muted">
               <span>↑↓ naviguer</span>
               <span>↵ ouvrir</span>
+              <span className="hidden sm:inline text-secondary/70">recherche floue</span>
               <span className="ml-auto">{results.length} résultat(s)</span>
             </div>
           </motion.div>

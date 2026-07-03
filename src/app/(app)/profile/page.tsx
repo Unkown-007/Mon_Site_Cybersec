@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { Badge, Button } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { fileToAvatar } from "@/lib/avatar";
+import { celebrate } from "@/lib/confetti";
 import { personalAchievements } from "@/lib/personal-stats";
 import type { Rarity } from "@/lib/stats";
 
@@ -116,6 +117,7 @@ export default function ProfilePage() {
     setSolve({ name: "", points: "100", cat: "" });
     loadRank();
     push("ok", "Unlock ajouté.");
+    void celebrate();
   };
   const removeSolve = async (at: number) => {
     const res = await fetch(`/api/social/solves?at=${at}`, { method: "DELETE" });
