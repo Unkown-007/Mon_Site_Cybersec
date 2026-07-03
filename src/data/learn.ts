@@ -208,6 +208,31 @@ export const CERTS: Record<CertTrack, Cert[]> = {
 // Référence : roadmap visuelle complète.
 export const CERT_ROADMAP_URL = "https://pauljerimy.com/security-certification-roadmap/";
 
+/* ═══════════════ Certifications obtenues ═══════════════ */
+
+export interface EarnedCert {
+  name: string;
+  org: string;
+  badge: string; // image dans /public
+  url?: string; // page de vérification du badge
+  date?: string; // ex. "2026"
+}
+
+export const EARNED_CERTS: EarnedCert[] = [
+  {
+    name: "Introduction to Cybersecurity",
+    org: "Cisco Networking Academy",
+    badge: "/badges/cisco-intro-cybersecurity.png",
+    url: "https://www.credly.com/org/cisco/badge/introduction-to-cybersecurity",
+  },
+  {
+    name: "Networking Basics",
+    org: "Cisco Networking Academy",
+    badge: "/badges/cisco-networking-basics.png",
+    url: "https://www.credly.com/org/cisco/badge/networking-basics",
+  },
+];
+
 /* ═══════════════ Événements & communautés ═══════════════ */
 
 export interface Ev {

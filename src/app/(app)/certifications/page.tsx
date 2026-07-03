@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui";
-import { CERTS, CERT_TRACKS, LEVEL_LABEL, CERT_ROADMAP_URL, type Cert } from "@/data/learn";
+import { CERTS, CERT_TRACKS, LEVEL_LABEL, CERT_ROADMAP_URL, EARNED_CERTS, type Cert } from "@/data/learn";
 
 const LEVEL_COLOR: Record<number, string> = {
   1: "text-success",
@@ -30,6 +30,47 @@ export default function CertificationsPage() {
           </Button>
         }
       />
+
+      {/* Certifications obtenues */}
+      {EARNED_CERTS.length > 0 && (
+        <section className="card mb-8 p-5">
+          <h2 className="label text-secondary mb-1">OBTENUES // {EARNED_CERTS.length}</h2>
+          <p className="mb-4 text-label text-muted">Certifications et badges validés.</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {EARNED_CERTS.map((c) => {
+              const inner = (
+                <div className="flex items-center gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.badge} alt={`Badge ${c.name}`} className="h-20 w-20 shrink-0" loading="lazy" />
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm text-ink-strong">{c.name}</p>
+                    <p className="text-label text-muted">{c.org}</p>
+                    {c.date && <p className="mt-0.5 text-[10px] font-mono text-muted">{c.date}</p>}
+                    <span className="mt-1 inline-block rounded-sm border border-success/40 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[1px] text-success">
+                      Vérifié ✓
+                    </span>
+                  </div>
+                </div>
+              );
+              return c.url ? (
+                <a
+                  key={c.name}
+                  href={c.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="focus-ring block rounded-md border border-line p-4 transition-colors hover:border-secondary/60"
+                >
+                  {inner}
+                </a>
+              ) : (
+                <div key={c.name} className="rounded-md border border-line p-4">
+                  {inner}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Légende niveaux */}
       <div className="mb-6 flex flex-wrap gap-3">
