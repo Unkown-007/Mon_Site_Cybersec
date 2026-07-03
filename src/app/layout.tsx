@@ -12,6 +12,7 @@ import { MusicPlayer } from "@/components/MusicPlayer";
 import { PerfProvider, MotionComplianceConfig } from "@/lib/perf";
 import { PerfToggle } from "@/components/PerfToggle";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -63,6 +64,7 @@ export default function RootLayout({
           </BackgroundProvider>
         </PerfProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
