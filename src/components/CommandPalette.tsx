@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Fuse from "fuse.js";
-import { NAV_ITEMS, ADMIN_ITEM } from "@/lib/nav";
+import { NAV_ITEMS, NAV_GROUPS, ADMIN_ITEM } from "@/lib/nav";
+import { usePins } from "@/lib/pins";
 import { RESOURCES, WRITEUPS, EXTERNAL_TOOLS, SCRIPTS } from "@/data/mock";
 import { usePerf } from "@/lib/perf";
 import { useToast } from "@/components/Toast";
@@ -13,13 +14,14 @@ import { IconSearch } from "@/components/icons";
 interface Item {
   label: string;
   hint: string;
-  kind: "Nav" | "Ressource" | "Write-up" | "Outil" | "Action";
+  kind: "Nav" | "Épingle" | "Ressource" | "Write-up" | "Outil" | "Action";
   href?: string; // interne (push) ou externe (http)
   action?: () => void;
 }
 
 const KIND_COLOR: Record<Item["kind"], string> = {
   Nav: "text-secondary bg-secondary/10",
+  "Épingle": "text-warning bg-warning/10",
   Ressource: "text-[#b9a8ff] bg-primary/15",
   "Write-up": "text-warning bg-warning/10",
   Outil: "text-success bg-success/10",
@@ -32,6 +34,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { lite, toggle } = usePerf();
   const { push } = useToast();
+  const { pins } = usePins();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
@@ -64,6 +67,12 @@ export function CommandPalette() {
       action: toggle,
     });
     out.push({
+      label: "Raccourcis clavier",
+      hint: "touche ?",
+      kind: "Action",
+      action: () => window.dispatchEvent(new Event("ux077:shortcuts")),
+    });
+    out.push({
       label: "Pluie matrix",
       hint: "easter egg — plein écran 10s",
       kind: "Action",
@@ -80,9 +89,17 @@ export function CommandPalette() {
           .catch(() => push("err", "Copie impossible"));
       },
     });
-    [...NAV_ITEMS, ADMIN_ITEM].forEach((n) =>
-      out.push({ label: n.label, hint: n.desc, kind: "Nav", href: n.href })
-    );
+    // Épingles en premier : ce sont les raccourcis choisis par l'utilisateur.
+    pins.forEach((p) => out.push({ label: p.title, hint: p.hint ?? p.kind, kind: "Épingle", href: p.href }));
+    [...NAV_ITEMS, ADMIN_ITEM].forEach((n) => {
+      const group = NAV_GROUPS.find((g) => g.hrefs.includes(n.href));
+      out.push({
+        label: n.label,
+        hint: `${group ? group.label + " · " : ""}${n.desc}${n.key ? ` · g ${n.key}` : ""}`,
+        kind: "Nav",
+        href: n.href,
+      });
+    });
     RESOURCES.forEach((r) =>
       out.push({ label: r.title, hint: `${r.domain} · ${r.type}`, kind: "Ressource", href: r.url })
     );
@@ -96,7 +113,7 @@ export function CommandPalette() {
       out.push({ label: s.name, hint: `script · ${s.phase}`, kind: "Outil", href: "/tools" })
     );
     return out;
-  }, [lite, toggle, push]);
+  }, [lite, toggle, push, pins]);
 
   // Recherche floue : tolère fautes de frappe et mots partiels.
   const fuse = useMemo(
@@ -200,7 +217,7 @@ export function CommandPalette() {
           onClick={() => setOpen(false)}
         >
           <motion.div
-            className="glass w-full max-w-xl overflow-hidden rounded-3xl"
+            className="menu-surface w-full max-w-xl overflow-hidden rounded-3xl"
             initial={{ y: -14, scale: 0.97, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: -10, scale: 0.98, opacity: 0 }}

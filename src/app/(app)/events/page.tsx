@@ -2,10 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { CtfAgenda } from "@/components/CtfAgenda";
+import { PinButton } from "@/components/PinButton";
 import { Badge } from "@/components/ui";
+import { Segmented } from "@/components/ui/Segmented";
 import { EVENTS, type Ev } from "@/data/learn";
 
 type Filter = "all" | "France" | "International";
+
+const REGIONS: { id: Filter; label: string }[] = [
+  { id: "all", label: "Tout" },
+  { id: "France", label: "France" },
+  { id: "International", label: "International" },
+];
 
 export default function EventsPage() {
   const [f, setF] = useState<Filter>("all");
@@ -15,45 +24,67 @@ export default function EventsPage() {
     <div>
       <PageHeader
         code="EVT // AGENDA"
-        title="Événements & communautés"
-        desc="Conférences et communautés cyber à suivre — scène française et internationale."
+        title="Agenda & CTF"
+        desc="Les prochains CTF en direct depuis CTFtime, puis les conférences et communautés cyber à suivre."
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {(["all", "France", "International"] as const).map((k) => (
-          <button
-            key={k}
-            onClick={() => setF(k)}
-            className={`hud-tab hud-tab--chip focus-ring px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[1px] ${
-              f === k ? "is-active text-secondary" : "text-muted hover:text-ink"
-            }`}
+      <section className="mb-14">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <span className="label">En direct</span>
+            <h2 className="mt-2 font-display text-h2 font-bold text-ink-strong">Prochains CTF</h2>
+          </div>
+          <a
+            href="https://ctftime.org/event/list/upcoming"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost !py-2 !text-xs"
           >
-            <span className="relative z-10">{k === "all" ? "Tout" : k}</span>
-          </button>
-        ))}
-      </div>
+            CTFtime ↗
+          </a>
+        </div>
+        <CtfAgenda />
+      </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((e) => (
-          <EventCard key={e.name} ev={e} />
-        ))}
-      </div>
+      <section>
+        <div className="mb-5">
+          <span className="label">Communautés</span>
+          <h2 className="mt-2 font-display text-h2 font-bold text-ink-strong">Conférences & communautés</h2>
+        </div>
+        <Segmented items={REGIONS} value={f} onChange={setF} layoutId="evt-region" className="mb-6" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((e) => (
+            <EventCard key={e.name} ev={e} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
 
+// Carte entièrement cliquable (lien étendu) avec l'étoile au-dessus : pas de
+// bouton imbriqué dans un lien.
 function EventCard({ ev }: { ev: Ev }) {
   return (
-    <a href={ev.url} target="_blank" rel="noreferrer noopener" className="focus-ring card block p-4">
+    <div className="card hover-lift group relative p-4">
       <div className="mb-1.5 flex items-start justify-between gap-2">
-        <span className="font-mono text-sm text-ink-strong">{ev.name}</span>
-        <span className="shrink-0 text-primary/70">↗</span>
+        <a
+          href={ev.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-sm font-semibold text-ink-strong after:absolute after:inset-0 after:rounded-[inherit] focus-ring"
+        >
+          {ev.name}
+        </a>
+        <span className="relative z-10 -mr-1.5 -mt-1.5">
+          <PinButton pin={{ id: `evt:${ev.name}`, kind: "plateforme", title: ev.name, href: ev.url, hint: ev.type }} />
+        </span>
       </div>
-      <p className="mb-3 text-label leading-snug text-muted">{ev.desc}</p>
+      <p className="mb-3 text-xs leading-relaxed text-muted">{ev.desc}</p>
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge variant={ev.type === "Communauté" ? "accent" : "signal"}>{ev.type}</Badge>
-        <span className="text-[9px] font-mono uppercase tracking-[1px] text-muted">{ev.place}</span>
+        <span className="text-[11px] text-muted">{ev.place}</span>
       </div>
-    </a>
+    </div>
   );
 }

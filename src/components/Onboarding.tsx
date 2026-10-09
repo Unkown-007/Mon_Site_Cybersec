@@ -14,13 +14,13 @@ import { useAuth } from "@/lib/auth";
 const KEY = "ux077:onboarded";
 
 const STEPS: { glyph: string; title: string; body: string }[] = [
-  { glyph: "◈", title: "Bienvenue, opérateur", body: "UnknownX-077 est ton QG cybersécurité : ressources, outils, veille, entraînement et un espace d'équipe. Voici l'essentiel en 30 secondes." },
-  { glyph: "▤", title: "Ton tableau de bord", body: "La page d'accueil regroupe tes stats, tes comptes liés et l'accès rapide aux modules. Le bandeau du haut fait défiler les CVE et l'actu en direct." },
-  { glyph: "⚔", title: "Arsenal & utilitaires", body: "Toolkit (outils offensifs), Playground (réseau/regex/conversions), Référence (ports, HTTP, hash) et Arsenal (annuaire d'outils). Tout tourne côté navigateur." },
-  { glyph: "🎓", title: "Apprendre", body: "Plateformes d'entraînement (Web, IA/LLM, OSINT, reverse…), une roadmap de certifications et l'agenda des conférences dans la section Apprendre." },
+  { glyph: "◈", title: "Bienvenue, opérateur", body: "UnknownX-077 est ton QG cybersécurité : ressources, outils, veille, entraînement et un coffre chiffré. Voici l'essentiel en 30 secondes." },
+  { glyph: "▦", title: "Ton tableau de bord", body: "L'accueil regroupe tes épingles, tes pages récentes, les CVE de la semaine et les prochains CTF en direct, puis le plan complet du site." },
+  { glyph: "☰", title: "Cinq rubriques", body: "Apprendre (plateformes, ressources, mémento), Outils (toolkit, playground, scripts), Pratique (lab, write-ups, progression), Veille (CVE, actu, agenda) et Communauté." },
+  { glyph: "★", title: "Épingle ce que tu utilises", body: "Une étoile apparaît à côté du titre des pages, des ressources, des outils et des plateformes. Tout ce que tu épingles remonte sur le dashboard et dans la recherche." },
+  { glyph: "⌨", title: "Va plus vite au clavier", body: "Ctrl+K ou / pour chercher, g puis une lettre pour changer de page (g k = Toolkit, g v = Veille…), et ? pour afficher tous les raccourcis." },
   { glyph: "🔒", title: "Vault — zone classifiée", body: "Ton coffre chiffré (AES-256) côté client. Mots de passe, clés, notes sensibles — protégés par un mot de passe maître, jamais stockés en clair." },
-  { glyph: "🛡", title: "Social & équipe", body: "Personnalise ton profil (photo, bio), enregistre tes unlocks, grimpe au leaderboard, ajoute des amis et crée une équipe pour bosser les CTF ensemble." },
-  { glyph: "🤖", title: "Assistant IA", body: "Un chat multi-modèles (Claude / ChatGPT / Gemini) avec TA clé, spécialisé cybersécurité. Parfait pour décortiquer une commande ou une CVE." },
+  { glyph: "◐", title: "Règle l'affichage", body: "Le bouton Affichage de la barre du haut permet de changer de fond d'écran ou de passer en mode léger si ta machine rame." },
 ];
 
 export function Onboarding() {
@@ -73,7 +73,7 @@ export function Onboarding() {
         initial={{ opacity: 0, y: 16, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 420, damping: 34 }}
-        className="glass relative w-full max-w-md overflow-hidden rounded-3xl p-7"
+        className="menu-surface relative w-full max-w-md overflow-hidden rounded-3xl p-7"
       >
         <button
           onClick={close}

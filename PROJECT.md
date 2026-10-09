@@ -22,12 +22,24 @@ Akira / Cyberpunk. **Privé** (derrière login, `noindex`).
   (défaut, 100 % CSS), Neo-Tokyo, Matrix, Synthwave, Nébuleuse, Aurora, Void.
 
 ## Pages
-- **Cœur** : `/` (dashboard), `/login`, `/vault` (coffre chiffré AES-256), `/admin`.
-- **Arsenal** : `/resources`, `/tools`, `/toolkit` (offensif), `/playground`
-  (réseau/dev), `/arsenal`.
-- **Opérations** : `/writeups`, `/lab`, `/hardware`, `/map`, `/stats`.
-- **Intel** : `/veille`, `/news`, `/ai` (chat multi-modèles), `/reference` (mémento).
-- **Apprendre** : `/learn`, `/certifications`, `/events`.
+Plan du site centralisé dans `src/lib/nav.ts` (navbar, tiroir mobile, palette,
+raccourcis clavier, carte « Explorer » du dashboard).
+- **Cœur** : `/` (dashboard : épingles, récents, CVE + CTF en direct, plan du
+  site), `/login`, `/vault` (coffre chiffré AES-256), `/admin`.
+- **Apprendre** : `/learn`, `/resources`, `/reference` (mémento), `/certifications`.
+- **Outils** : `/toolkit`, `/playground`, `/tools` (mes scripts), `/arsenal`
+  (annuaire), `/hardware`.
+- **Pratique** : `/lab`, `/writeups`, `/stats` (progression).
+- **Veille** : `/veille`, `/news`, `/map`, `/events` (agenda CTFtime + conférences), `/ai`.
+- **Communauté** : `/profile`, `/team`, `/leaderboard`.
+
+## Fonctions transverses
+- Épingles (étoile sur pages, ressources, outils, plateformes) et pages
+  récentes : `src/lib/pins.ts` (localStorage).
+- Raccourcis : `g` + lettre (cf. `key` dans nav.ts), `?` aide, `/` ou Ctrl+K
+  recherche, Ctrl+~ terminal.
+- Flux en direct : `/api/cve` (NVD), `/api/kev` (CISA), `/api/ctf` (CTFtime),
+  `/api/news` (RSS), `/api/threats` (DShield).
 
 ## État
 Refonte visuelle premium + fonctionnalités : **livrée**. Le contenu à alimenter

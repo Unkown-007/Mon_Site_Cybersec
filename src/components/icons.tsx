@@ -4,7 +4,7 @@ import type { SVGProps } from "react";
 
 type P = SVGProps<SVGSVGElement> & { size?: number };
 
-function Base({ size = 18, children, ...rest }: P) {
+export function Base({ size = 18, children, ...rest }: P) {
   return (
     <svg
       width={size}

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
+import { PinButton } from "@/components/PinButton";
 import { useToast } from "@/components/Toast";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion } from "framer-motion";
@@ -191,10 +192,16 @@ export default function ResourcesPage() {
                       >
                         {r.title} ↗
                       </a>
-                      <span
-                        className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DOMAIN_COLOR[r.domain]}`}
-                      >
-                        {r.domain}
+                      <span className="flex shrink-0 items-center gap-0.5">
+                        <span
+                          className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DOMAIN_COLOR[r.domain]}`}
+                        >
+                          {r.domain}
+                        </span>
+                        <PinButton
+                          className="-mr-1.5"
+                          pin={{ id: `res:${r.id}`, kind: "ressource", title: r.title, href: r.url, hint: `${r.domain} · ${r.type}` }}
+                        />
                       </span>
                     </div>
                     <p className="text-xs text-muted leading-relaxed">{r.desc}</p>

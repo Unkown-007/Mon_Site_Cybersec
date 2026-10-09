@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { Segmented } from "@/components/ui/Segmented";
 import { useToast } from "@/components/Toast";
 import { Badge, Button, Panel } from "@/components/ui";
 import { SHELLS, LISTENERS, fillTpl, type ShellTpl } from "@/lib/revshells";
@@ -50,22 +51,14 @@ export default function ToolkitPage() {
         </p>
       </div>
 
-      {/* onglets */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => changeTab(t.id)}
-            className={`rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
-              tab === t.id
-                ? "border-primary text-primary bg-primary/10"
-                : "border-line-strong text-muted hover:text-ink hover:border-primary/40"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* onglets : la pastille active glisse d'un outil à l'autre */}
+      <Segmented
+        items={TABS.map((t) => ({ id: t.id, label: t.label }))}
+        value={tab}
+        onChange={changeTab}
+        layoutId="toolkit-tab"
+        className="mb-8"
+      />
 
       <motion.div
           key={activeTab}

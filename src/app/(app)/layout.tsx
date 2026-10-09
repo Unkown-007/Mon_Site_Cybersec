@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { NewsTicker } from "@/components/NewsTicker";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -9,9 +9,11 @@ import { BootScreen } from "@/components/BootScreen";
 import { Terminal } from "@/components/Terminal";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Onboarding } from "@/components/Onboarding";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { XLogo } from "@/components/XLogo";
 import { StatusDot } from "@/components/StatusDot";
 import { useAuth } from "@/lib/auth";
+import { recordVisit } from "@/lib/pins";
 
 const BOOT_KEY = "ux077:booted";
 
@@ -22,6 +24,7 @@ export default function AppLayout({
 }) {
   const { user, ready } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   // null = pas encore lu (SSR / 1er rendu) ; la séquence de boot n'est jouée
   // qu'une fois par session de navigation, plus à chaque chargement de page.
   const [needsBoot, setNeedsBoot] = useState<boolean | null>(null);
@@ -33,6 +36,11 @@ export default function AppLayout({
       setNeedsBoot(false);
     }
   }, []);
+
+  // Historique « Récemment visités » du dashboard.
+  useEffect(() => {
+    recordVisit(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     // Session absente : direction /login sans attendre d'animation.
@@ -93,6 +101,7 @@ export default function AppLayout({
       <Terminal />
       <CommandPalette />
       <Onboarding />
+      <KeyboardShortcuts />
     </>
   );
 }

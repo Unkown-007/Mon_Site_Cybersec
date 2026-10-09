@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { PinButton } from "@/components/PinButton";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
 import { usePerf } from "@/lib/perf";
@@ -230,10 +231,16 @@ export default function ToolsPage() {
                     >
                       {t.name} ↗
                     </a>
-                    <span
-                      className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
-                    >
-                      {t.phase}
+                    <span className="flex shrink-0 items-center gap-0.5">
+                      <span
+                        className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
+                      >
+                        {t.phase}
+                      </span>
+                      <PinButton
+                        className="-mr-1.5"
+                        pin={{ id: `tool:${t.name}`, kind: "outil", title: t.name, href: t.url, hint: `outil · ${t.phase}` }}
+                      />
                     </span>
                   </div>
 

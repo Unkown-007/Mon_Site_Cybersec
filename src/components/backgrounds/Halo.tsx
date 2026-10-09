@@ -1,10 +1,13 @@
+"use client";
+
 /*
  * Fond « Halo » (défaut) — lueurs néon qui dérivent lentement, grille fine
- * et grain. 100 % CSS : les halos sont des dégradés radiaux (déjà doux, pas de
- * filtre blur) animés en transform → le GPU compose, le CPU ne fait rien.
+ * et grain. Les halos sont des dégradés radiaux (déjà doux, pas de filtre
+ * blur) animés en transform → le GPU compose, le CPU ne fait rien.
  */
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
+import { usePerf } from "@/lib/perf";
 
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -50,13 +53,58 @@ const BLOBS: Blob[] = [
 
 const fade = "radial-gradient(ellipse 75% 60% at 50% 0%, #000 25%, transparent 78%)";
 
+/*
+ * Parallaxe au curseur : --px/--py (-1 → 1) sont posées sur le conteneur du
+ * fond SEULEMENT (pas sur :root, qui ferait recalculer tout le document),
+ * au plus une fois par frame ; les calques glissent avec une transition
+ * douce. Coupé en lite, reduced-motion et sur écran tactile.
+ */
+function useParallax(ref: RefObject<HTMLDivElement>, enabled: boolean) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled) return;
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let x = 0;
+    let y = 0;
+    const apply = () => {
+      raf = 0;
+      el.style.setProperty("--px", x.toFixed(3));
+      el.style.setProperty("--py", y.toFixed(3));
+    };
+    const onMove = (e: PointerEvent) => {
+      x = (e.clientX / window.innerWidth) * 2 - 1;
+      y = (e.clientY / window.innerHeight) * 2 - 1;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", onMove);
+    };
+  }, [ref, enabled]);
+}
+
+const layer = (depth: number): CSSProperties => ({
+  transform: `translate3d(calc(var(--px, 0) * ${-depth}px), calc(var(--py, 0) * ${-depth * 0.7}px), 0)`,
+  transition: "transform 1.4s cubic-bezier(0.22, 1, 0.36, 1)",
+  willChange: "transform",
+});
+
 export function Halo() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { lite } = usePerf();
+  useParallax(ref, !lite);
+
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-base">
-      {BLOBS.map((style, i) => (
-        <div key={i} className="bg-blob" style={style} />
-      ))}
-      <div className="absolute inset-0 bg-grid" style={{ maskImage: fade, WebkitMaskImage: fade }} />
+    <div ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-base">
+      <div className="absolute -inset-12" style={layer(26)}>
+        {BLOBS.map((style, i) => (
+          <div key={i} className="bg-blob" style={style} />
+        ))}
+      </div>
+      <div className="absolute -inset-6 bg-grid" style={{ maskImage: fade, WebkitMaskImage: fade, ...layer(10) }} />
       <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: NOISE }} />
       <div
         className="absolute inset-0"

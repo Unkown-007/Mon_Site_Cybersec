@@ -136,10 +136,14 @@
   }
 
   /* Carte : verre fumé arrondi + liseré dégradé révélé au survol. */
+  /* --mx/--my : position du curseur, posées par <PointerGlow> uniquement sur
+     la carte survolée (halo intérieur + liseré qui s'illumine près du curseur). */
   .card {
     position: relative;
     border-radius: var(--radius-card);
-    background: linear-gradient(180deg, rgba(23, 23, 38, 0.78), rgba(13, 13, 22, 0.78));
+    background:
+      radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), rgba(140, 112, 255, 0.09), transparent 60%),
+      linear-gradient(180deg, rgba(23, 23, 38, 0.74), rgba(13, 13, 22, 0.74));
     border: 1px solid var(--hairline);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.035),
@@ -156,7 +160,9 @@
     border-radius: inherit;
     padding: 1px;
     pointer-events: none;
-    background: var(--grad-edge);
+    background:
+      radial-gradient(220px circle at var(--mx, 50%) var(--my, 0%), rgba(196, 181, 253, 0.95), transparent 70%),
+      var(--grad-edge);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -420,7 +426,9 @@
   .hud-panel {
     position: relative;
     border-radius: var(--radius-panel);
-    background: linear-gradient(180deg, rgba(25, 25, 41, 0.82), rgba(12, 12, 21, 0.82));
+    background:
+      radial-gradient(520px circle at var(--mx, -999px) var(--my, -999px), rgba(140, 112, 255, 0.08), transparent 60%),
+      linear-gradient(180deg, rgba(25, 25, 41, 0.8), rgba(12, 12, 21, 0.8));
     border: 1px solid var(--hairline);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.045),
@@ -436,11 +444,17 @@
     border-radius: inherit;
     padding: 1px;
     pointer-events: none;
-    background: var(--grad-edge);
+    background:
+      radial-gradient(260px circle at var(--mx, -999px) var(--my, -999px), rgba(196, 181, 253, 0.9), transparent 70%),
+      var(--grad-edge);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0.55;
+    transition: opacity 0.35s var(--ease-out-soft);
+  }
+  .hud-panel:hover::before {
+    opacity: 1;
   }
   .hud-panel::after {
     content: "";
@@ -777,6 +791,16 @@
 @keyframes cybergrid-scroll {
   from { transform: translate3d(0, -44px, 0); }
   to { transform: translate3d(0, 0, 0); }
+}
+
+/* ── Étoile d'épinglage : petit rebond au clic ── */
+.pin-pop {
+  animation: pin-pop 0.45s var(--ease-spring);
+}
+@keyframes pin-pop {
+  0% { transform: scale(1) rotate(0); }
+  40% { transform: scale(1.4) rotate(-14deg); }
+  100% { transform: scale(1) rotate(0); }
 }
 
 /* ── Entrée de page (template) ── */

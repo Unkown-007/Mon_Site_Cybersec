@@ -38,7 +38,7 @@ export function Modal({
       transition={{ duration: 0.15 }}
     >
       <motion.div
-        className="glass w-full max-w-lg overflow-hidden rounded-3xl"
+        className="menu-surface w-full max-w-lg overflow-hidden rounded-3xl"
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, y: 14, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

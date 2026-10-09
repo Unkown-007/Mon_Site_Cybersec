@@ -37,7 +37,7 @@ export function CoverageBars({
           obs.disconnect();
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.1 },
     );
     obs.observe(el);
     return () => obs.disconnect();

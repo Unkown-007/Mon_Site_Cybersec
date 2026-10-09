@@ -19,21 +19,14 @@ import {
   IconTerminal,
   IconUser,
 } from "@/components/icons";
-import { NAV_ITEMS, ADMIN_ITEM, type NavItem } from "@/lib/nav";
+import { NAV_GROUPS, navItem } from "@/lib/nav";
+import { NavIcon } from "@/components/NavIcon";
 import { BACKGROUNDS, useBackground } from "@/lib/background";
 import { useAuth } from "@/lib/auth";
 import { usePerf } from "@/lib/perf";
 
-const item = (href: string): NavItem =>
-  NAV_ITEMS.find((n) => n.href === href) ?? ADMIN_ITEM;
-
-const GROUPS: { label: string; hrefs: string[] }[] = [
-  { label: "Arsenal", hrefs: ["/resources", "/tools", "/toolkit", "/playground", "/arsenal"] },
-  { label: "Opérations", hrefs: ["/writeups", "/lab", "/hardware", "/map", "/stats"] },
-  { label: "Intel", hrefs: ["/veille", "/news", "/ai", "/reference"] },
-  { label: "Apprendre", hrefs: ["/learn", "/certifications", "/events"] },
-  { label: "Social", hrefs: ["/leaderboard", "/team", "/profile"] },
-];
+const item = navItem;
+const GROUPS = NAV_GROUPS;
 
 const openTerminal = () => window.dispatchEvent(new Event("ux077:open-terminal"));
 const openPalette = () => window.dispatchEvent(new Event("ux077:open-palette"));
@@ -193,6 +186,10 @@ export function Navbar() {
                       className="absolute left-1/2 top-full z-10 -ml-[11rem] w-[22rem] pt-3"
                     >
                       <div className="menu-surface rounded-2xl p-2">
+                        <div className="px-2.5 pb-2 pt-1.5">
+                          <div className="text-[13px] font-semibold text-ink-strong">{g.label}</div>
+                          <div className="text-xs text-muted">{g.desc}</div>
+                        </div>
                         {g.hrefs.map((h, i) => {
                           const it = item(h);
                           const active = isActive(h);
@@ -210,8 +207,8 @@ export function Navbar() {
                                   active ? "bg-primary/[0.12]" : "hover:bg-white/[0.05]"
                                 }`}
                               >
-                                <span className="icon-tile h-9 w-9 shrink-0 font-mono text-[10px] font-semibold tracking-wide">
-                                  {it.code}
+                                <span className="icon-tile h-9 w-9 shrink-0">
+                                  <NavIcon href={h} size={17} />
                                 </span>
                                 <span className="min-w-0 flex-1">
                                   <span className={`block text-sm font-medium ${active ? "text-ink-strong" : "text-ink"}`}>
@@ -219,9 +216,11 @@ export function Navbar() {
                                   </span>
                                   <span className="block truncate text-xs text-muted">{it.desc}</span>
                                 </span>
-                                <span className="text-muted opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
-                                  →
-                                </span>
+                                {it.key ? (
+                                  <kbd className="whitespace-nowrap rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-muted opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                    g {it.key}
+                                  </kbd>
+                                ) : null}
                               </Link>
                             </motion.div>
                           );
@@ -330,6 +329,16 @@ export function Navbar() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => {
+                        setMenu(null);
+                        window.dispatchEvent(new Event("ux077:shortcuts"));
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm text-ink transition-colors hover:bg-white/[0.05]"
+                    >
+                      <span className="grid w-4 place-items-center font-mono text-[13px] text-muted">?</span> Raccourcis clavier
+                    </button>
+                    <button
+                      type="button"
                       onClick={logout}
                       className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm text-danger transition-colors hover:bg-danger/10"
                     >
@@ -398,7 +407,10 @@ export function Navbar() {
                   <div className="grid grid-cols-2 gap-1">
                     {g.hrefs.map((h) => (
                       <MobileLink key={h} href={h} active={isActive(h)} compact>
-                        {item(h).label}
+                        <span className="flex items-center gap-2">
+                          <NavIcon href={h} size={15} className="shrink-0 opacity-70" />
+                          <span className="truncate">{item(h).label}</span>
+                        </span>
                       </MobileLink>
                     ))}
                   </div>
