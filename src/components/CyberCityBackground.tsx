@@ -2,10 +2,13 @@
 
 /*
  * Fond animé — Neo-Tokyo cinématique (cyberpunk / Akira).
- * Scène pré-rendue sur un canvas hors-écran (ciel, lune rouge, skyline en
- * perspective atmosphérique, base des enseignes) puis composée chaque frame
- * avec les couches dynamiques : brume mouvante, autoroute de lumières (bloom),
- * enseignes néon qui scintillent, pluie diagonale et reflets sur l'asphalte.
+ * Deux canvas superposés :
+ *  - couche FIXE (ciel, lune, skyline, reflet, brume, vignette) cuite une
+ *    seule fois par redimensionnement ;
+ *  - couche DYNAMIQUE en demi-résolution, ~30 FPS : trafic, enseignes,
+ *    pluie, braises…
+ *    dessinée avec des sprites de lueur pré-rendus (aucun shadowBlur ni
+ *    dégradé recréé par frame).
  * Respecte prefers-reduced-motion (image fixe) et se met en pause hors écran.
  */
 
@@ -82,6 +85,7 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
 export function CyberCityBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fxRef = useRef<HTMLCanvasElement>(null);
   const { lite } = usePerf();
 
   useEffect(() => {
@@ -89,7 +93,9 @@ export function CyberCityBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const fx = fxRef.current;
+    const fctx = fx?.getContext("2d");
+    if (!ctx || !fx || !fctx) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const off = document.createElement("canvas");
@@ -258,7 +264,7 @@ export function CyberCityBackground() {
 
       // trafic : lanes horizontales près de la base de la ville
       cars = [];
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 44; i++) {
         const lane = Math.floor(rand(0, 6));
         const ly = horizon - 4 - lane * rand(5, 9);
         const near = lane < 3;
@@ -272,7 +278,7 @@ export function CyberCityBackground() {
         });
       }
 
-      rain = Array.from({ length: reduced ? 0 : Math.floor((w * h) / 9000) }, () => ({
+      rain = Array.from({ length: reduced ? 0 : Math.min(150, Math.floor((w * h) / 15000)) }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
         len: rand(8, 20),
@@ -281,7 +287,7 @@ export function CyberCityBackground() {
       }));
 
       // cendres / braises portées par le vent ascendant (atmosphère)
-      embers = Array.from({ length: reduced ? 0 : Math.floor((w * h) / 26000) }, () => ({
+      embers = Array.from({ length: reduced ? 0 : Math.min(40, Math.floor((w * h) / 40000)) }, () => ({
         x: Math.random() * w,
         y: rand(horizon * 0.2, h),
         vx: rand(-0.25, 0.45),
@@ -689,119 +695,97 @@ export function CyberCityBackground() {
       octx.fillRect(0, horizon, w, h - horizon);
     };
 
-    /* ───────── rendu d'une frame ───────── */
-    const blitStatic = () => {
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(off, 0, 0);
-      ctx.restore();
+    /* ───────── sprites de lueur (pré-rendus une fois) ─────────
+       Remplacent shadowBlur + dégradés recréés à chaque frame, qui étaient
+       la principale source de consommation CPU/GPU du fond. */
+    const sprites = new Map<string, HTMLCanvasElement>();
+    const glow = (rgb: string) => {
+      let s = sprites.get("g" + rgb);
+      if (!s) {
+        s = document.createElement("canvas");
+        s.width = s.height = 32;
+        const g = s.getContext("2d")!;
+        const rg = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+        rg.addColorStop(0, `rgba(${rgb},1)`);
+        rg.addColorStop(0.25, `rgba(${rgb},0.55)`);
+        rg.addColorStop(1, `rgba(${rgb},0)`);
+        g.fillStyle = rg;
+        g.fillRect(0, 0, 32, 32);
+        sprites.set("g" + rgb, s);
+      }
+      return s;
+    };
+    // traînée horizontale : transparente à gauche → opaque à droite
+    const trail = (rgb: string) => {
+      let s = sprites.get("t" + rgb);
+      if (!s) {
+        s = document.createElement("canvas");
+        s.width = 64;
+        s.height = 2;
+        const g = s.getContext("2d")!;
+        const lg = g.createLinearGradient(0, 0, 64, 0);
+        lg.addColorStop(0, `rgba(${rgb},0)`);
+        lg.addColorStop(1, `rgba(${rgb},1)`);
+        g.fillStyle = lg;
+        g.fillRect(0, 0, 64, 2);
+        sprites.set("t" + rgb, s);
+      }
+      return s;
+    };
+    // reflet vertical sur l'asphalte : opaque en haut → transparent en bas
+    const drip = (rgb: string) => {
+      let s = sprites.get("d" + rgb);
+      if (!s) {
+        s = document.createElement("canvas");
+        s.width = 2;
+        s.height = 32;
+        const g = s.getContext("2d")!;
+        const lg = g.createLinearGradient(0, 0, 0, 32);
+        lg.addColorStop(0, `rgba(${rgb},1)`);
+        lg.addColorStop(1, `rgba(${rgb},0)`);
+        g.fillStyle = lg;
+        g.fillRect(0, 0, 2, 32);
+        sprites.set("d" + rgb, s);
+      }
+      return s;
+    };
+    const hexRgb = (hex: string) => {
+      const n = parseInt(hex.slice(1), 16);
+      return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+    };
+    const drawGlow = (rgb: string, x: number, y: number, r: number, a: number) => {
+      fctx.globalAlpha = a;
+      fctx.drawImage(glow(rgb), x - r, y - r, r * 2, r * 2);
     };
 
-    const drawReflection = () => {
-      // reflet de la ville sur l'asphalte (image statique retournée) — stronger
-      ctx.save();
+    /* ───────── couche fixe : cuite une seule fois par redimensionnement ───────── */
+    const bake = () => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = 0.22;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(off, 0, 0);
+
+      // reflet de la ville sur l'asphalte mouillé
       const hzPx = horizon * dpr;
+      ctx.save();
+      ctx.globalAlpha = 0.22;
       ctx.translate(0, 2 * hzPx);
       ctx.scale(1, -1);
       ctx.drawImage(off, 0, 0, w * dpr, hzPx, 0, 0, w * dpr, hzPx);
       ctx.restore();
-      // distorsion / fondu du reflet
-      ctx.save();
-      const g = ctx.createLinearGradient(0, horizon, 0, h);
-      g.addColorStop(0, "rgba(7,5,16,0.20)");
-      g.addColorStop(0.5, "rgba(7,5,16,0.55)");
-      g.addColorStop(1, "rgba(7,5,16,0.88)");
-      ctx.fillStyle = g;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const fade = ctx.createLinearGradient(0, horizon, 0, h);
+      fade.addColorStop(0, "rgba(7,5,16,0.20)");
+      fade.addColorStop(0.5, "rgba(7,5,16,0.55)");
+      fade.addColorStop(1, "rgba(7,5,16,0.88)");
+      ctx.fillStyle = fade;
       ctx.fillRect(0, horizon, w, h - horizon);
-      ctx.restore();
-    };
 
-    const drawCars = () => {
-      for (const c of cars) {
-        const len = 26 * c.scale;
-        const tailX = c.x - c.dir * len;
-        const grad = ctx.createLinearGradient(tailX, c.y, c.x, c.y);
-        grad.addColorStop(0, `rgba(${c.color},0)`);
-        grad.addColorStop(1, `rgba(${c.color},${0.5 * c.scale})`);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.4 * c.scale;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(tailX, c.y);
-        ctx.lineTo(c.x, c.y);
-        ctx.stroke();
-        // tête lumineuse avec bloom
-        ctx.shadowColor = `rgba(${c.color},0.9)`;
-        ctx.shadowBlur = 9 * c.scale;
-        ctx.fillStyle = `rgba(${c.color},0.95)`;
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, 1.3 * c.scale, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        // reflet vertical du phare sur l'asphalte
-        const ry0 = horizon + (horizon - c.y);
-        const rg = ctx.createLinearGradient(c.x, horizon, c.x, ry0 + 18);
-        rg.addColorStop(0, `rgba(${c.color},${0.16 * c.scale})`);
-        rg.addColorStop(1, `rgba(${c.color},0)`);
-        ctx.fillStyle = rg;
-        ctx.fillRect(c.x - 1.2 * c.scale, horizon, 2.4 * c.scale, 22);
-      }
-    };
-
-    const drawSigns = () => {
-      for (const s of signs) {
-        const flick =
-          0.55 + 0.45 * Math.sin(frame * 0.12 + s.phase) * (Math.random() > 0.04 ? 1 : 0.2);
-        ctx.shadowColor = s.color;
-        ctx.shadowBlur = 12;
-        ctx.globalAlpha = Math.max(0.15, flick);
-        ctx.fillStyle = s.color;
-        ctx.fillRect(s.x, s.y, s.w, s.h);
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-      }
-    };
-
-    const drawRain = () => {
-      ctx.strokeStyle = "rgba(150,180,255,0.5)";
-      ctx.lineWidth = 1;
-      for (const d of rain) {
-        ctx.globalAlpha = d.a;
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x - 2, d.y + d.len);
-        ctx.stroke();
-        // splash effect at horizon
-        if (d.y + d.len > horizon - 5 && d.y + d.len < horizon + 8) {
-          ctx.globalAlpha = d.a * 0.6;
-          ctx.fillStyle = "rgba(150,180,255,0.3)";
-          ctx.beginPath();
-          ctx.arc(d.x - 2, horizon, rand(0.8, 1.6), 0, Math.PI * 2);
-          ctx.fill();
-          // tiny splash lines
-          ctx.strokeStyle = "rgba(150,180,255,0.25)";
-          ctx.lineWidth = 0.5;
-          ctx.beginPath();
-          ctx.moveTo(d.x - 4, horizon); ctx.lineTo(d.x - 5, horizon - 2);
-          ctx.moveTo(d.x, horizon); ctx.lineTo(d.x + 1, horizon - 2);
-          ctx.stroke();
-          ctx.strokeStyle = "rgba(150,180,255,0.5)";
-          ctx.lineWidth = 1;
-        }
-      }
-      ctx.globalAlpha = 1;
-    };
-
-    let fogX = 0;
-    const drawFog = () => {
-      fogX += 0.15;
-      // multi-layer volumetric fog
+      // brume volumétrique (figée : la dérive coûtait 3 dégradés par frame)
       for (let i = 0; i < 3; i++) {
-        const cx = ((fogX * (i + 1) * 0.35) % (w + 500)) - 250;
+        const cx = w * (0.2 + i * 0.32);
         const cy = horizon - 40 + i * 20;
-        const radius = 280 + i * 40;
+        const radius = 300 + i * 40;
         const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         g.addColorStop(0, `rgba(123,92,240,${0.06 - i * 0.012})`);
         g.addColorStop(0.5, `rgba(80,50,160,${0.025 - i * 0.006})`);
@@ -809,176 +793,183 @@ export function CyberCityBackground() {
         ctx.fillStyle = g;
         ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
       }
-      // ground-level atmospheric haze (warmer)
       const haze = ctx.createLinearGradient(0, horizon - 60, 0, horizon + 10);
       haze.addColorStop(0, "rgba(0,0,0,0)");
       haze.addColorStop(0.5, "rgba(30,15,45,0.06)");
       haze.addColorStop(1, "rgba(20,10,35,0.08)");
       ctx.fillStyle = haze;
       ctx.fillRect(0, horizon - 60, w, 70);
-    };
 
-    const vignette = () => {
       const v = ctx.createRadialGradient(w / 2, h * 0.5, h * 0.25, w / 2, h * 0.5, h * 0.9);
       v.addColorStop(0, "rgba(0,0,0,0)");
       v.addColorStop(1, "rgba(5,4,12,0.75)");
       ctx.fillStyle = v;
       ctx.fillRect(0, 0, w, h);
+
+      // Atténuation à 70 % cuite dans l'image (voile couleur du fond) plutôt
+      // qu'une opacité CSS de groupe, qui forçait une surface de rendu
+      // intermédiaire recomposée à chaque frame.
+      ctx.fillStyle = "rgba(6,6,11,0.3)";
+      ctx.fillRect(0, 0, w, h);
+    };
+
+    /* ───────── couche dynamique (demi-résolution, transparente) ─────────
+       Lueurs et pluie sont floues par nature : 4x moins de pixels à
+       redessiner et à envoyer au GPU à chaque frame, sans perte visible. */
+    const FX_SCALE = 0.5;
+    const drawCars = () => {
+      for (const c of cars) {
+        const len = 26 * c.scale;
+        const th = Math.max(1, 1.4 * c.scale);
+        fctx.globalAlpha = 0.5 * Math.min(1, c.scale);
+        if (c.dir === 1) {
+          fctx.drawImage(trail(c.color), c.x - len, c.y - th / 2, len, th);
+        } else {
+          fctx.save();
+          fctx.translate(c.x + len, 0);
+          fctx.scale(-1, 1);
+          fctx.drawImage(trail(c.color), 0, c.y - th / 2, len, th);
+          fctx.restore();
+        }
+        drawGlow(c.color, c.x, c.y, 5 * c.scale, 0.9);
+        fctx.globalAlpha = 0.16 * c.scale;
+        fctx.drawImage(drip(c.color), c.x - 1.2 * c.scale, horizon, 2.4 * c.scale, 22);
+      }
+    };
+
+    const drawSigns = () => {
+      for (const s of signs) {
+        const flick = 0.55 + 0.45 * Math.sin(frame * 0.12 + s.phase) * (Math.random() > 0.04 ? 1 : 0.2);
+        const a = Math.max(0.15, flick);
+        const rgb = hexRgb(s.color);
+        drawGlow(rgb, s.x + s.w / 2, s.y + s.h / 2, Math.max(s.w, s.h) * 0.9 + 6, a * 0.45);
+        fctx.globalAlpha = a;
+        fctx.fillStyle = s.color;
+        fctx.fillRect(s.x, s.y, s.w, s.h);
+      }
     };
 
     const drawBoards = () => {
       for (const bd of boards) {
-        const idx = (bd.phase + Math.floor(frame / 200)) % BOARD_HUES.length;
-        const hue = BOARD_HUES[idx];
+        const hue = BOARD_HUES[(bd.phase + Math.floor(frame / 200)) % BOARD_HUES.length];
         const flick = 0.55 + 0.45 * Math.sin(frame * 0.08 + bd.x);
-        ctx.shadowColor = `rgba(${hue},1)`;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = `rgba(${hue},${0.35 + flick * 0.4})`;
-        ctx.fillRect(bd.x, bd.y, bd.w, bd.h);
-        // lignes de "contenu" du panneau
-        ctx.fillStyle = `rgba(255,255,255,0.12)`;
-        for (let ly = bd.y + 3; ly < bd.y + bd.h - 2; ly += 4)
-          ctx.fillRect(bd.x + 2, ly, bd.w - 4, 1);
-        ctx.shadowBlur = 0;
+        drawGlow(hue, bd.x + bd.w / 2, bd.y + bd.h / 2, Math.max(bd.w, bd.h) * 0.8 + 6, 0.35);
+        fctx.globalAlpha = 0.35 + flick * 0.4;
+        fctx.fillStyle = `rgb(${hue})`;
+        fctx.fillRect(bd.x, bd.y, bd.w, bd.h);
+        fctx.globalAlpha = 0.12;
+        fctx.fillStyle = "#fff";
+        for (let ly = bd.y + 3; ly < bd.y + bd.h - 2; ly += 4) fctx.fillRect(bd.x + 2, ly, bd.w - 4, 1);
       }
     };
 
     const drawAntennas = () => {
       antennas.forEach((a, i) => {
         if (Math.floor(frame / 22 + i) % 2 !== 0) return;
-        ctx.shadowColor = "#ff3d60";
-        ctx.shadowBlur = 9;
-        ctx.fillStyle = "#ff5a6e";
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 1.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        drawGlow("255,61,96", a.x, a.y, 7, 0.9);
       });
     };
 
     const drawTowerFx = () => {
       const t = tower;
       const pulse = 0.5 + 0.5 * Math.sin(frame * 0.05);
-      // emblème pulsant
-      ctx.shadowColor = "#ff3d60";
-      ctx.shadowBlur = 14 + pulse * 18;
-      ctx.fillStyle = `rgba(255,84,104,${0.55 + pulse * 0.4})`;
-      ctx.beginPath();
-      ctx.moveTo(t.emX, t.emY - t.emR);
-      ctx.lineTo(t.emX + t.emR * 0.7, t.emY);
-      ctx.lineTo(t.emX, t.emY + t.emR);
-      ctx.lineTo(t.emX - t.emR * 0.7, t.emY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      // balises rouges sur les deux spires (clignotent en alternance)
-      const beacon = (x: number, y: number) => {
-        ctx.shadowColor = "#ff3d60";
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = "#ff6a7e";
-        ctx.beginPath();
-        ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      };
-      const phase = Math.floor(frame / 26) % 2 === 0;
-      if (phase) beacon(t.beaconLX, t.beaconLY);
-      else beacon(t.beaconRX, t.beaconRY);
+      drawGlow("255,61,96", t.emX, t.emY, t.emR * (2.2 + pulse), 0.35 + pulse * 0.35);
+      fctx.globalAlpha = 0.55 + pulse * 0.4;
+      fctx.fillStyle = "rgb(255,84,104)";
+      fctx.beginPath();
+      fctx.moveTo(t.emX, t.emY - t.emR);
+      fctx.lineTo(t.emX + t.emR * 0.7, t.emY);
+      fctx.lineTo(t.emX, t.emY + t.emR);
+      fctx.lineTo(t.emX - t.emR * 0.7, t.emY);
+      fctx.closePath();
+      fctx.fill();
+      if (Math.floor(frame / 26) % 2 === 0) drawGlow("255,90,110", t.beaconLX, t.beaconLY, 8, 1);
+      else drawGlow("255,90,110", t.beaconRX, t.beaconRY, 8, 1);
     };
 
     const drawSearchlights = () => {
+      fctx.save();
+      fctx.globalCompositeOperation = "lighter";
+      fctx.globalAlpha = 1;
       for (const sl of searchlights) {
         const ang = sl.base + Math.sin(frame * sl.speed) * sl.sweep;
         const len = horizon * 1.05;
-        const spread = 0.06;
-        const x1 = sl.x + Math.cos(ang - spread) * len;
-        const y1 = sl.y + Math.sin(ang - spread) * len;
-        const x2 = sl.x + Math.cos(ang + spread) * len;
-        const y2 = sl.y + Math.sin(ang + spread) * len;
-        const g = ctx.createLinearGradient(sl.x, sl.y, (x1 + x2) / 2, (y1 + y2) / 2);
+        const x1 = sl.x + Math.cos(ang - 0.06) * len;
+        const y1 = sl.y + Math.sin(ang - 0.06) * len;
+        const x2 = sl.x + Math.cos(ang + 0.06) * len;
+        const y2 = sl.y + Math.sin(ang + 0.06) * len;
+        const g = fctx.createLinearGradient(sl.x, sl.y, (x1 + x2) / 2, (y1 + y2) / 2);
         g.addColorStop(0, `rgba(${sl.hue},0.16)`);
         g.addColorStop(0.6, `rgba(${sl.hue},0.05)`);
         g.addColorStop(1, `rgba(${sl.hue},0)`);
-        ctx.save();
-        ctx.globalCompositeOperation = "lighter";
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.moveTo(sl.x, sl.y);
-        ctx.lineTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.fill();
-        // source lumineuse au pied du faisceau
-        ctx.shadowColor = `rgba(${sl.hue},1)`;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = `rgba(${sl.hue},0.9)`;
-        ctx.beginPath();
-        ctx.arc(sl.x, sl.y, 1.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        fctx.fillStyle = g;
+        fctx.beginPath();
+        fctx.moveTo(sl.x, sl.y);
+        fctx.lineTo(x1, y1);
+        fctx.lineTo(x2, y2);
+        fctx.closePath();
+        fctx.fill();
       }
+      fctx.restore();
+      for (const sl of searchlights) drawGlow(sl.hue, sl.x, sl.y, 6, 0.9);
     };
 
     const drawAircraft = () => {
       for (const a of aircraft) {
         const s = a.scale;
-        // traînée
-        const trail = ctx.createLinearGradient(a.x - a.dir * 26 * s, a.y, a.x, a.y);
-        trail.addColorStop(0, "rgba(180,200,255,0)");
-        trail.addColorStop(1, "rgba(180,200,255,0.12)");
-        ctx.strokeStyle = trail;
-        ctx.lineWidth = 0.8 * s;
-        ctx.beginPath();
-        ctx.moveTo(a.x - a.dir * 26 * s, a.y);
-        ctx.lineTo(a.x, a.y);
-        ctx.stroke();
-        // corps sombre
-        ctx.fillStyle = "rgba(20,22,34,0.85)";
-        ctx.fillRect(a.x - 3 * s, a.y - 0.8 * s, 6 * s, 1.6 * s);
-        // feux de navigation clignotants (rouge / vert)
-        const on = Math.sin(frame * 0.18 + a.blink) > 0;
-        ctx.shadowBlur = 6;
-        if (on) {
-          ctx.shadowColor = "#ff3d60";
-          ctx.fillStyle = "#ff5a6e";
-          ctx.beginPath();
-          ctx.arc(a.x - a.dir * 3 * s, a.y, 0.9 * s, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.shadowColor = "#00f5d4";
-          ctx.fillStyle = "#00f5d4";
-          ctx.beginPath();
-          ctx.arc(a.x + a.dir * 3 * s, a.y, 0.9 * s, 0, Math.PI * 2);
-          ctx.fill();
+        const len = 26 * s;
+        fctx.globalAlpha = 0.12;
+        if (a.dir === 1) fctx.drawImage(trail("180,200,255"), a.x - len, a.y - 0.5, len, 1);
+        else {
+          fctx.save();
+          fctx.translate(a.x + len, 0);
+          fctx.scale(-1, 1);
+          fctx.drawImage(trail("180,200,255"), 0, a.y - 0.5, len, 1);
+          fctx.restore();
         }
-        ctx.shadowBlur = 0;
+        fctx.globalAlpha = 0.85;
+        fctx.fillStyle = "rgb(20,22,34)";
+        fctx.fillRect(a.x - 3 * s, a.y - 0.8 * s, 6 * s, 1.6 * s);
+        if (Math.sin(frame * 0.18 + a.blink) > 0) drawGlow("255,61,96", a.x - a.dir * 3 * s, a.y, 3.5 * s, 1);
+        else drawGlow("0,245,212", a.x + a.dir * 3 * s, a.y, 3.5 * s, 1);
+      }
+    };
+
+    // Pluie : un seul tracé par couche de profondeur (2 strokes / frame au lieu
+    // d'un stroke par goutte).
+    const drawRain = () => {
+      fctx.lineWidth = 1;
+      for (let layer = 0; layer < 2; layer++) {
+        fctx.globalAlpha = layer === 0 ? 0.1 : 0.2;
+        fctx.strokeStyle = "rgb(150,180,255)";
+        fctx.beginPath();
+        for (let i = layer; i < rain.length; i += 2) {
+          const d = rain[i];
+          fctx.moveTo(d.x, d.y);
+          fctx.lineTo(d.x - 2, d.y + d.len);
+        }
+        fctx.stroke();
       }
     };
 
     const drawEmbers = () => {
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      fctx.save();
+      fctx.globalCompositeOperation = "lighter";
       for (const e of embers) {
-        const tw = 0.6 + 0.4 * Math.sin(frame * 0.05 + e.x);
-        ctx.fillStyle = e.warm
-          ? `rgba(254,188,46,${e.a * tw})`
-          : `rgba(0,245,212,${e.a * tw})`;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-        ctx.fill();
+        fctx.globalAlpha = e.a * (0.6 + 0.4 * Math.sin(frame * 0.05 + e.x));
+        fctx.fillStyle = e.warm ? "rgb(254,188,46)" : "rgb(0,245,212)";
+        fctx.fillRect(e.x, e.y, e.r * 1.6, e.r * 1.6);
       }
-      ctx.restore();
+      fctx.restore();
     };
 
     const render = () => {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      blitStatic();
-      drawReflection();
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fctx.setTransform(1, 0, 0, 1, 0, 0);
+      fctx.globalAlpha = 1;
+      fctx.clearRect(0, 0, fx.width, fx.height);
+      fctx.setTransform(FX_SCALE, 0, 0, FX_SCALE, 0, 0);
       drawAircraft();
       drawSearchlights();
-      drawFog();
       drawBoards();
       drawAntennas();
       drawCars();
@@ -986,13 +977,12 @@ export function CyberCityBackground() {
       drawTowerFx();
       drawRain();
       drawEmbers();
-      vignette();
+      fctx.globalAlpha = 1;
     };
 
-    // Plafond ~30 FPS : ce fond est un décor, inutile de le rendre à 60 FPS.
-    // Divise par ~2 le coût CPU/GPU (reflet plein écran + gradients par frame).
+    // ~30 FPS : décor d'ambiance, inutile de le rendre à 60.
     let lastT = 0;
-    const step = (now = 0) => {
+    const step = (now: number) => {
       raf = requestAnimationFrame(step);
       if (now - lastT < 33) return;
       lastT = now;
@@ -1010,7 +1000,6 @@ export function CyberCityBackground() {
           d.x = Math.random() * (w + 100);
         }
       }
-      // braises ascendantes
       for (const e of embers) {
         e.x += e.vx;
         e.y += e.vy;
@@ -1021,7 +1010,6 @@ export function CyberCityBackground() {
           e.vy = -rand(0.15, 0.55);
         }
       }
-      // aéronefs
       for (const a of aircraft) {
         a.x += a.sp * a.dir;
         if (a.dir === 1 && a.x - 40 > w) {
@@ -1032,8 +1020,6 @@ export function CyberCityBackground() {
           a.y = rand(h * 0.08, horizon * 0.5);
         }
       }
-      if (frame % 7 === 0)
-        for (const s of stars) s.a = Math.max(0.08, Math.min(0.7, s.a + (Math.random() - 0.5) * 0.1));
       render();
     };
 
@@ -1043,34 +1029,44 @@ export function CyberCityBackground() {
       h = canvas.clientHeight;
       canvas.width = off.width = Math.floor(w * dpr);
       canvas.height = off.height = Math.floor(h * dpr);
+      fx.width = Math.ceil(w * FX_SCALE);
+      fx.height = Math.ceil(h * FX_SCALE);
       generate();
       drawStatic();
+      bake();
       render();
     };
 
     resize();
     if (!reduced) raf = requestAnimationFrame(step);
 
-    const onResize = () => resize();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(resize, 200);
+    };
     const onVis = () => {
-      if (document.hidden) cancelAnimationFrame(raf);
-      else if (!reduced) raf = requestAnimationFrame(step);
+      cancelAnimationFrame(raf);
+      if (!document.hidden && !reduced) raf = requestAnimationFrame(step);
     };
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(timer);
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [lite]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       aria-hidden="true"
       style={{ display: lite ? "none" : undefined }}
-      className="pointer-events-none fixed inset-0 z-0 h-full w-full opacity-[0.7]"
-    />
+      className="pointer-events-none fixed inset-0 z-0 bg-base"
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <canvas ref={fxRef} className="absolute inset-0 h-full w-full opacity-70" />
+    </div>
   );
 }

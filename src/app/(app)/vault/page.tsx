@@ -499,7 +499,7 @@ export default function VaultPage() {
           </p>
         </div>
         <div className="card p-6 space-y-4">
-          <div className="font-mono text-xl tracking-[3px] text-secondary text-center bg-base/60 border border-line p-4 break-all select-all">
+          <div className="rounded-xl font-mono text-xl tracking-[3px] text-secondary text-center bg-base/60 border border-line p-4 break-all select-all">
             {pending.code}
           </div>
           <div className="flex gap-2">

@@ -175,7 +175,7 @@ export default function LabPage() {
                 className="w-full accent-[#7b5cf0]"
                 aria-label="Progression"
               />
-              <div className="mt-2 h-2 bg-base border border-line-strong overflow-hidden">
+              <div className="rounded-full mt-2 h-2 bg-base border border-line-strong overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary to-secondary transition-all"
                   style={{ width: `${active.progress}%` }}

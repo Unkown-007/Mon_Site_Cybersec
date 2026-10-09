@@ -36,11 +36,11 @@ export function ScrollReveal({
   children,
   direction = "up",
   delay = 0,
-  duration = 700,
-  distance = 24,
+  duration = 650,
+  distance = 18,
   className = "",
   as: Tag = "div",
-  threshold = 0.15,
+  threshold = 0.08,
   once = true,
 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -85,13 +85,13 @@ export function ScrollReveal({
       ref={ref}
       className={className}
       style={{
+        // opacity + transform uniquement : le flou (filter) forçait un
+        // repeint complet de la section à chaque frame de l'animation.
         opacity: visible ? 1 : 0,
         transform: visible ? "none" : TRANSFORMS[direction](distance),
-        filter: visible ? "blur(0px)" : "blur(4px)",
         transition: disableAnimation
           ? "none"
-          : `opacity ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, filter ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
-        willChange: visible ? "auto" : "opacity, transform, filter",
+          : `opacity ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
       }}
     >
       {children}

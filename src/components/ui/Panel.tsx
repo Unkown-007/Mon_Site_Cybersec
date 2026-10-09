@@ -1,13 +1,11 @@
 import type { ReactNode } from "react";
 
 /*
- * <Panel> — surface/conteneur de base.
- *   • défaut      : bordure neutre, le violet recule.
- *   • focal       : bordure violet STRUCTUREL + surface surélevée (zone focale
- *                   d'une vue). Pas de glow : le glow reste réservé au cyan signal.
- *   • interactive : léger lift au survol (panneaux cliquables).
- * En-tête optionnel : code (label violet) + titre (display). Rayons & bordures
- * via tokens unifiés.
+ * <Panel> — surface/conteneur de base (verre fumé arrondi).
+ *   • défaut      : liseré dégradé discret.
+ *   • focal       : liseré dégradé plein (zone focale d'une vue).
+ *   • interactive : léger soulèvement au survol (panneaux cliquables).
+ * En-tête optionnel : code (eyebrow) + titre + slot à droite.
  */
 
 type PanelProps = {
@@ -43,11 +41,11 @@ export function Panel({
         .join(" ")}
     >
       {hasHeader ? (
-        <header className="flex items-start justify-between gap-3 border-b border-line-subtle px-5 pb-3 pt-4">
+        <header className="flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 pb-3.5 pt-4">
           <div className="min-w-0">
-            {code ? <span className="label text-primary">{code}</span> : null}
+            {code ? <span className="label">{code}</span> : null}
             {title ? (
-              <h2 className="mt-1 truncate font-display text-h3 text-ink-strong">
+              <h2 className="mt-1.5 truncate font-display text-h3 font-semibold text-ink-strong">
                 {title}
               </h2>
             ) : null}

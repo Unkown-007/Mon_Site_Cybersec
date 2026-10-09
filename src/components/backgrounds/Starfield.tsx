@@ -1,8 +1,10 @@
 "use client";
 
 /*
- * Fond "Nébuleuse" — champ d'étoiles scintillantes + halos de nébuleuse.
- * Respecte le mode lite (masqué) et prefers-reduced-motion (image figée).
+ * Fond « Nébuleuse » — étoiles scintillantes sur halos de nébuleuse.
+ * Les nébuleuses sont en CSS (statiques) ; le canvas ne dessine que les
+ * étoiles, en résolution 1x et à ~20 FPS (amplement suffisant pour un
+ * scintillement). Masqué en lite, image figée en reduced-motion.
  */
 
 import { useEffect, useRef } from "react";
@@ -20,85 +22,78 @@ export function Starfield() {
     if (!ctx) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    let raf = 0,
-      w = 0,
-      h = 0,
-      dpr = 1,
-      t = 0;
+    let raf = 0;
+    let w = 0;
+    let h = 0;
+    let t = 0;
     let stars: { x: number; y: number; z: number; r: number }[] = [];
-    let neb: { x: number; y: number; r: number; c: string }[] = [];
 
     const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.clientWidth;
-      h = canvas.clientHeight;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      stars = Array.from({ length: Math.floor((w * h) / 5500) }, () => ({
+      w = canvas.width = canvas.clientWidth;
+      h = canvas.height = canvas.clientHeight;
+      stars = Array.from({ length: Math.min(320, Math.floor((w * h) / 6000)) }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
         z: Math.random(),
-        r: Math.random() * 1.3 + 0.2,
+        r: Math.random() * 1.3 + 0.4,
       }));
-      const M = Math.max(w, h);
-      neb = [
-        { x: w * 0.25, y: h * 0.3, r: M * 0.42, c: "123,92,240" },
-        { x: w * 0.8, y: h * 0.72, r: M * 0.46, c: "0,245,212" },
-        { x: w * 0.6, y: h * 0.12, r: M * 0.34, c: "255,61,96" },
-      ];
     };
 
     const frame = () => {
-      t += 0.003;
-      ctx.fillStyle = "#05050c";
-      ctx.fillRect(0, 0, w, h);
-      for (const n of neb) {
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-        g.addColorStop(0, `rgba(${n.c},0.10)`);
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
-      }
+      t += 0.004;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#c8d2ff";
       for (const s of stars) {
-        const a = 0.35 + 0.65 * Math.abs(Math.sin(t * 6 * s.z + s.x));
-        ctx.fillStyle = `rgba(200,210,255,${a * s.z})`;
+        ctx.globalAlpha = (0.3 + 0.7 * Math.abs(Math.sin(t * 6 * s.z + s.x))) * s.z;
         ctx.fillRect(s.x, s.y, s.r, s.r);
       }
+      ctx.globalAlpha = 1;
     };
 
-    let lastT = 0;
-    const loop = (now = 0) => {
+    let last = 0;
+    const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
-      if (now - lastT < 33) return; // ~30 FPS
-      lastT = now;
+      if (now - last < 50) return;
+      last = now;
       frame();
     };
 
     resize();
-    if (reduced) frame();
-    else raf = requestAnimationFrame(loop);
+    frame();
+    if (!reduced) raf = requestAnimationFrame(loop);
 
-    const onR = () => resize();
-    window.addEventListener("resize", onR);
-    const onV = () => {
-      if (document.hidden) cancelAnimationFrame(raf);
-      else if (!reduced) raf = requestAnimationFrame(loop);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        resize();
+        frame();
+      }, 200);
     };
-    document.addEventListener("visibilitychange", onV);
+    const onVis = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden && !reduced) raf = requestAnimationFrame(loop);
+    };
+    window.addEventListener("resize", onResize);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onR);
-      document.removeEventListener("visibilitychange", onV);
+      clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [lite]);
 
   return (
-    <canvas
-      ref={ref}
+    <div
       aria-hidden="true"
-      style={{ display: lite ? "none" : undefined }}
-      className="pointer-events-none fixed inset-0 z-0 h-full w-full"
-    />
+      className="pointer-events-none fixed inset-0 z-0"
+      style={{
+        background:
+          "radial-gradient(circle at 25% 30%, rgba(123,92,240,0.16), transparent 45%), radial-gradient(circle at 80% 72%, rgba(0,245,212,0.1), transparent 45%), radial-gradient(circle at 60% 12%, rgba(255,61,96,0.08), transparent 35%), #05050c",
+      }}
+    >
+      <canvas ref={ref} className="h-full w-full" style={{ display: lite ? "none" : undefined }} />
+    </div>
   );
 }

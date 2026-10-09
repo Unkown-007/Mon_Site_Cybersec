@@ -48,14 +48,15 @@ export function CoverageBars({
       {entries.map((e, i) => (
         <div key={e.label} className="grid grid-cols-[5.5rem_1fr_2rem] items-center gap-3">
           <span className="truncate text-label text-muted">{e.label}</span>
-          <div className="h-1.5 w-full overflow-hidden rounded-full border border-line-subtle bg-base">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.05]">
+            {/* scaleX (GPU) plutôt que width : pas de recalcul de mise en page */}
             <div
-              className="h-full rounded-full"
+              className="h-full origin-left rounded-full"
               style={{
-                width: shown ? `${(e.count / max) * 100}%` : "0%",
-                background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 25%, transparent), ${accent})`,
-                boxShadow: `0 0 12px -1px ${accent}`,
-                transition: `width var(--dur-slow) var(--ease-out-soft) ${i * 60}ms`,
+                width: `${(e.count / max) * 100}%`,
+                transform: shown ? "scaleX(1)" : "scaleX(0)",
+                background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 30%, transparent), ${accent})`,
+                transition: `transform 0.9s var(--ease-out-soft) ${i * 60}ms`,
               }}
             />
           </div>

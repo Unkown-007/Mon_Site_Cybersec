@@ -11,11 +11,15 @@ Akira / Cyberpunk. **Privé** (derrière login, `noindex`).
   GitHub/Google. Middleware protège toutes les pages.
 - **Sécurité** : CSP stricte (YouTube autorisé pour le lecteur), rate limiting,
   anti-CSRF (origine), en-têtes durcis, `/.well-known/security.txt`.
-- **Design system** : tokens 3 tiers (violet ~10 %, cyan ~3 %, neutres ~85 %) ;
-  langage **chanfrein/HUD** (`.card`, `.btn`, `.field`, `.hud-tab`, `.hud-panel`) ;
-  modes `lite` + `prefers-reduced-motion` respectés partout.
-- **Fonds d'écran** : sélecteur persistant (Neo-Tokyo, Matrix, Synthwave,
-  Nébuleuse, Aurora, Void).
+- **Design system (v2)** : tokens 3 tiers (violet ~10 %, cyan ~3 %, neutres ~85 %) ;
+  surfaces arrondies « verre fumé » à liseré dégradé (`.card`, `.hud-panel`,
+  `.btn`, `.field`, `.hud-tab`, `.chip`, `.glass`) ; polices Space Grotesk /
+  Inter / JetBrains Mono. Modes `lite` + `prefers-reduced-motion` respectés partout.
+- **Règle perf** : animations continues uniquement en `transform` / `opacity`
+  (jamais `filter`, `width`, `background-position`…), cascades plafonnées,
+  pas de faux temps de chargement.
+- **Fonds d'écran** : sélecteur dans le menu Affichage de la navbar — Halo
+  (défaut, 100 % CSS), Neo-Tokyo, Matrix, Synthwave, Nébuleuse, Aurora, Void.
 
 ## Pages
 - **Cœur** : `/` (dashboard), `/login`, `/vault` (coffre chiffré AES-256), `/admin`.

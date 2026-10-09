@@ -7,9 +7,13 @@
 // ce qui est strictement nécessaire, le reste de la CSP reste verrouillé.
 const YT = "https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com";
 
+// En dev, Next (react-refresh / sourcemaps webpack) a besoin d'eval : sans ça
+// l'app ne s'hydrate pas en local (écran de boot figé à 0 %). Jamais en prod.
+const DEV_EVAL = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${YT}`,
+  `script-src 'self' 'unsafe-inline'${DEV_EVAL} ${YT}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",

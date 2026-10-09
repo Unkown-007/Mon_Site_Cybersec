@@ -8,11 +8,11 @@ export function Breadcrumb() {
   const path = segments.length ? segments.join("/") : "";
 
   return (
-    <div className="font-mono text-xs sm:text-sm text-muted mb-6 flex items-center flex-wrap gap-0">
-      <span className="text-success">root@vault</span>
-      <span className="text-muted">:</span>
-      <span className="text-secondary">~/{path}</span>
-      <span className="text-primary">$</span>
+    <div className="mb-8 flex flex-wrap items-center font-mono text-xs text-muted">
+      <span className="text-success/90">root@vault</span>
+      <span>:</span>
+      <span className="text-secondary/90">~/{path}</span>
+      <span className="ml-1 text-primary">$</span>
       <span className="cursor ml-1" aria-hidden="true" />
     </div>
   );

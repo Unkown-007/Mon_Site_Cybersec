@@ -1,12 +1,13 @@
 type DotState = "online" | "warn" | "danger" | "idle";
 
 const MAP: Record<DotState, string> = {
-  online: "bg-success shadow-[0_0_8px_#00c9a7]",
-  warn: "bg-warning shadow-[0_0_8px_#febc2e]",
-  danger: "bg-danger shadow-[0_0_8px_#ff3d60]",
+  online: "bg-success",
+  warn: "bg-warning",
+  danger: "bg-danger",
   idle: "bg-muted",
 };
 
+/* Pastille d'état : halo qui « respire » (transform/opacity → GPU). */
 export function StatusDot({
   state = "online",
   label,
@@ -17,10 +18,10 @@ export function StatusDot({
   return (
     <span className="inline-flex items-center gap-2">
       <span
-        className={`h-2 w-2 ${MAP[state]} ${state !== "idle" ? "animate-flicker" : ""}`}
+        className={`h-2 w-2 rounded-full ${MAP[state]} ${state !== "idle" ? "live-dot" : ""}`}
         aria-hidden="true"
       />
-      {label ? <span className="label !text-muted">{label}</span> : null}
+      {label ? <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">{label}</span> : null}
     </span>
   );
 }

@@ -376,17 +376,18 @@ export const tier1Tests: Test[] = [
   },
   {
     id: 'T1-R5-2',
-    name: 'Verify page template uses framer-motion animations',
+    name: 'Verify page template applies an entrance animation',
     tier: 1,
     feature: 'R5',
     type: 'static',
     run: async (): Promise<TestResult> => {
       const content = await readSourceFile('src/app/(app)/template.tsx');
-      const hasMotion = content.includes('motion') && content.includes('framer-motion');
+      // Transition CSS (.page-enter) depuis la refonte v2, framer-motion accepté aussi.
+      const hasMotion = content.includes('page-enter') || content.includes('framer-motion');
       return {
         id: 'T1-R5-2',
         passed: hasMotion,
-        message: hasMotion ? 'Framer motion wrapper exists' : 'No motion tag detected in page transition template',
+        message: hasMotion ? 'Page entrance animation wrapper exists' : 'No entrance animation in page transition template',
       };
     },
   },

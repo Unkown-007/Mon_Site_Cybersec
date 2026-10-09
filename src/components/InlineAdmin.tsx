@@ -147,7 +147,7 @@ export function InlineAdmin({
                   <span className="font-mono text-sm text-ink truncate">{it.title}</span>
                 )}
                 {it.category && (
-                  <span className={`shrink-0 text-[9px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${badge}`}>
+                  <span className={`rounded-md shrink-0 text-[9px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${badge}`}>
                     {it.category}
                   </span>
                 )}
@@ -167,7 +167,7 @@ export function InlineAdmin({
                   {it.tags.map((t) => (
                     <span
                       key={t}
-                      className="text-[10px] font-mono text-secondary bg-secondary/5 border border-secondary/30 px-1.5 py-0.5"
+                      className="rounded-md text-[10px] font-mono text-secondary bg-secondary/5 border border-secondary/30 px-1.5 py-0.5"
                     >
                       #{t}
                     </span>

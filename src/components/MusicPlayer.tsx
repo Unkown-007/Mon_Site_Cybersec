@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { music, setMuted } from "@/lib/audio";
+import { IconClose } from "@/components/icons";
 
 /*
  * Lecteur audio — source YouTube (IFrame API).
@@ -79,8 +81,16 @@ export function MusicPlayer() {
     setPos({ x: 20, y: Math.max(20, window.innerHeight - 340) });
   }, []);
 
-  /* API YouTube + player */
+  /* API YouTube + player — chargés seulement à la 1re ouverture du lecteur :
+     l'iframe YouTube (scripts + décodeur vidéo) pesait sur chaque page même
+     quand on n'écoutait rien. */
+  const [ytWanted, setYtWanted] = useState(false);
   useEffect(() => {
+    if (panelOpen) setYtWanted(true);
+  }, [panelOpen]);
+
+  useEffect(() => {
+    if (!ytWanted) return;
     const w = window as unknown as {
       YT?: { Player: new (el: string | HTMLElement, o: unknown) => YTPlayer };
       onYouTubeIframeAPIReady?: () => void;
@@ -128,7 +138,7 @@ export function MusicPlayer() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ytWanted]);
 
   /* drag de la fenêtre vidéo */
   const onMove = (e: PointerEvent) => {
@@ -208,7 +218,7 @@ export function MusicPlayer() {
     <>
       {/* Fenêtre vidéo flottante déplaçable (toujours montée → lecture continue) */}
       <div
-        className="fixed z-[9999] rounded-sm border border-primary/40 bg-base overflow-hidden shadow-[0_0_24px_-6px_#7b5cf0]"
+        className="glass fixed z-[45] overflow-hidden rounded-2xl"
         style={
           videoOpen
             ? { position: "fixed", left: pos.x, top: pos.y }
@@ -217,28 +227,29 @@ export function MusicPlayer() {
       >
         <div
           onPointerDown={onDown}
-          className="flex items-center justify-between gap-2 px-2 py-1 bg-surface border-b border-line cursor-move select-none touch-none"
+          className="flex cursor-move touch-none select-none items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-1.5"
         >
-          <span className="label !text-secondary">⠿ // VIDEO</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">⠿ Vidéo</span>
           <button
             onClick={() => setVideoOpen(false)}
             data-no-sfx
-            className="text-muted hover:text-danger font-mono text-xs"
+            className="grid h-6 w-6 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.06] hover:text-ink-strong"
             aria-label="Réduire la vidéo"
           >
-            ▁
+            <IconClose size={14} />
           </button>
         </div>
-        <div ref={ytHostRef} />
+        <div ref={ytHostRef} className="[&_iframe]:block" />
       </div>
 
       {/* Lanceur */}
       <button
         onClick={() => setPanelOpen((o) => !o)}
         aria-label="Lecteur audio"
+        aria-expanded={panelOpen}
         style={{ position: "fixed", bottom: "1.25rem", left: "1.25rem" }}
-        className={`z-[9999] h-11 w-11 grid place-items-center card text-secondary hover:text-ink transition-colors ${
-          playing ? "drop-shadow-[0_0_10px_#00f5d4]" : "drop-shadow-[0_0_8px_#7b5cf0]"
+        className={`glass z-[45] grid h-12 w-12 place-items-center rounded-2xl transition-[transform,box-shadow] duration-300 ease-out-soft hover:-translate-y-0.5 active:scale-95 ${
+          playing ? "text-secondary shadow-[0_10px_30px_-10px_rgba(0,245,212,0.6)]" : "text-ink"
         }`}
       >
         {playing ? (
@@ -246,141 +257,197 @@ export function MusicPlayer() {
             <i /><i /><i /><i />
           </span>
         ) : (
-          <span>♪</span>
+          <IconMusic />
         )}
       </button>
 
       {/* Panneau de contrôle */}
-      {panelOpen && (
-        <div
-          className="z-[9999] w-[300px] max-w-[calc(100vw-2.5rem)] card corner-frame animate-fade-up drop-shadow-[0_0_16px_rgba(123,92,240,0.5)] before:opacity-100 backdrop-blur-md bg-surface/70"
-          style={{ position: "fixed", bottom: "5rem", left: "1.25rem" }}
-        >
-          {/* En-tête */}
-          <div className="gui-stream flex items-center justify-between gap-2 px-4 py-2.5 border-b border-line-strong bg-base/40">
-            <span className="label !text-secondary">AUDIO_DECK</span>
-            <div className="flex items-center gap-3">
-              <button onClick={toggleMute} className="text-muted hover:text-secondary text-xs transition-colors" aria-label="Couper le son">
-                {mute ? "🔇" : "🔊"}
-              </button>
-              <button onClick={() => setPanelOpen(false)} className="text-muted hover:text-danger text-xs transition-colors" aria-label="Fermer">
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4">
-            {/* En lecture */}
-            <div className="flex items-center gap-3 mb-4 border border-line-strong bg-base/50 px-3 py-2.5">
-              <span className={`eq shrink-0 ${playing ? "" : "is-paused"}`} aria-hidden="true">
-                <i /><i /><i /><i /><i />
+      <AnimatePresence>
+        {panelOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 480, damping: 36 }}
+            className="glass z-[45] w-[320px] max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-3xl"
+            style={{ position: "fixed", bottom: "5rem", left: "1.25rem", transformOrigin: "bottom left" }}
+          >
+            {/* En tête : morceau en cours */}
+            <div className="flex items-start gap-3 p-4 pb-3">
+              <span
+                className={`icon-tile h-12 w-12 shrink-0 rounded-2xl ${playing ? "!text-secondary" : ""}`}
+                aria-hidden="true"
+              >
+                <span className={`eq ${playing ? "" : "is-paused"}`}>
+                  <i /><i /><i /><i /><i />
+                </span>
               </span>
-              <div className="min-w-0 flex-1">
-                <div className="font-mono text-xs text-ink truncate">
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="truncate text-sm font-semibold text-ink-strong">
                   {mode === "synth" ? music.track.name : station ?? title}
                 </div>
-                <div className="font-mono text-[10px] mt-0.5">
+                <div className="mt-0.5 text-xs">
                   {mode === "synth" ? (
-                    <span className="text-warning">◆ synthé local</span>
+                    <span className="text-warning">Synthé local</span>
                   ) : ready ? (
-                    <span className="text-success holo-flicker">● YouTube · en ligne</span>
+                    <span className="text-success">YouTube · en ligne</span>
                   ) : (
-                    <span className="text-muted">connexion YouTube<span className="cursor" aria-hidden="true" /></span>
+                    <span className="text-muted">Connexion à YouTube…</span>
                   )}
                 </div>
               </div>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={toggleMute}
+                  className="grid h-8 w-8 place-items-center rounded-xl text-muted transition-colors hover:bg-white/[0.06] hover:text-ink-strong"
+                  aria-label={mute ? "Rétablir le son" : "Couper le son"}
+                >
+                  {mute ? <IconMute /> : <IconVolume />}
+                </button>
+                <button
+                  onClick={() => setPanelOpen(false)}
+                  className="grid h-8 w-8 place-items-center rounded-xl text-muted transition-colors hover:bg-white/[0.06] hover:text-ink-strong"
+                  aria-label="Fermer"
+                >
+                  <IconClose size={16} />
+                </button>
+              </div>
             </div>
 
-            {/* Transport */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <button onClick={() => go(-1)} aria-label="Précédent" className="h-9 w-9 grid place-items-center btn btn-ghost !px-0 text-sm">⏮</button>
+            <div className="px-4 pb-4">
+              {/* Transport */}
+              <div className="mb-4 flex items-center justify-center gap-2">
+                <TransportBtn label="Précédent" onClick={() => go(-1)}>⏮</TransportBtn>
+                <button
+                  onClick={toggle}
+                  aria-label={playing ? "Pause" : "Lecture"}
+                  className="btn btn-primary grid h-12 w-12 place-items-center !rounded-full !p-0 text-base"
+                >
+                  {playing ? "❚❚" : "▶"}
+                </button>
+                <TransportBtn label="Suivant" onClick={() => go(1)}>⏭</TransportBtn>
+                <TransportBtn label="Afficher/masquer la vidéo" onClick={() => setVideoOpen((v) => !v)} active={videoOpen}>
+                  ▣
+                </TransportBtn>
+              </div>
+
+              {/* Volume */}
+              <div className="mb-4 flex items-center gap-3">
+                <IconVolume />
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={vol}
+                  onChange={(e) => changeVol(Number(e.target.value))}
+                  className="deck-range flex-1"
+                  style={{
+                    background: `linear-gradient(90deg, var(--secondary) ${Math.round(
+                      vol * 100,
+                    )}%, rgba(255,255,255,0.1) ${Math.round(vol * 100)}%)`,
+                  }}
+                  aria-label="Volume"
+                />
+                <span className="w-7 text-right font-mono text-[11px] tabular-nums text-muted">
+                  {Math.round(vol * 100)}
+                </span>
+              </div>
+
+              {/* Stations */}
+              <div className="label mb-2">Stations</div>
+              <div className="-mr-1 mb-3 flex max-h-44 flex-col gap-0.5 overflow-y-auto pr-1">
+                {STATIONS.map((s) => {
+                  const active = station === s.name && mode === "yt";
+                  return (
+                    <button
+                      key={s.name}
+                      onClick={() => load(s.q, s.name)}
+                      className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] transition-colors ${
+                        active ? "bg-secondary/10 text-secondary" : "text-ink hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <span className="w-3 shrink-0 text-[10px] opacity-70">
+                        {active ? (playing ? "❚❚" : "▶") : "♪"}
+                      </span>
+                      <span className="truncate">{s.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* URL custom */}
+              <div className="mb-3 flex items-center gap-1.5">
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && load(url)}
+                  placeholder="URL ou playlist YouTube…"
+                  spellCheck={false}
+                  className="field flex-1 !rounded-xl !px-3 !py-2 !text-xs"
+                />
+                <button onClick={() => load(url)} className="btn btn-ghost !px-3 !py-2 !text-xs" aria-label="Lire l'URL">
+                  ▶
+                </button>
+              </div>
+
               <button
-                onClick={toggle}
-                aria-label={playing ? "Pause" : "Lecture"}
-                className="h-12 w-12 grid place-items-center btn btn-primary !px-0 text-lg rounded-full"
+                onClick={() => (mode === "yt" ? enterSynth() : setMode("yt"))}
+                className="btn btn-ghost w-full !py-2 !text-xs"
               >
-                {playing ? "⏸" : "▶"}
-              </button>
-              <button onClick={() => go(1)} aria-label="Suivant" className="h-9 w-9 grid place-items-center btn btn-ghost !px-0 text-sm">⏭</button>
-              <button
-                onClick={() => setVideoOpen((v) => !v)}
-                aria-label="Afficher/masquer la vidéo"
-                className={`h-9 w-9 grid place-items-center btn !px-0 text-sm ${videoOpen ? "btn-primary" : "btn-ghost"}`}
-                title="Fenêtre vidéo"
-              >
-                📺
+                {mode === "yt" ? "Basculer en synthé (hors-ligne)" : "Revenir à YouTube"}
               </button>
             </div>
-
-            {/* Volume */}
-            <div className="flex items-center gap-2.5 mb-4">
-              <span className="font-mono text-[10px] text-muted w-7 shrink-0">VOL</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={vol}
-                onChange={(e) => changeVol(Number(e.target.value))}
-                className="deck-range flex-1"
-                style={{
-                  background: `linear-gradient(90deg, var(--secondary) ${Math.round(
-                    vol * 100,
-                  )}%, var(--line-strong) ${Math.round(vol * 100)}%)`,
-                }}
-                aria-label="Volume"
-              />
-              <span className="font-mono text-[10px] text-secondary w-7 text-right tabular-nums">
-                {Math.round(vol * 100)}
-              </span>
-            </div>
-
-            {/* Stations */}
-            <span className="label !text-muted block mb-2">Stations</span>
-            <div className="flex flex-col gap-0.5 max-h-44 overflow-y-auto -mr-1 pr-1 mb-3">
-              {STATIONS.map((s) => {
-                const active = station === s.name && mode === "yt";
-                return (
-                  <button
-                    key={s.name}
-                    onClick={() => load(s.q, s.name)}
-                    className={`group flex items-center gap-2 text-left font-mono text-[11px] border-l-2 pl-2 py-1 transition-colors ${
-                      active
-                        ? "border-secondary text-secondary bg-secondary/5"
-                        : "border-transparent text-muted hover:text-ink hover:border-primary/50"
-                    }`}
-                  >
-                    <span className="shrink-0">
-                      {active ? (playing ? "▮▮" : "▶") : "▸"}
-                    </span>
-                    <span className="truncate">{s.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* URL custom */}
-            <div className="flex items-center gap-1.5 mb-3">
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && load(url)}
-                placeholder="coller une URL / playlist YouTube…"
-                spellCheck={false}
-                className="field !py-1.5 !px-2 text-[11px] flex-1"
-              />
-              <button onClick={() => load(url)} className="btn btn-ghost !py-1.5 !px-2.5 text-[11px]">▶</button>
-            </div>
-
-            <button
-              onClick={() => (mode === "yt" ? enterSynth() : setMode("yt"))}
-              className="w-full btn btn-ghost !py-1.5 text-[10px]"
-            >
-              {mode === "yt" ? "⚡ Basculer en synthé (hors-ligne)" : "↩ Revenir à YouTube"}
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
+
+function TransportBtn({
+  label,
+  onClick,
+  active,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`grid h-10 w-10 place-items-center rounded-full border text-sm transition-colors ${
+        active
+          ? "border-primary/50 bg-primary/15 text-ink-strong"
+          : "border-white/10 bg-white/[0.03] text-ink hover:bg-white/[0.07]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+const IconMusic = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="16" r="3" />
+  </svg>
+);
+const IconVolume = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-muted">
+    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
+  </svg>
+);
+const IconMute = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+    <path d="m22 9-6 6M16 9l6 6" />
+  </svg>
+);

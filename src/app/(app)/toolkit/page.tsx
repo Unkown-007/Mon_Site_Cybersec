@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 import { Badge, Button, Panel } from "@/components/ui";
@@ -9,7 +9,6 @@ import { md5, sha } from "@/lib/hashing";
 import { GTFO_BINS, GTFO_FUNCTIONS, type GtfoFunction, type GtfoPlatform } from "@/data/gtfobins";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion, motion } from "framer-motion";
-import { ToolkitTabSkeleton } from "@/components/ui/ToolkitTabSkeleton";
 
 type Tab = "revshell" | "gtfo" | "codec" | "pipe" | "hash" | "jwt" | "cvss" | "cmd" | "gen" | "hashid" | "cidr" | "time";
 const TABS: { id: Tab; label: string }[] = [
@@ -32,33 +31,10 @@ export default function ToolkitPage() {
   const shouldReduceMotion = useReducedMotion();
   const disableAnimation = lite || (shouldReduceMotion ?? false);
 
+  // Changement d'onglet instantané (plus de faux chargement de 200 ms).
   const [tab, setTab] = useState<Tab>("revshell");
-  const [activeTab, setActiveTab] = useState<Tab>("revshell");
-  const [loading, setLoading] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
-
-  const changeTab = (newTab: Tab) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setTab(newTab);
-
-    if (disableAnimation) {
-      setActiveTab(newTab);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    timerRef.current = setTimeout(() => {
-      setActiveTab(newTab);
-      setLoading(false);
-    }, 200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const activeTab = tab;
+  const changeTab = (newTab: Tab) => setTab(newTab);
 
   return (
     <div>
@@ -80,7 +56,7 @@ export default function ToolkitPage() {
           <button
             key={t.id}
             onClick={() => changeTab(t.id)}
-            className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
+            className={`rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
               tab === t.id
                 ? "border-primary text-primary bg-primary/10"
                 : "border-line-strong text-muted hover:text-ink hover:border-primary/40"
@@ -91,10 +67,7 @@ export default function ToolkitPage() {
         ))}
       </div>
 
-      {loading ? (
-        <ToolkitTabSkeleton tabId={tab} />
-      ) : (
-        <motion.div
+      <motion.div
           key={activeTab}
           initial={{ opacity: disableAnimation ? 1 : 0 }}
           animate={{ opacity: 1 }}
@@ -112,8 +85,7 @@ export default function ToolkitPage() {
           {activeTab === "hashid" && <HashId />}
           {activeTab === "cidr" && <CidrTool />}
           {activeTab === "time" && <TimeTool />}
-        </motion.div>
-      )}
+      </motion.div>
     </div>
   );
 }
@@ -134,7 +106,7 @@ function CopyBlock({ label, value }: { label?: string; value: string }) {
       >
         ⧉ Copier
       </button>
-      <pre className="bg-base/70 border border-line px-3 py-2.5 overflow-x-auto text-xs leading-relaxed text-secondary/90 font-mono whitespace-pre-wrap break-all">
+      <pre className="rounded-xl bg-base/70 border border-line px-3 py-2.5 overflow-x-auto text-xs leading-relaxed text-secondary/90 font-mono whitespace-pre-wrap break-all">
         {value || "—"}
       </pre>
     </div>
@@ -424,7 +396,7 @@ function Codec() {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
+            className={`rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
               mode === m ? "border-primary text-primary bg-primary/10" : "border-line-strong text-muted hover:text-ink"
             }`}
           >
@@ -1339,7 +1311,7 @@ function Generator() {
               key={k}
               onClick={() => toggle(k)}
               aria-pressed={opts[k]}
-              className={`px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
+              className={`rounded-full px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
                 opts[k]
                   ? "border-secondary text-secondary bg-secondary/10"
                   : "border-line-strong text-muted hover:text-ink"
@@ -1434,7 +1406,7 @@ function HashId() {
             {guesses.map((g) => (
               <span
                 key={g}
-                className="font-mono text-xs px-2.5 py-1 border border-secondary/40 text-secondary bg-secondary/5"
+                className="rounded-md font-mono text-xs px-2.5 py-1 border border-secondary/40 text-secondary bg-secondary/5"
               >
                 {g}
               </span>

@@ -18,26 +18,20 @@ import type {
 type Variant = "primary" | "signal" | "ghost" | "danger";
 type Size = "sm" | "md";
 
-const BASE =
-  "relative overflow-hidden inline-flex items-center justify-center gap-2 clip-chamfer-sm border font-mono uppercase " +
-  "tracking-[0.12em] select-none transition-[color,background-color,border-color,filter,transform] " +
-  "duration-fast ease-out-soft active:translate-y-px disabled:opacity-40 disabled:pointer-events-none";
+const BASE = "btn focus-ring";
 
 const SIZES: Record<Size, string> = {
-  sm: "text-label px-3 py-2",
-  md: "text-xs px-5 py-3",
+  sm: "!px-3 !py-2 !text-xs !rounded-[10px]",
+  md: "",
 };
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "btn-primary focus-ring border-primary/70 bg-gradient-to-br from-primary/20 to-primary/5 text-[#d7ccff] hover:from-primary/30 hover:to-primary/10 hover:border-primary hover:shadow-[0_0_15px_rgba(123,92,240,0.4),inset_0_0_10px_rgba(123,92,240,0.2)]",
+  primary: "btn-primary",
   signal:
-    "focus-ring border-secondary/70 bg-gradient-to-br from-secondary/20 to-secondary/5 text-secondary hover:from-secondary/30 hover:to-secondary/10 " +
-    "hover:drop-shadow-[0_0_8px_rgba(0,245,212,0.45)]",
-  ghost:
-    "focus-ring border-line-strong bg-transparent text-ink hover:border-secondary hover:text-secondary hover:bg-secondary/5",
+    "border-secondary/50 bg-secondary/10 text-secondary hover:-translate-y-px hover:bg-secondary/[0.16] hover:shadow-[0_12px_30px_-14px_rgba(0,245,212,0.8)]",
+  ghost: "btn-ghost",
   danger:
-    "focus-ring-danger border-danger/70 bg-gradient-to-br from-danger/20 to-danger/5 text-danger hover:from-danger/30 hover:to-danger/10 hover:drop-shadow-[0_0_8px_rgba(255,61,96,0.4)]",
+    "border-danger/50 bg-danger/10 text-danger focus-ring-danger hover:-translate-y-px hover:bg-danger/[0.16] hover:shadow-[0_12px_30px_-14px_rgba(255,61,96,0.8)]",
 };
 
 type BaseProps = {

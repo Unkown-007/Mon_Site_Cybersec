@@ -126,7 +126,7 @@ export default function NewsPage() {
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SOURCE_COLOR[it.source] ?? "text-muted border-line-strong"}`}
+                      className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SOURCE_COLOR[it.source] ?? "text-muted border-line-strong"}`}
                     >
                       {it.source}
                     </span>
@@ -163,7 +163,7 @@ function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
+      className={`rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
         active
           ? "border-primary text-primary bg-primary/10"
           : "border-line-strong text-muted hover:text-ink hover:border-primary/40"

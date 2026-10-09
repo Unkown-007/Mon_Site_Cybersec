@@ -6,7 +6,7 @@ import { GUIPanel } from "@/components/GUIPanel";
 import { Badge } from "@/components/ui";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { usePerf } from "@/lib/perf";
-import { useReducedMotion, motion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { CveSkeletonCard } from "@/components/ui/Skeletons";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 
@@ -184,18 +184,10 @@ export default function VeillePage() {
   };
   const removeTerm = (t: string) => setWatch((w) => w.filter((x) => x !== t));
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: disableAnimation ? 0 : 0.05 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: disableAnimation ? 0 : 6 },
-    visible: { opacity: 1, y: 0, transition: { duration: disableAnimation ? 0 : 0.25 } }
-  };
+  // Cascade CSS (GPU) plafonnée aux 12 premières CVE : la cascade JS
+  // précédente animait toute la liste une à une pendant plusieurs secondes.
+  const enter = (i: number) =>
+    disableAnimation ? undefined : { animationDelay: `${Math.min(i, 12) * 35}ms` };
 
   return (
     <div>
@@ -270,7 +262,7 @@ export default function VeillePage() {
                   key={f.label}
                   onClick={() => setMinScore(f.min)}
                   aria-pressed={minScore === f.min}
-                  className={`px-2.5 py-1 font-mono text-xs border transition-colors ${
+                  className={`rounded-full px-2.5 py-1 font-mono text-xs border transition-colors ${
                     minScore === f.min
                       ? "border-danger text-danger bg-danger/10"
                       : "border-line-strong text-muted hover:text-ink"
@@ -329,7 +321,7 @@ export default function VeillePage() {
               <span className="label !text-muted">Vendor</span>
               <button
                 onClick={() => setVendor(null)}
-                className={`px-2 py-0.5 font-mono text-xs border transition-colors ${
+                className={`rounded-md px-2 py-0.5 font-mono text-xs border transition-colors ${
                   !vendor ? "border-secondary text-secondary" : "border-line-strong text-muted hover:text-ink"
                 }`}
               >
@@ -339,7 +331,7 @@ export default function VeillePage() {
                 <button
                   key={v}
                   onClick={() => setVendor(vendor === v ? null : v)}
-                  className={`px-2 py-0.5 font-mono text-xs border transition-colors ${
+                  className={`rounded-md px-2 py-0.5 font-mono text-xs border transition-colors ${
                     vendor === v ? "border-secondary text-secondary" : "border-line-strong text-muted hover:text-ink"
                   }`}
                 >
@@ -360,17 +352,12 @@ export default function VeillePage() {
               [ aucune CVE pour ce filtre ]
             </div>
           ) : (
-            <motion.ul
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="space-y-2"
-            >
-              {sorted.map((c) => (
-                <motion.li
-                  variants={itemVariants}
+            <ul className="space-y-2">
+              {sorted.map((c, i) => (
+                <li
                   key={c.id}
-                  className="card p-4"
+                  style={enter(i)}
+                  className={`card p-4 ${disableAnimation ? "" : "animate-fade-up"}`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <a
@@ -389,7 +376,7 @@ export default function VeillePage() {
                         </Badge>
                       )}
                       <span
-                        className={`text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SEV_COLOR[c.severity] ?? SEV_COLOR.LOW}`}
+                        className={`rounded-md text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${SEV_COLOR[c.severity] ?? SEV_COLOR.LOW}`}
                       >
                         {c.severity}
                       </span>
@@ -406,9 +393,9 @@ export default function VeillePage() {
                     {c.vendor !== "n/a" ? `${c.vendor} · ` : ""}
                     {c.published}
                   </div>
-                </motion.li>
+                </li>
               ))}
-            </motion.ul>
+            </ul>
           )}
         </section>
 
@@ -429,7 +416,7 @@ export default function VeillePage() {
                       {b.title} ↗
                     </span>
                     <span
-                      className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${CRIT_COLOR[b.crit]}`}
+                      className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${CRIT_COLOR[b.crit]}`}
                     >
                       {b.crit}
                     </span>

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
 import { usePerf } from "@/lib/perf";
-import { useReducedMotion, motion } from "framer-motion";
-import { ResourceSkeletonCard } from "@/components/ui/Skeletons";
+import { useReducedMotion } from "framer-motion";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   RESOURCES,
@@ -47,33 +46,16 @@ export default function ResourcesPage() {
   const shouldReduceMotion = useReducedMotion();
   const disableAnimation = lite || (shouldReduceMotion ?? false);
 
-  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState<Domain | null>(null);
   const [type, setType] = useState<ResourceType | null>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
 
-  useEffect(() => {
-    if (disableAnimation) {
-      setLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [disableAnimation]);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: disableAnimation ? 0 : 0.04 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: disableAnimation ? 0 : 6 },
-    visible: { opacity: 1, y: 0, transition: { duration: disableAnimation ? 0 : 0.25 } }
-  };
+  // Apparition en cascade en CSS (GPU), plafonnée aux 12 premières cartes :
+  // l'ancienne cascade JS animait les 78 cartes une à une pendant ~3 s.
+  // (Les données sont locales : plus de faux chargement de 400 ms.)
+  const enter = (i: number) =>
+    disableAnimation ? undefined : { animationDelay: `${Math.min(i, 12) * 35}ms` };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -181,7 +163,11 @@ export default function ResourcesPage() {
             <span className="label !text-muted">{filtered.length} résultat(s)</span>
           </div>
 
-          {loading ? (
+          {filtered.length === 0 ? (
+            <div className="card p-8 text-center font-mono text-sm text-muted">
+              [ aucun résultat ] — ajuste la recherche ou les filtres.
+            </div>
+          ) : (
             <div
               className={
                 view === "grid"
@@ -189,30 +175,11 @@ export default function ResourcesPage() {
                   : "flex flex-col gap-3"
               }
             >
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ResourceSkeletonCard key={i} view={view} disableAnimation={disableAnimation} />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="card p-8 text-center font-mono text-sm text-muted">
-              [ aucun résultat ] — ajuste la recherche ou les filtres.
-            </div>
-          ) : (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className={
-                view === "grid"
-                  ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-                  : "flex flex-col gap-3"
-              }
-            >
-              {filtered.map((r) => (
-                <motion.article
-                  variants={itemVariants}
+              {filtered.map((r, i) => (
+                <article
                   key={r.id}
-                  className={`card p-4 group flex flex-col ${view === "list" ? "sm:flex-row sm:items-center sm:gap-4" : ""}`}
+                  style={enter(i)}
+                  className={`card p-4 group flex flex-col ${disableAnimation ? "" : "animate-fade-up"} ${view === "list" ? "sm:flex-row sm:items-center sm:gap-4" : ""}`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -225,7 +192,7 @@ export default function ResourcesPage() {
                         {r.title} ↗
                       </a>
                       <span
-                        className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DOMAIN_COLOR[r.domain]}`}
+                        className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DOMAIN_COLOR[r.domain]}`}
                       >
                         {r.domain}
                       </span>
@@ -235,7 +202,7 @@ export default function ResourcesPage() {
                       {r.tags.map((t) => (
                         <span
                           key={t}
-                          className="text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
+                          className="rounded-md text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
                         >
                           #{t}
                         </span>
@@ -256,9 +223,9 @@ export default function ResourcesPage() {
                       ⬇ .md
                     </button>
                   </div>
-                </motion.article>
+                </article>
               ))}
-            </motion.div>
+            </div>
           )}
         </section>
       </div>

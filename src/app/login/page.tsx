@@ -6,14 +6,13 @@ import { XLogo } from "@/components/XLogo";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { LoginTransition } from "@/components/LoginTransition";
-import { motion, Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { usePerf } from "@/lib/perf";
 
-const LOGS = [
-  { text: "establishing handshake to gatekeeper...", delay: 200 },
-  { text: "connection secure. node-077 identified.", delay: 400 },
-  { text: "fetching identity provider rulesets... ready.", delay: 300 },
-  { text: "loading authentication interface...", delay: 200 },
+const FEATURES = [
+  { k: "RES", t: "Ressources & arsenal", d: "Cheatsheets, outils et scripts classés par phase." },
+  { k: "INT", t: "Veille temps réel", d: "Flux CVE NVD, actu cyber et carte des attaques." },
+  { k: "VLT", t: "Coffre chiffré", d: "AES-256-GCM côté client, rien en clair sur le serveur." },
 ];
 
 export default function LoginPage() {
@@ -21,62 +20,16 @@ export default function LoginPage() {
   const router = useRouter();
   const { push } = useToast();
   const { lite } = usePerf();
+  const reduce = useReducedMotion();
+  // Mode rapide (lite / prefers-reduced-motion) : aucune animation d'entrée.
+  // Le formulaire s'affiche tout de suite : plus de fausse séquence « ssh »
+  // qui imposait ~1,5 s d'attente avant de pouvoir se connecter.
+  const isFastMode = lite || Boolean(reduce);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<null | "github" | "google" | "credentials">(null);
   const [transition, setTransition] = useState<string | null>(null);
-
-  // Animation and typing states
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [typingComplete, setTypingComplete] = useState(false);
-  const [logIndex, setLogIndex] = useState(0);
-
-  // Check reduced motion preference
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(media.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    media.addEventListener("change", handler);
-    return () => media.removeEventListener("change", handler);
-  }, []);
-
-  const isFastMode = lite || reducedMotion;
-
-  // Auto-skip typing on fast mode (lite/reduced motion)
-  useEffect(() => {
-    if (isFastMode) {
-      setTypingComplete(true);
-    }
-  }, [isFastMode]);
-
-  // Handle typing sequence for terminal logs
-  useEffect(() => {
-    if (isFastMode || typingComplete) return;
-
-    if (logIndex >= LOGS.length) {
-      const t = setTimeout(() => setTypingComplete(true), 400);
-      return () => clearTimeout(t);
-    }
-
-    const t = setTimeout(() => {
-      setLogIndex((prev) => prev + 1);
-    }, LOGS[logIndex].delay);
-
-    return () => clearTimeout(t);
-  }, [logIndex, isFastMode, typingComplete]);
-
-  // Handle ESC or Enter key to skip typing animation
-  useEffect(() => {
-    if (isFastMode || typingComplete) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter") {
-        setTypingComplete(true);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFastMode, typingComplete]);
 
   useEffect(() => {
     // Si déjà connecté et qu'on n'est pas en pleine séquence, on file au dashboard.
@@ -120,193 +73,139 @@ export default function LoginPage() {
   };
 
   if (transition) {
-    return (
-      <LoginTransition
-        username={transition}
-        onComplete={() => router.replace("/")}
-      />
-    );
+    return <LoginTransition username={transition} onComplete={() => router.replace("/")} />;
   }
 
-  // Variants for Framer Motion entrance animations
-  const pageVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.6, ease: "easeOut" } },
+  const container: Variants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: isFastMode ? 0 : 0.07 } },
   };
-
-  const cardVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.95, y: 15 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-    },
-  };
-
-  const formVariants: Variants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4, ease: "easeOut", staggerChildren: 0.08 },
-    },
+  const rise: Variants = {
+    hidden: isFastMode ? { opacity: 1 } : { opacity: 0, y: 16 },
+    visible: { opacity: 1, y: 0, transition: { duration: isFastMode ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] } },
   };
 
   return (
-    <motion.main
-      className="relative min-h-screen overflow-hidden bg-base/40 bg-diagonal hud-scanlines flex flex-col items-center justify-center p-4"
-      initial={isFastMode ? undefined : "hidden"}
-      animate={isFastMode ? undefined : "visible"}
-      variants={pageVariants}
-    >
-      {/* En-tête */}
+    <main className="relative grid min-h-screen place-items-center p-4 sm:p-8">
       <motion.div
-        className="flex flex-col items-center mb-8"
-        variants={isFastMode ? undefined : cardVariants}
+        className="grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]"
+        variants={container}
+        initial="hidden"
+        animate="visible"
       >
-        <div className="mb-3 drop-shadow-[0_0_12px_rgba(123,92,240,0.5)]">
-          <XLogo size={48} />
+        {/* Présentation (desktop) */}
+        <div className="hidden lg:block">
+          <motion.div variants={rise} className="mb-8 flex items-center gap-3">
+            <XLogo size={52} />
+            <div>
+              <div className="font-display text-xl font-bold text-ink-strong">
+                UnknownX<span className="text-gradient-primary">-077</span>
+              </div>
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Secure vault</div>
+            </div>
+          </motion.div>
+          <motion.h1 variants={rise} className="font-display text-5xl font-bold leading-[1.05] tracking-tight">
+            <span className="text-gradient-soft">Ton QG</span>{" "}
+            <span className="text-gradient-primary">cybersécurité</span>
+            <span className="text-gradient-soft">, au même endroit.</span>
+          </motion.h1>
+          <motion.p variants={rise} className="mt-5 max-w-md text-[17px] leading-relaxed text-muted">
+            Ressources, outils offensifs, veille et coffre chiffré — un espace privé, rapide et pensé pour le terrain.
+          </motion.p>
+          <motion.ul variants={container} className="mt-9 space-y-3">
+            {FEATURES.map((f) => (
+              <motion.li key={f.k} variants={rise} className="flex items-start gap-4">
+                <span className="icon-tile h-10 w-10 shrink-0 font-mono text-[10px] font-semibold">{f.k}</span>
+                <span>
+                  <span className="block text-sm font-semibold text-ink-strong">{f.t}</span>
+                  <span className="block text-sm text-muted">{f.d}</span>
+                </span>
+              </motion.li>
+            ))}
+          </motion.ul>
         </div>
-        <h1 className="font-display font-bold text-2xl tracking-[2px] text-ink">
-          UnknownX<span className="text-gradient-primary">-077</span>
-        </h1>
-        <p className="label mt-3 text-secondary text-glow-secondary">IDENTIFICATION REQUISE</p>
-      </motion.div>
 
-      {/* Encart de connexion */}
-      <motion.div
-        className="card w-full max-w-sm p-7 relative backdrop-blur-xl"
-        style={{ borderColor: "rgba(123,92,240,0.5)", boxShadow: "inset 0 0 40px rgba(123,92,240,0.06)", filter: "drop-shadow(0 0 22px rgba(123,92,240,0.28))" }}
-        variants={isFastMode ? undefined : cardVariants}
-      >
-        {/* coins HUD */}
-        <span aria-hidden className="pointer-events-none absolute top-0 left-0 h-4 w-4 border-t-2 border-l-2 border-secondary/70" />
-        <span aria-hidden className="pointer-events-none absolute top-0 right-0 h-4 w-4 border-t-2 border-r-2 border-secondary/70" />
-        <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-secondary/70" />
-        <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-secondary/70" />
+        {/* Carte de connexion */}
+        <motion.div variants={rise} className="mx-auto w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center text-center lg:hidden">
+            <XLogo size={56} />
+            <div className="mt-3 font-display text-2xl font-bold text-ink-strong">
+              UnknownX<span className="text-gradient-primary">-077</span>
+            </div>
+          </div>
 
-        {!isFastMode && !typingComplete ? (
-            <motion.div
-              key="terminal"
-              className="font-mono text-xs text-success h-[260px] flex flex-col justify-between"
-              initial={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="space-y-2">
-                <div className="text-secondary flex items-center">
-                  <span>root@unknownx:~$</span>
-                  <span className="text-ink ml-2">ssh operator@gatekeeper</span>
-                </div>
-                {LOGS.slice(0, logIndex).map((log, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-secondary">&gt;</span>
-                    <span>{log.text}</span>
-                  </div>
-                ))}
-                {logIndex < LOGS.length && (
-                  <div className="flex gap-2 text-secondary animate-pulse">
-                    <span>&gt;</span>
-                    <span>{LOGS[logIndex].text}</span>
-                  </div>
+          <div className="glass relative overflow-hidden rounded-3xl p-7">
+            <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+            <h2 className="font-display text-2xl font-bold text-ink-strong">Connexion</h2>
+            <p className="mt-1 text-sm text-muted">Identification requise pour accéder au coffre.</p>
+
+            {/* OAuth */}
+            <div className="mt-6 grid grid-cols-2 gap-2.5">
+              <button onClick={() => handleProvider("github")} disabled={busy !== null} className="btn btn-ghost w-full">
+                <GithubIcon />
+                {busy === "github" ? "…" : "GitHub"}
+              </button>
+              <button onClick={() => handleProvider("google")} disabled={busy !== null} className="btn btn-ghost w-full">
+                <GoogleIcon />
+                {busy === "google" ? "…" : "Google"}
+              </button>
+            </div>
+
+            <div className="my-6 flex items-center gap-3 text-xs text-muted">
+              <span className="h-px flex-1 bg-white/[0.08]" />
+              ou par email
+              <span className="h-px flex-1 bg-white/[0.08]" />
+            </div>
+
+            {/* Credentials admin */}
+            <form onSubmit={handleCredentials} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-ink">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="field !font-sans"
+                  placeholder="operateur@exemple.fr"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-ink">
+                  Mot de passe
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="field !font-sans"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <button type="submit" disabled={busy !== null} className="btn btn-primary w-full !py-3">
+                {busy === "credentials" ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Vérification…
+                  </>
+                ) : (
+                  <>Accéder au coffre →</>
                 )}
-              </div>
+              </button>
+            </form>
+          </div>
 
-              <div className="flex justify-between items-center pt-4 border-t border-line-subtle text-[10px] text-muted">
-                <div className="flex items-center">
-                  <span>TTY1_INIT</span>
-                  <span className="cursor ml-1" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTypingComplete(true)}
-                  className="hover:text-secondary underline cursor-pointer"
-                >
-                  [ PASSER ]
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              variants={isFastMode ? undefined : formVariants}
-              initial={isFastMode ? undefined : "hidden"}
-              animate={isFastMode ? undefined : "visible"}
-            >
-              {/* OAuth */}
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleProvider("github")}
-                  disabled={busy !== null}
-                  className="btn btn-ghost w-full justify-center disabled:opacity-50"
-                >
-                  <GithubIcon />
-                  {busy === "github" ? "Connexion…" : "Continuer avec GitHub"}
-                </button>
-                <button
-                  onClick={() => handleProvider("google")}
-                  disabled={busy !== null}
-                  className="btn btn-ghost w-full justify-center disabled:opacity-50"
-                >
-                  <GoogleIcon />
-                  {busy === "google" ? "Connexion…" : "Continuer avec Google"}
-                </button>
-              </div>
-
-              {/* Séparateur gradient */}
-              <div className="my-6 divider-gradient" />
-
-              {/* Credentials admin */}
-              <form onSubmit={handleCredentials} className="space-y-3">
-                <div>
-                  <label htmlFor="email" className="label block mb-1.5">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="username"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="field"
-                    placeholder="admin@unknownx.local"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="label block mb-1.5">
-                    Mot de passe
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="field"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={busy !== null}
-                  className="btn btn-primary w-full justify-center disabled:opacity-50"
-                >
-                  {busy === "credentials" ? "Vérification…" : "Accéder"}
-                </button>
-              </form>
-            </motion.div>
-          )}
+          <p className="mt-6 text-center text-xs text-muted">Espace personnel — accès réservé à l&apos;opérateur.</p>
+        </motion.div>
       </motion.div>
-
-      <motion.p
-        className="mt-6 max-w-sm text-center text-xs text-muted font-mono leading-relaxed"
-        variants={isFastMode ? undefined : cardVariants}
-      >
-        Espace personnel — accès réservé à l&apos;opérateur.
-      </motion.p>
-    </motion.main>
+    </main>
   );
 }
 

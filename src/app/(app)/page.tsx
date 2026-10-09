@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth";
 import { usePerf } from "@/lib/perf";
 import { ModuleCard } from "@/components/ModuleCard";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
+import { RevealText } from "@/components/animations/RevealText";
+import { XLogo } from "@/components/XLogo";
 import {
   STATS,
   WRITEUPS,
@@ -127,60 +129,60 @@ export default function Dashboard() {
 
   const container: Variants = {
     hidden: {},
-    show: { transition: { staggerChildren: disableAnimation ? 0 : 0.04 } },
+    show: { transition: { staggerChildren: disableAnimation ? 0 : 0.06 } },
   };
   const item: Variants = {
-    hidden: disableAnimation ? { opacity: 0 } : { opacity: 0, y: 12 },
+    hidden: disableAnimation ? { opacity: 0 } : { opacity: 0, y: 16 },
     show: {
       opacity: 1,
       y: 0,
-      transition: { duration: disableAnimation ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: disableAnimation ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] },
     },
   };
+
+  const name = user?.name ?? "l'opérateur";
 
   return (
     <div className="space-y-20 lg:space-y-28">
       {/* HERO */}
-      <motion.section variants={item} initial="hidden" animate="show" className="pt-2 lg:pt-6">
-        <div className="mb-7">
-          <span className="clip-chamfer-sm inline-flex items-center gap-2.5 border border-secondary/40 bg-secondary/5 px-3.5 py-1.5">
-            <StatusDot state="online" />
-            <span className="label text-secondary">SYSTÈME OPÉRATIONNEL</span>
-          </span>
+      <section className="grid items-center gap-10 pt-2 lg:grid-cols-[1.25fr_1fr] lg:pt-4">
+        <div>
+          <div className="mb-7 animate-fade-in">
+            <span className="chip">
+              <StatusDot state="online" />
+              <span className="text-ink">Système opérationnel</span>
+            </span>
+          </div>
+          <h1 className="max-w-3xl font-display text-display font-bold text-ink-strong">
+            <RevealText text="Centre de commande" wordClassName="text-gradient-soft" />{" "}
+            <RevealText text="cyber" delay={3} wordClassName="text-gradient-primary pr-1" />
+            <br />
+            <RevealText text={`de ${name}.`} delay={4} wordClassName="text-gradient-soft" />
+          </h1>
+          <p className="mt-6 max-w-xl animate-fade-up text-[17px] leading-relaxed text-muted stagger-4">
+            Ressources, write-ups CTF, arsenal d&apos;outils et veille threat-intel — réunis dans un
+            espace de travail unique, rapide et chiffré.
+          </p>
+          <div className="mt-9 flex animate-fade-up flex-wrap gap-3 stagger-5">
+            <Link href="/resources" className="btn btn-primary focus-ring !px-5 !py-3">
+              Accéder aux ressources
+              <span aria-hidden="true">→</span>
+            </Link>
+            <button type="button" onClick={openTerminal} className="btn btn-ghost focus-ring !px-5 !py-3">
+              <span className="font-mono text-secondary">❯_</span> Ouvrir le terminal
+            </button>
+          </div>
         </div>
-        <h1 className="max-w-4xl font-display text-display text-ink-strong leading-[1.03]">
-          Centre de commande <span className="text-gradient-primary">cyber</span>
-          <br />
-          de {user?.name ?? "l'opérateur"}.
-        </h1>
-        <p className="mt-7 max-w-2xl text-body text-muted leading-relaxed">
-          Base de ressources, write-ups CTF, arsenal d&apos;outils et veille
-          threat-intel — centralisés dans un espace de travail unique.
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3">
-          {/* Unique CTA focal cyan de la vue */}
-          <Link
-            href="/resources"
-            className="focus-ring clip-chamfer-sm inline-flex items-center gap-2 border border-secondary/70 bg-secondary/10 px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-secondary drop-shadow-[0_0_8px_rgba(0,245,212,0.35)] transition-[color,background-color,border-color,filter,transform] duration-fast ease-out-soft hover:bg-secondary/20 active:translate-y-px"
-          >
-            Accéder aux ressources
-          </Link>
-          <button
-            type="button"
-            onClick={openTerminal}
-            className="focus-ring clip-chamfer-sm inline-flex items-center gap-2 border border-line-strong bg-transparent px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink transition-[color,border-color,transform] duration-fast ease-out-soft hover:border-secondary hover:text-secondary active:translate-y-px"
-          >
-            ❯_ Terminal
-          </button>
-        </div>
-      </motion.section>
+
+        <HeroEmblem />
+      </section>
 
       {/* STATS */}
       <motion.section
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
       >
         <Stat value={STATS.resources} label="Ressources indexées" variant={item} />
         <Stat value={STATS.writeups} label="Write-ups publiés" variant={item} />
@@ -195,166 +197,151 @@ export default function Dashboard() {
       <ScrollReveal>
         <section>
           <SectionHead
-            eyebrow="COUVERTURE DU COFFRE"
+            eyebrow="Couverture du coffre"
             title="Couverture"
             right={`${STATS.domains} domaines · ${STATS.resolved}/${STATS.writeups} write-ups résolus`}
           />
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid gap-4 sm:grid-cols-2"
-          >
-            <motion.div variants={item}>
-              <Panel
-                code="RES"
-                title="Ressources / domaine"
-                right={<span className="font-mono text-label text-muted">Σ {RES_TOTAL}</span>}
-              >
-                <CoverageBars entries={COVERAGE_BY_DOMAIN} />
-              </Panel>
-            </motion.div>
-            <motion.div variants={item}>
-              <Panel
-                code="ARS"
-                title="Arsenal / phase kill-chain"
-                right={<span className="font-mono text-label text-muted">Σ {ARS_TOTAL}</span>}
-              >
-                <CoverageBars entries={COVERAGE_BY_PHASE} />
-              </Panel>
-            </motion.div>
-          </motion.div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Panel
+              code="RES"
+              title="Ressources par domaine"
+              right={<span className="font-mono text-xs text-muted">Σ {RES_TOTAL}</span>}
+            >
+              <CoverageBars entries={COVERAGE_BY_DOMAIN} />
+            </Panel>
+            <Panel
+              code="ARS"
+              title="Arsenal par phase kill-chain"
+              right={<span className="font-mono text-xs text-muted">Σ {ARS_TOTAL}</span>}
+            >
+              <CoverageBars entries={COVERAGE_BY_PHASE} accent="var(--secondary)" />
+            </Panel>
+          </div>
         </section>
       </ScrollReveal>
 
       {/* MODULES */}
-      <ScrollReveal delay={100}>
+      <ScrollReveal>
         <section>
-          <SectionHead eyebrow="MODULES" title="Accès rapide" />
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          >
+          <SectionHead eyebrow="Modules" title="Accès rapide" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {MODULES.map((m) => (
-              <motion.div key={m.href} variants={item}>
-                <ModuleCard
-                  href={m.href}
-                  code={m.code}
-                  title={m.title}
-                  desc={m.desc}
-                  meta={m.meta}
-                  accent={m.code === "INT" ? "secondary" : "primary"}
-                  icon={MODULE_ICONS[m.code]}
-                />
-              </motion.div>
+              <ModuleCard
+                key={m.href}
+                href={m.href}
+                code={m.code}
+                title={m.title}
+                desc={m.desc}
+                meta={m.meta}
+                accent={m.code === "INT" ? "secondary" : "primary"}
+                icon={MODULE_ICONS[m.code]}
+              />
             ))}
-          </motion.div>
+          </div>
         </section>
       </ScrollReveal>
 
       {/* TERMINAL + SIDEBAR */}
-      <section id="terminal" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <div>
-          <h2 className="label mb-4">SHELL RAPIDE</h2>
-          <FakeTerminal />
-        </div>
-
-        <div className="space-y-8">
-          {/* Derniers write-ups */}
+      <ScrollReveal>
+        <section id="terminal" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="label">DERNIERS WRITE-UPS</h2>
-              <Link
-                href="/writeups"
-                className="focus-ring rounded-sm text-label text-muted transition-colors duration-fast ease-out-soft hover:text-secondary"
-              >
-                tout voir →
-              </Link>
+            <SectionHead eyebrow="Shell rapide" title="Terminal" />
+            <FakeTerminal />
+          </div>
+
+          <div className="space-y-10">
+            {/* Derniers write-ups */}
+            <div>
+              <SideHead title="Derniers write-ups" href="/writeups" link="Tout voir" />
+              {WRITEUPS.length === 0 ? (
+                <div className="card flex flex-col items-center p-8 text-center">
+                  <span className="icon-tile mb-3">{MODULE_ICONS.WUP}</span>
+                  <p className="text-sm text-ink">Aucun write-up pour l&apos;instant</p>
+                  <p className="mt-1 text-xs text-muted">À compléter au fil des machines résolues.</p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {WRITEUPS.slice(0, 5).map((w) => (
+                    <li key={w.id}>
+                      <Link href="/writeups" className="card focus-ring block p-3.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-ink-strong">{w.name}</span>
+                          <Badge variant={DIFF_BADGE[w.difficulty]}>{w.difficulty}</Badge>
+                        </div>
+                        <div className="mt-1 text-xs text-muted">
+                          {w.platform} · {w.category}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {WRITEUPS.length === 0 ? (
-              <Panel>
-                <p className="text-center font-mono text-body-sm text-muted">
-                  [ aucun write-up pour l&apos;instant ]
-                </p>
-                <p className="mt-1 text-center text-label text-muted">
-                  à compléter au fil des machines résolues.
-                </p>
-              </Panel>
-            ) : (
+
+            {/* CVE récentes */}
+            <div>
+              <SideHead title="CVE récentes" href="/veille" link="Veille" />
+              {/* Distribution de sévérité — barre empilée + légende */}
+              <div className="card mb-3 p-4">
+                <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full">
+                  {SEV_COUNTS.filter((x) => x.n > 0).map((x) => (
+                    <div key={x.s} className={`${SEV_BAR[x.s]} rounded-full`} style={{ flex: x.n }} />
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+                  {SEV_COUNTS.map((x) => (
+                    <span key={x.s} className="inline-flex items-center gap-1.5 text-xs text-muted">
+                      <span aria-hidden className={`h-2 w-2 rounded-full ${SEV_BAR[x.s]}`} />
+                      <span className="capitalize">{x.s.toLowerCase()}</span>
+                      <span className="font-mono text-ink">{x.n}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <ul className="space-y-2">
-                {WRITEUPS.slice(0, 5).map((w) => (
-                  <li key={w.id}>
-                    <Link
-                      href="/writeups"
-                      className="focus-ring card block p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-body-sm text-ink">{w.name}</span>
-                        <Badge variant={DIFF_BADGE[w.difficulty]}>{w.difficulty}</Badge>
-                      </div>
-                      <div className="mt-1 font-mono text-label text-muted">
-                        {w.platform} · {w.category}
-                      </div>
-                    </Link>
+                {CVES.slice(0, 5).map((c) => (
+                  <li key={c.id} className="card p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[13px] text-ink-strong">{c.id}</span>
+                      <span
+                        className={`rounded-lg bg-white/[0.05] px-2 py-0.5 font-mono text-[13px] font-semibold tabular-nums ${SEV_SCORE[c.severity]}`}
+                      >
+                        {c.score.toFixed(1)}
+                      </span>
+                    </div>
+                    {/* Jauge CVSS (score / 10) */}
+                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.05]" aria-hidden>
+                      <div
+                        className={`h-full rounded-full ${SEV_BAR[c.severity]}`}
+                        style={{ width: `${(c.score / 10) * 100}%` }}
+                      />
+                    </div>
+                    <p className="mt-3 text-[13px] leading-relaxed text-muted">{c.summary}</p>
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
-
-          {/* CVE récentes */}
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="label">CVE RÉCENTES</h2>
-              <Link
-                href="/veille"
-                className="focus-ring rounded-sm text-label text-muted transition-colors duration-fast ease-out-soft hover:text-secondary"
-              >
-                veille →
-              </Link>
             </div>
-            {/* Distribution de sévérité — barre empilée + légende */}
-            <div className="mb-3 card p-3">
-              <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-base">
-                {SEV_COUNTS.filter((x) => x.n > 0).map((x) => (
-                  <div key={x.s} className={SEV_BAR[x.s]} style={{ flex: x.n }} />
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                {SEV_COUNTS.map((x) => (
-                  <span key={x.s} className="inline-flex items-center gap-1.5 text-label text-muted">
-                    <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${SEV_BAR[x.s]}`} />
-                    {x.s} {x.n}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <ul className="space-y-2">
-              {CVES.slice(0, 5).map((c) => (
-                <li key={c.id} className="card p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-body-sm text-ink">{c.id}</span>
-                    <span className={`font-mono text-body-sm font-bold tabular-nums ${SEV_SCORE[c.severity]}`}>
-                      {c.score.toFixed(1)}
-                    </span>
-                  </div>
-                  {/* Jauge CVSS (score / 10) */}
-                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-base" aria-hidden>
-                    <div
-                      className={`h-full rounded-full ${SEV_BAR[c.severity]}`}
-                      style={{ width: `${(c.score / 10) * 100}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-body-sm text-muted">{c.summary}</p>
-                </li>
-              ))}
-            </ul>
           </div>
+        </section>
+      </ScrollReveal>
+    </div>
+  );
+}
+
+/* Emblème du hero : logo flottant, anneaux en orbite (transform → GPU). */
+function HeroEmblem() {
+  return (
+    <div aria-hidden="true" className="relative hidden h-[360px] lg:block">
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="absolute h-[260px] w-[260px] rounded-full bg-[radial-gradient(closest-side,rgba(123,92,240,0.38),rgba(0,245,212,0.08)_60%,transparent)]" />
+        <div className="hero-ring h-[340px] w-[340px]" />
+        <div className="hero-ring hero-ring--reverse h-[250px] w-[250px]" />
+        <div className="hero-ring hero-ring--slow h-[170px] w-[170px] border-dashed" />
+        <div className="hero-float">
+          <XLogo size={124} />
         </div>
-      </section>
+      </div>
     </div>
   );
 }
@@ -370,12 +357,27 @@ function SectionHead({
 }) {
   return (
     <div className="mb-7">
-      <span className="label text-secondary">{eyebrow}</span>
-      <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
-        <h2 className="font-display text-h2 text-ink-strong">{title}</h2>
-        {right ? <div className="shrink-0 pb-1 font-mono text-label text-muted">{right}</div> : null}
+      <span className="label">{eyebrow}</span>
+      <div className="mt-2.5 flex flex-wrap items-end justify-between gap-4">
+        <h2 className="font-display text-h2 font-bold text-ink-strong">{title}</h2>
+        {right ? <div className="shrink-0 pb-1 text-xs text-muted">{right}</div> : null}
       </div>
-      <div className="mt-3.5 h-px w-full bg-gradient-to-r from-secondary/50 via-primary/25 to-transparent" />
+      <div className="divider-gradient mt-4" />
+    </div>
+  );
+}
+
+function SideHead({ title, href, link }: { title: string; href: string; link: string }) {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
+      <Link
+        href={href}
+        className="group inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-white/[0.05] hover:text-ink-strong focus-ring"
+      >
+        {link}
+        <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+      </Link>
     </div>
   );
 }
@@ -391,15 +393,18 @@ function Stat({
   accent?: "neutral" | "danger";
   variant: Variants;
 }) {
-  const color = accent === "danger" ? "text-danger" : "text-ink-strong";
-  const line = accent === "danger" ? "from-danger via-danger" : "from-secondary via-primary";
+  const gradient = accent === "danger" ? "from-danger to-[#ff7ac4]" : "from-primary to-secondary";
   return (
-    <motion.div variants={variant} className="hud-panel hud-panel--interactive px-5 py-6 text-center">
-      <div className={`font-display text-h1 font-bold tabular-nums ${color}`}>
+    <motion.div variants={variant} className="hud-panel hud-panel--interactive p-5 sm:p-6">
+      <div className="text-xs text-muted">{label}</div>
+      <div
+        className={`mt-2 font-display text-4xl font-bold tabular-nums tracking-tight sm:text-5xl ${
+          accent === "danger" ? "text-[#ff8098]" : "text-ink-strong"
+        }`}
+      >
         <CountUp value={value} pad={0} />
       </div>
-      <div className={`mx-auto mt-2 h-px w-12 bg-gradient-to-r ${line} to-transparent`} />
-      <div className="label mt-2 justify-center">{label}</div>
+      <div className={`mt-4 h-1 w-14 rounded-full bg-gradient-to-r ${gradient}`} />
     </motion.div>
   );
 }

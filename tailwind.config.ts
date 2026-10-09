@@ -1,15 +1,15 @@
 import type { Config } from "tailwindcss";
 
 /*
- * Design system — UnknownX-077 // VAULT
- * Logique couleur à 3 tiers (proportions à respecter dans l'usage) :
- *   • NEUTRES  (~85%) : échelle base → surface → elevated → overlay + texte.
- *   • VIOLET   (~10%) : accent STRUCTUREL / identité (primary / accent).
- *   • CYAN     (~3%)  : SIGNAL RARE, 1 focal par vue (secondary / signal).
- *   • ROUGE           : SÉMANTIQUE danger uniquement (jamais décoratif).
- * Les anciens noms (base, surface, primary, secondary, line, line-strong…)
- * restent valides : ce sont des alias mappés sur la nouvelle échelle, afin de
- * ne casser aucun module avant leur migration en Phase 3.
+ * Design system — UnknownX-077 v2
+ * Langage visuel : surfaces arrondies « verre fumé », liserés dégradés,
+ * typographie moderne (Space Grotesk / Inter / JetBrains Mono).
+ * Couleurs à 3 tiers (proportions à respecter dans l'usage) :
+ *   • NEUTRES  (~85%) : base → surface → elevated → overlay + texte.
+ *   • VIOLET   (~10%) : accent structurel / identité (primary / accent).
+ *   • CYAN     (~3%)  : signal rare, 1 focal par vue (secondary / signal).
+ *   • ROUGE           : sémantique danger uniquement.
+ * Animations : uniquement transform / opacity (composées par le GPU).
  */
 
 const config: Config = {
@@ -18,72 +18,85 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // `text-base` doit rester une TAILLE de police : sans ça, la couleur
+    // « base » (quasi noire) était aussi générée et rendait le texte invisible.
+    textColor: ({ theme }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { base, ...colors } = theme("colors");
+      return colors;
+    },
     extend: {
       colors: {
-        // ── Neutres : échelle de fonds (≈85% de l'UI) ──
-        base: "#07070c", // fond de page (très sombre, pas noir pur)
-        surface: "#0c0c15", // panneaux / cartes
-        elevated: "#12121e", // surface surélevée (hover, popover)
-        overlay: "#1a1a28", // surface la plus claire / survol marqué
+        // ── Neutres : échelle de fonds ──
+        base: "#06060b",
+        surface: "#0d0d16",
+        elevated: "#13131f",
+        overlay: "#1a1a29",
 
         // ── Texte ──
-        "ink-strong": "#e9ecf6", // titres / blanc cassé
-        ink: "#c0c8e0", // corps de texte
-        muted: "#818aa8", // texte secondaire — AA ≈ 5.9:1 sur base
+        "ink-strong": "#f2f3fa",
+        ink: "#c9cee2",
+        muted: "#8a91ad",
 
-        // ── Accent STRUCTUREL : violet (identité, ~10%) ──
+        // ── Accent structurel : violet ──
         primary: "#7b5cf0",
-        accent: "#7b5cf0", // alias sémantique
+        accent: "#7b5cf0",
 
-        // ── SIGNAL RARE : cyan (~3%) ──
+        // ── Signal rare : cyan ──
         secondary: "#00f5d4",
-        signal: "#00f5d4", // alias sémantique
+        signal: "#00f5d4",
 
-        // ── Sémantiques fonctionnels ──
+        // ── Sémantiques ──
         danger: "#ff3d60",
         warning: "#febc2e",
         success: "#00c9a7",
 
-        // ── Bordures unifiées (fini les 3 opacités ad hoc) ──
+        // ── Bordures ──
         line: {
-          subtle: "#15151f", // séparateurs internes discrets
-          DEFAULT: "#1f1f2d", // bordure standard (= ancien `line`)
-          strong: "#2b2b3d", // bordure marquée (= ancien `line-strong`)
+          subtle: "#14141f",
+          DEFAULT: "#1e1e2e",
+          strong: "#2a2a3e",
         },
       },
 
       fontFamily: {
-        display: ["var(--font-orbitron)", "sans-serif"],
-        mono: ["var(--font-share-tech-mono)", "ui-monospace", "monospace"],
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "Consolas", "monospace"],
       },
 
-      // ── Échelle typographique nommée (vraie hiérarchie) ──
       fontSize: {
-        display: ["clamp(2.5rem, 5vw, 3.5rem)", { lineHeight: "1.04", letterSpacing: "-0.02em" }],
-        h1: ["2rem", { lineHeight: "1.1", letterSpacing: "-0.01em" }],
-        h2: ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.005em" }],
-        h3: ["1.125rem", { lineHeight: "1.3" }],
-        body: ["0.9375rem", { lineHeight: "1.65" }], // 15px
-        "body-sm": ["0.8125rem", { lineHeight: "1.6" }], // 13px
-        label: ["0.6875rem", { lineHeight: "1", letterSpacing: "0.18em" }], // 11px — plancher labels
+        display: ["clamp(2.4rem, 5.2vw, 3.9rem)", { lineHeight: "1.04", letterSpacing: "-0.035em" }],
+        h1: ["2rem", { lineHeight: "1.12", letterSpacing: "-0.025em" }],
+        h2: ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.02em" }],
+        h3: ["1.125rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
+        body: ["0.9375rem", { lineHeight: "1.65" }],
+        "body-sm": ["0.8125rem", { lineHeight: "1.6" }],
+        label: ["0.6875rem", { lineHeight: "1", letterSpacing: "0.14em" }],
       },
 
       letterSpacing: {
-        label: "0.18em",
+        label: "0.14em",
       },
 
+      // Coins arrondis partout : fini les angles vifs / chanfreins.
       borderRadius: {
-        sm: "2px",
-        md: "6px",
+        sm: "6px",
+        DEFAULT: "8px",
+        md: "10px",
+        lg: "14px",
+        xl: "16px",
+        "2xl": "20px",
+        "3xl": "28px",
       },
 
-      // ── Glow unifié : un seul shadow, paramétré par --glow-color ──
       boxShadow: {
-        glow: "0 0 1px var(--glow-color), 0 0 22px -6px var(--glow-color)",
+        glow: "0 0 0 1px var(--glow-color), 0 8px 32px -8px var(--glow-color)",
         "focus-ring": "0 0 0 2px var(--base), 0 0 0 4px var(--signal)",
+        soft: "0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -12px rgba(0,0,0,0.7)",
+        lift: "0 1px 0 rgba(255,255,255,0.06) inset, 0 22px 50px -18px rgba(0,0,0,0.85), 0 0 0 1px rgba(123,92,240,0.18)",
       },
 
-      // ── Standards de motion ──
       transitionTimingFunction: {
         "out-soft": "cubic-bezier(0.22, 1, 0.36, 1)",
         spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -101,19 +114,27 @@ const config: Config = {
         },
         flicker: {
           "0%, 100%": { opacity: "1" },
-          "92%": { opacity: "1" },
-          "94%": { opacity: "0.6" },
-          "96%": { opacity: "1" },
+          "50%": { opacity: "0.55" },
         },
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(8px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "0%": { opacity: "0", transform: "translate3d(0,10px,0)" },
+          "100%": { opacity: "1", transform: "translate3d(0,0,0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
         blink: "blink 1.1s step-end infinite",
-        flicker: "flicker 6s linear infinite",
-        "fade-up": "fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        flicker: "flicker 2.4s ease-in-out infinite",
+        "fade-up": "fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "fade-in": "fade-in 0.4s ease-out both",
+        "scale-in": "scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

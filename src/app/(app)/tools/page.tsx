@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { useToast } from "@/components/Toast";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion } from "framer-motion";
-import { ScriptSkeletonCard, ExternalToolSkeletonCard } from "@/components/ui/Skeletons";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   SCRIPTS,
@@ -112,16 +111,7 @@ export default function ToolsPage() {
   const { lite } = usePerf();
   const shouldReduceMotion = useReducedMotion();
   const disableAnimation = lite || (shouldReduceMotion ?? false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (disableAnimation) {
-      setLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [disableAnimation]);
 
   const scripts = useMemo(
     () => SCRIPTS.filter((s) => !phase || s.phase === phase),
@@ -178,13 +168,7 @@ export default function ToolsPage() {
       {/* Scripts perso */}
       <ScrollReveal direction="up" delay={50} as="section" className="mb-12">
         <h2 className="label mb-4">Scripts perso · {scripts.length}</h2>
-        {loading ? (
-          <div className="grid gap-5 lg:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <ScriptSkeletonCard key={i} disableAnimation={disableAnimation} />
-            ))}
-          </div>
-        ) : scripts.length === 0 ? (
+        {scripts.length === 0 ? (
           <p className="font-mono text-sm text-muted">[ aucun script pour cette phase ]</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">
@@ -199,7 +183,7 @@ export default function ToolsPage() {
                     <p className="text-xs text-muted mt-0.5">{s.desc}</p>
                   </div>
                   <span
-                    className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[s.phase]}`}
+                    className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[s.phase]}`}
                   >
                     {s.phase}
                   </span>
@@ -207,7 +191,7 @@ export default function ToolsPage() {
                 <div className="relative flex-1">
                   <button
                     onClick={() => copy(s.code, s.name)}
-                    className="absolute top-2 right-2 z-10 text-[10px] font-mono uppercase tracking-[1px] text-muted hover:text-secondary bg-base/80 border border-line px-2 py-1 transition-colors"
+                    className="rounded-md absolute top-2 right-2 z-10 text-[10px] font-mono uppercase tracking-[1px] text-muted hover:text-secondary bg-base/80 border border-line px-2 py-1 transition-colors"
                     aria-label={`Copier ${s.name}`}
                   >
                     ⧉ Copier
@@ -227,13 +211,7 @@ export default function ToolsPage() {
       {/* Boîte à outils externe */}
       <ScrollReveal direction="up" delay={50} as="section">
         <h2 className="label mb-4">Boîte à outils externe · {externals.length}</h2>
-        {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <ExternalToolSkeletonCard key={i} disableAnimation={disableAnimation} />
-            ))}
-          </div>
-        ) : externals.length === 0 ? (
+        {externals.length === 0 ? (
           <p className="font-mono text-sm text-muted">[ aucun outil pour cette phase ]</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -253,7 +231,7 @@ export default function ToolsPage() {
                       {t.name} ↗
                     </a>
                     <span
-                      className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
+                      className={`rounded-md shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${PHASE_COLOR[t.phase]}`}
                     >
                       {t.phase}
                     </span>
@@ -266,7 +244,7 @@ export default function ToolsPage() {
                       {t.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
+                          className="rounded-md text-[10px] font-mono text-muted bg-base/60 border border-line px-1.5 py-0.5"
                         >
                           #{tag}
                         </span>
@@ -283,7 +261,7 @@ export default function ToolsPage() {
                       >
                         ⧉
                       </button>
-                      <pre className="bg-base/70 border border-line px-2.5 py-2 overflow-x-auto text-[11px] leading-relaxed text-secondary/90 font-mono">
+                      <pre className="rounded-xl bg-base/70 border border-line px-2.5 py-2 overflow-x-auto text-[11px] leading-relaxed text-secondary/90 font-mono">
                         <span className="text-success">$ </span>
                         {t.cmd}
                       </pre>
@@ -312,7 +290,7 @@ function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
+      className={`rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-[1.5px] border transition-colors ${
         active
           ? "border-primary text-primary bg-primary/10"
           : "border-line-strong text-muted hover:text-ink hover:border-primary/40"

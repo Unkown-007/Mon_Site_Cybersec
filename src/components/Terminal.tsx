@@ -130,23 +130,25 @@ export function Terminal() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-[70] h-[80vh] flex flex-col border-t border-primary/40 bg-base/95 backdrop-blur-md"
-            style={{ boxShadow: "0 -20px 60px -20px rgba(123,92,240,0.5)" }}
-            initial={{ y: "100%" }}
+            className="fixed inset-x-2 bottom-2 z-[70] flex h-[78vh] flex-col overflow-hidden rounded-3xl border border-white/[0.08] bg-[#07070d]/[0.97] sm:inset-x-4 sm:bottom-4"
+            style={{ boxShadow: "0 -30px 80px -30px rgba(123,92,240,0.55), inset 0 1px 0 rgba(255,255,255,0.05)" }}
+            initial={{ y: "105%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            exit={{ y: "105%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 38 }}
           >
             {/* header */}
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-line shrink-0">
-              <span className="h-3 w-3 rounded-full bg-danger/80" />
-              <span className="h-3 w-3 rounded-full bg-warning/80" />
-              <span className="h-3 w-3 rounded-full bg-success/80" />
-              <span className="font-mono text-xs text-secondary ml-2">root@vault:~$</span>
-              <span className="label !text-muted ml-auto hidden sm:inline">CTRL+~ POUR FERMER</span>
+            <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-4 py-3">
+              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+              <span className="ml-3 font-mono text-xs text-muted">root@vault — zsh</span>
+              <kbd className="ml-auto hidden rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] text-muted sm:inline">
+                Ctrl ~
+              </kbd>
               <button
                 onClick={() => setOpen(false)}
-                className="text-muted hover:text-danger font-mono text-sm ml-3"
+                className="ml-2 grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.06] hover:text-ink-strong"
                 aria-label="Fermer le terminal"
               >
                 ✕
@@ -167,7 +169,7 @@ export function Terminal() {
             </div>
 
             {/* input */}
-            <div className="flex items-center gap-2 px-4 py-3 border-t border-line shrink-0">
+            <div className="flex shrink-0 items-center gap-2 border-t border-white/[0.06] px-4 py-3">
               <span className="text-success font-mono text-xs sm:text-sm shrink-0">root@vault:~$</span>
               <input
                 ref={inputRef}

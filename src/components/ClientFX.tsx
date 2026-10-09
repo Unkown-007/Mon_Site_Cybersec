@@ -8,20 +8,8 @@ import dynamic from "next/dynamic";
  * initial ni le bundle principal.
  */
 
-const CrosshairCursor = dynamic(
-  () => import("@/components/CrosshairCursor").then((m) => m.CrosshairCursor),
-  { ssr: false }
-);
 const SfxClicks = dynamic(
   () => import("@/components/SfxClicks").then((m) => m.SfxClicks),
-  { ssr: false }
-);
-const PerfToggle = dynamic(
-  () => import("@/components/PerfToggle").then((m) => m.PerfToggle),
-  { ssr: false }
-);
-const WallpaperPicker = dynamic(
-  () => import("@/components/WallpaperPicker").then((m) => m.WallpaperPicker),
   { ssr: false }
 );
 const MusicPlayerLazy = dynamic(
@@ -30,14 +18,7 @@ const MusicPlayerLazy = dynamic(
 );
 
 export function ClientFX() {
-  return (
-    <>
-      <CrosshairCursor />
-      <SfxClicks />
-      <PerfToggle />
-      <WallpaperPicker />
-    </>
-  );
+  return <SfxClicks />;
 }
 
 export function LazyMusicPlayer() {

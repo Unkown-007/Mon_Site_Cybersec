@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { ARSENAL, ARSENAL_SOURCES } from "@/data/arsenal";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion } from "framer-motion";
-import { ArsenalSkeletonCard } from "@/components/ui/Skeletons";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 
 export default function ArsenalPage() {
@@ -13,16 +12,7 @@ export default function ArsenalPage() {
   const { lite } = usePerf();
   const shouldReduceMotion = useReducedMotion();
   const disableAnimation = lite || (shouldReduceMotion ?? false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (disableAnimation) {
-      setLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [disableAnimation]);
 
   const groups = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -88,13 +78,7 @@ export default function ArsenalPage() {
         />
       </div>
 
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <ArsenalSkeletonCard key={idx} disableAnimation={disableAnimation} />
-          ))}
-        </div>
-      ) : groups.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="card p-8 text-center font-mono text-sm text-muted">[ aucun résultat ]</div>
       ) : (
         <div className="space-y-8">

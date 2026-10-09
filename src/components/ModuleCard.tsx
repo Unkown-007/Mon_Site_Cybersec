@@ -2,30 +2,39 @@
 
 import Link from "next/link";
 import { useRef, type ReactNode, type MouseEvent } from "react";
+import {
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+import { usePerf } from "@/lib/perf";
+
+const MotionLink = motion.create(Link);
 
 const DEFAULT_ICONS: Record<string, ReactNode> = {
   RES: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-      <path d="M6 6h10" />
-      <path d="M6 10h10" />
+      <path d="M8 7h8M8 11h6" />
     </svg>
   ),
   WUP: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
       <polyline points="14 2 14 8 20 8" />
       <path d="m9 15 2 2 4-4" />
     </svg>
   ),
   TLS: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <polyline points="4 17 10 11 4 5" />
       <line x1="12" y1="19" x2="20" y2="19" />
     </svg>
   ),
   INT: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
       <path d="M2 12h20" />
@@ -34,9 +43,10 @@ const DEFAULT_ICONS: Record<string, ReactNode> = {
 };
 
 /*
- * <ModuleCard> — carte de module du dashboard avec spotlight cursor-following.
- * Le gradient radial suit le curseur via CSS custom properties (pas de re-render).
- * Accent glow + icon animation au hover.
+ * <ModuleCard> — carte de module du dashboard.
+ * Inclinaison 3D qui suit le curseur (MotionValues + ressort : aucun
+ * re-render React) et halo lumineux sous le pointeur (variables CSS).
+ * Coupé en lite / prefers-reduced-motion.
  */
 export function ModuleCard({
   href,
@@ -56,61 +66,80 @@ export function ModuleCard({
   icon?: ReactNode;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const accentText = accent === "primary" ? "text-primary" : "text-secondary";
-  const glowText = accent === "primary" ? "group-hover:text-glow-primary" : "group-hover:text-glow-secondary";
-  const spotColor = accent === "primary" ? "rgba(123, 92, 240, 0.10)" : "rgba(0, 245, 212, 0.08)";
-  const resolvedIcon = icon ?? DEFAULT_ICONS[code] ?? (
-    <span className="transition-transform duration-fast ease-out-soft group-hover:translate-x-0.5">→</span>
-  );
+  const reduce = useReducedMotion();
+  const { lite } = usePerf();
+  const still = Boolean(reduce) || lite;
+
+  const mx = useMotionValue(0.5);
+  const my = useMotionValue(0.5);
+  const spring = { stiffness: 220, damping: 22, mass: 0.6 };
+  const rotateX = useSpring(useTransform(my, [0, 1], [5, -5]), spring);
+  const rotateY = useSpring(useTransform(mx, [0, 1], [-6, 6]), spring);
+
+  const spotColor = accent === "primary" ? "rgba(140, 112, 255, 0.16)" : "rgba(0, 245, 212, 0.13)";
+  const resolvedIcon = icon ?? DEFAULT_ICONS[code] ?? <span>→</span>;
 
   const handleMove = (e: MouseEvent<HTMLAnchorElement>) => {
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    el.style.setProperty("--spot-x", `${x}px`);
+    el.style.setProperty("--spot-y", `${y}px`);
+    if (!still) {
+      mx.set(x / rect.width);
+      my.set(y / rect.height);
+    }
   };
 
   const handleLeave = () => {
-    ref.current?.style.setProperty("--spot-x", "-200px");
-    ref.current?.style.setProperty("--spot-y", "-200px");
+    mx.set(0.5);
+    my.set(0.5);
   };
 
   return (
-    <Link
+    <MotionLink
       ref={ref}
       href={href}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
-      className="spotlight-card card corner-frame scan-hover group block p-5 rounded-md focus-ring hover-lift transition-all duration-base ease-out-soft"
+      className="spotlight-card card group block h-full p-5 focus-ring"
       style={{
-        "--glow-color": accent === "primary" ? "var(--primary)" : "var(--secondary)",
-        "--spot-color": spotColor,
-        "--spot-x": "-200px",
-        "--spot-y": "-200px",
-      } as React.CSSProperties}
+        rotateX: still ? 0 : rotateX,
+        rotateY: still ? 0 : rotateY,
+        transformPerspective: 900,
+        // le transform est piloté par le ressort : pas de transition CSS dessus
+        transition: "border-color .3s, box-shadow .35s",
+        ["--spot-color" as string]: spotColor,
+      }}
     >
-      {/* Icon background glow */}
-      <div className="flex items-start justify-between mb-4">
-        <span className={`label ${accentText}`}>{code}</span>
+      <div className="mb-5 flex items-start justify-between">
         <span
-          className={`${accentText} opacity-60 group-hover:opacity-100 transition-all duration-base group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_currentColor]`}
+          className={`icon-tile transition-transform duration-500 ease-out-soft group-hover:-translate-y-0.5 group-hover:scale-105 ${
+            accent === "secondary" ? "!text-secondary" : ""
+          }`}
         >
           {resolvedIcon}
         </span>
+        <span className="font-mono text-[10.5px] tracking-[0.14em] text-muted">{code}</span>
       </div>
-      <h3 className={`font-display text-lg text-ink mb-1.5 ${glowText} transition-all`}>
-        {title}
-      </h3>
-      <p className="text-sm text-muted leading-relaxed">{desc}</p>
+      <h3 className="mb-1.5 font-display text-lg font-semibold text-ink-strong">{title}</h3>
+      <p className="text-sm leading-relaxed text-muted">{desc}</p>
       {meta ? (
-        <div className="mt-4 pt-3 border-t border-line text-xs font-mono text-muted flex items-center justify-between">
-          <span>{meta}</span>
-          <span className={`${accentText} opacity-0 group-hover:opacity-100 transition-all duration-base translate-x-0 group-hover:translate-x-1`}>
+        <div className="mt-5 flex items-center justify-between border-t border-white/[0.06] pt-3.5 text-xs text-muted">
+          <span className="font-mono">{meta}</span>
+          <span
+            className={`grid h-7 w-7 place-items-center rounded-full border border-white/10 transition-all duration-300 ease-out-soft group-hover:translate-x-0.5 group-hover:border-transparent ${
+              accent === "secondary"
+                ? "group-hover:bg-secondary group-hover:text-[#06060b]"
+                : "group-hover:bg-primary group-hover:text-white"
+            }`}
+          >
             →
           </span>
         </div>
       ) : null}
-    </Link>
+    </MotionLink>
   );
 }

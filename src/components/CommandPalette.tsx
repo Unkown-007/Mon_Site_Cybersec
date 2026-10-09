@@ -8,6 +8,7 @@ import { NAV_ITEMS, ADMIN_ITEM } from "@/lib/nav";
 import { RESOURCES, WRITEUPS, EXTERNAL_TOOLS, SCRIPTS } from "@/data/mock";
 import { usePerf } from "@/lib/perf";
 import { useToast } from "@/components/Toast";
+import { IconSearch } from "@/components/icons";
 
 interface Item {
   label: string;
@@ -18,11 +19,11 @@ interface Item {
 }
 
 const KIND_COLOR: Record<Item["kind"], string> = {
-  Nav: "text-secondary border-secondary/40",
-  Ressource: "text-primary border-primary/40",
-  "Write-up": "text-warning border-warning/40",
-  Outil: "text-success border-success/40",
-  Action: "text-danger border-danger/40",
+  Nav: "text-secondary bg-secondary/10",
+  Ressource: "text-[#b9a8ff] bg-primary/15",
+  "Write-up": "text-warning bg-warning/10",
+  Outil: "text-success bg-success/10",
+  Action: "text-[#ff8098] bg-danger/10",
 };
 
 const RECENTS_KEY = "ux077:palette-recents";
@@ -132,8 +133,14 @@ export function CommandPalette() {
         setOpen((o) => !o);
       }
     };
+    // Ouverture depuis le bouton « Rechercher » de la navbar.
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("ux077:open-palette", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("ux077:open-palette", onOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -185,22 +192,23 @@ export function CommandPalette() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[85] flex items-start justify-center pt-[12vh] px-4 bg-base/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[85] flex items-start justify-center bg-black/60 px-4 pt-[12vh]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
           onClick={() => setOpen(false)}
         >
           <motion.div
-            className="w-full max-w-xl card overflow-hidden"
-            style={{ borderColor: "rgba(123,92,240,0.5)", filter: "drop-shadow(0 0 20px rgba(123,92,240,0.55))" }}
-            initial={{ y: -12, scale: 0.98 }}
-            animate={{ y: 0, scale: 1 }}
-            exit={{ y: -12, scale: 0.98 }}
+            className="glass w-full max-w-xl overflow-hidden rounded-3xl"
+            initial={{ y: -14, scale: 0.97, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={{ y: -10, scale: 0.98, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 520, damping: 38 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-line">
-              <span className="font-mono text-sm text-secondary">{">"}</span>
+            <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
+              <IconSearch size={18} className="shrink-0 text-muted" />
               <input
                 ref={inputRef}
                 value={query}
@@ -209,53 +217,55 @@ export function CommandPalette() {
                 placeholder="Rechercher une page, ressource, outil, write-up…"
                 spellCheck={false}
                 autoComplete="off"
-                className="flex-1 bg-transparent outline-none font-mono text-sm text-ink placeholder:text-muted"
+                className="flex-1 bg-transparent text-[15px] text-ink-strong outline-none placeholder:text-muted"
                 aria-label="Palette de commande"
               />
-              <span className="label !text-muted hidden sm:inline">ESC</span>
+              <kbd className="hidden rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] text-muted sm:inline">
+                Échap
+              </kbd>
             </div>
 
-            <ul ref={listRef} className="max-h-[50vh] overflow-y-auto py-1">
+            <ul ref={listRef} className="max-h-[52vh] overflow-y-auto p-2">
               {results.length === 0 ? (
-                <li className="px-4 py-6 text-center font-mono text-sm text-muted">
-                  [ aucun résultat ]
-                </li>
+                <li className="px-4 py-10 text-center text-sm text-muted">Aucun résultat</li>
               ) : (
                 results.map((it, i) => (
-                  <li key={`${it.kind}-${it.label}-${i}`}>
+                  <li key={`${it.kind}-${it.label}-${i}`} className="relative">
+                    {i === sel && (
+                      <motion.span
+                        layoutId="palette-sel"
+                        transition={{ type: "spring", stiffness: 700, damping: 45 }}
+                        className="absolute inset-0 rounded-xl bg-white/[0.07] ring-1 ring-inset ring-white/[0.06]"
+                      />
+                    )}
                     <button
                       onMouseEnter={() => setSel(i)}
                       onClick={() => exec(it)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        i === sel ? "bg-primary/10" : ""
-                      }`}
+                      className="relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left"
                     >
                       <span
-                        className={`shrink-0 text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${KIND_COLOR[it.kind]}`}
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] ${KIND_COLOR[it.kind]}`}
                       >
                         {it.kind}
                       </span>
-                      <span className="font-mono text-sm text-ink truncate flex-1">
+                      <span className="flex-1 truncate text-sm text-ink-strong">
                         {it.label}
                         {!query && recents.includes(it.label) && (
-                          <span className="ml-2 text-[9px] uppercase tracking-[1px] text-muted">récent</span>
+                          <span className="ml-2 text-[10px] text-muted">récent</span>
                         )}
                       </span>
-                      <span className="font-mono text-[11px] text-muted truncate hidden sm:block max-w-[40%]">
-                        {it.hint}
-                      </span>
-                      {it.href?.startsWith("http") && <span className="text-muted text-xs">↗</span>}
+                      <span className="hidden max-w-[40%] truncate text-xs text-muted sm:block">{it.hint}</span>
+                      {it.href?.startsWith("http") && <span className="text-xs text-muted">↗</span>}
                     </button>
                   </li>
                 ))
               )}
             </ul>
 
-            <div className="flex items-center gap-4 px-4 py-2 border-t border-line font-mono text-[10px] text-muted">
-              <span>↑↓ naviguer</span>
-              <span>↵ ouvrir</span>
-              <span className="hidden sm:inline text-secondary/70">recherche floue</span>
-              <span className="ml-auto">{results.length} résultat(s)</span>
+            <div className="flex items-center gap-4 border-t border-white/[0.06] px-5 py-2.5 text-[11px] text-muted">
+              <span><kbd className="font-mono">↑↓</kbd> naviguer</span>
+              <span><kbd className="font-mono">↵</kbd> ouvrir</span>
+              <span className="ml-auto font-mono">{results.length} résultat(s)</span>
             </div>
           </motion.div>
         </motion.div>

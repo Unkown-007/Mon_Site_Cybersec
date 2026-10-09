@@ -1,5 +1,5 @@
 import { StatusDot } from "@/components/StatusDot";
-import { DecodeText } from "@/components/animations/DecodeText";
+import { RevealText } from "@/components/animations/RevealText";
 import type { ReactNode } from "react";
 
 export function PageHeader({
@@ -16,25 +16,25 @@ export function PageHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="mb-10 animate-fade-up">
-      <div className="mb-5">
-        <span className="clip-chamfer-sm inline-flex items-center gap-2.5 border border-secondary/40 bg-secondary/5 px-3.5 py-1.5">
+    <div className="mb-10">
+      <div className="mb-5 animate-fade-in">
+        <span className="chip">
           <StatusDot state={state} />
-          <span className="label text-secondary">{code}</span>
+          <span className="text-ink">{code}</span>
         </span>
       </div>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display font-bold text-3xl sm:text-4xl text-ink-strong mb-2.5">
-            <DecodeText text={title} />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="mb-3 font-display text-4xl font-bold tracking-tight text-ink-strong sm:text-5xl">
+            <RevealText text={title} wordClassName="text-gradient-soft" />
           </h1>
-          <p className="max-w-2xl text-muted leading-relaxed text-sm sm:text-base">
+          <p className="max-w-2xl animate-fade-up text-[15px] leading-relaxed text-muted stagger-2 sm:text-base">
             {desc}
           </p>
         </div>
-        {right ? <div className="shrink-0">{right}</div> : null}
+        {right ? <div className="shrink-0 animate-fade-up stagger-3">{right}</div> : null}
       </div>
-      <div className="mt-6 h-px w-full bg-gradient-to-r from-secondary/50 via-primary/25 to-transparent" />
+      <div className="divider-gradient mt-7" />
     </div>
   );
 }

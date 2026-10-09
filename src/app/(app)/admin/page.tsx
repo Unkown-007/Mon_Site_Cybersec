@@ -126,7 +126,7 @@ function UsersPanel() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-ink truncate">{u.name}</span>
                     <span
-                      className={`text-[9px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${
+                      className={`rounded-md text-[9px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${
                         u.role === "admin"
                           ? "text-primary border-primary/40"
                           : "text-muted border-line-strong"
@@ -135,12 +135,12 @@ function UsersPanel() {
                       {u.role}
                     </span>
                     {u.status === "banned" && (
-                      <span className="text-[9px] font-mono uppercase tracking-[1px] text-danger border border-danger/40 px-1.5 py-0.5">
+                      <span className="rounded-md text-[9px] font-mono uppercase tracking-[1px] text-danger border border-danger/40 px-1.5 py-0.5">
                         banni
                       </span>
                     )}
                     {owner && (
-                      <span className="text-[9px] font-mono uppercase tracking-[1px] text-secondary border border-secondary/40 px-1.5 py-0.5">
+                      <span className="rounded-md text-[9px] font-mono uppercase tracking-[1px] text-secondary border border-secondary/40 px-1.5 py-0.5">
                         owner
                       </span>
                     )}

@@ -4,9 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { sfx } from "@/lib/audio";
 
 type ToastKind = "ok" | "err" | "warn";
@@ -23,16 +25,16 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const PREFIX: Record<ToastKind, string> = {
-  ok: "[OK]",
-  err: "[ERR]",
-  warn: "[!]",
+const ICON: Record<ToastKind, string> = {
+  ok: "✓",
+  err: "✕",
+  warn: "!",
 };
 
-const COLOR: Record<ToastKind, string> = {
-  ok: "text-success border-success/40",
-  err: "text-danger border-danger/40",
-  warn: "text-warning border-warning/40",
+const TONE: Record<ToastKind, string> = {
+  ok: "bg-success/15 text-success",
+  err: "bg-danger/15 text-danger",
+  warn: "bg-warning/15 text-warning",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -47,20 +49,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 4200);
   }, []);
 
+  const value = useMemo(() => ({ push }), [push]);
+
   return (
-    <ToastContext.Provider value={{ push }}>
+    <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed bottom-5 right-5 z-[80] flex flex-col gap-2 w-[min(92vw,360px)]">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            role="status"
-            className={`card animate-fade-up bg-surface/95 backdrop-blur px-4 py-3 text-sm font-mono ${COLOR[t.kind]}`}
-          >
-            <span className="font-bold mr-2">{PREFIX[t.kind]}</span>
-            <span className="text-ink">{t.message}</span>
-          </div>
-        ))}
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-[min(92vw,360px)] flex-col gap-2">
+        <AnimatePresence initial={false}>
+          {toasts.map((t) => (
+            <motion.div
+              key={t.id}
+              layout
+              role="status"
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 40, transition: { duration: 0.18 } }}
+              transition={{ type: "spring", stiffness: 520, damping: 36 }}
+              className="glass pointer-events-auto flex items-start gap-3 rounded-2xl px-4 py-3 text-sm"
+            >
+              <span className={`mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${TONE[t.kind]}`}>
+                {ICON[t.kind]}
+              </span>
+              <span className="text-ink-strong">{t.message}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

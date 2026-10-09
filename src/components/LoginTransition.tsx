@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { usePerf } from "@/lib/perf";
+import { XLogo } from "@/components/XLogo";
 
-type Phase = "scan" | "glitch" | "fragment" | "done";
-const FRAGMENTS = 8;
-
+/*
+ * Transition post-connexion (~1 s) : le logo apparaît, une coche se trace,
+ * « Accès autorisé », puis le voile s'efface vers le dashboard.
+ * Marque la session comme « bootée » : l'écran de démarrage ne se rejoue pas
+ * juste derrière. Immédiat en lite / prefers-reduced-motion.
+ */
 export function LoginTransition({
   username,
   onComplete,
@@ -13,124 +18,78 @@ export function LoginTransition({
   username: string;
   onComplete: () => void;
 }) {
-  const [phase, setPhase] = useState<Phase>("scan");
-  const [shown, setShown] = useState(0);
+  const { lite } = usePerf();
+  const [leaving, setLeaving] = useState(false);
+  const done = useRef(onComplete);
+  done.current = onComplete;
 
-  const lines = useMemo(
-    () => [
-      "[AUTH] Credentials verified...",
-      "[SYS]  Loading operator profile...",
-      "[UI]   Initialisation de l'interface... OK",
-      `[VAULT] Access granted — ${username}`,
-    ],
-    [username]
-  );
-
-  // Étape 1 — scan terminal (un peu ralenti : 4 lignes × 160ms)
   useEffect(() => {
-    if (phase !== "scan") return;
-    if (shown >= lines.length) {
-      const t = setTimeout(() => setPhase("glitch"), 260);
-      return () => clearTimeout(t);
+    try {
+      sessionStorage.setItem("ux077:booted", "1");
+    } catch {
+      /* ignore */
     }
-    const t = setTimeout(() => setShown((n) => n + 1), 160);
-    return () => clearTimeout(t);
-  }, [phase, shown, lines.length]);
-
-  // Étape 2 — glitch (~0.32s)
-  useEffect(() => {
-    if (phase !== "glitch") return;
-    const t = setTimeout(() => setPhase("fragment"), 320);
-    return () => clearTimeout(t);
-  }, [phase]);
-
-  // Étape 3 — fragmentation (~0.45s) → fin
-  useEffect(() => {
-    if (phase !== "fragment") return;
-    const t = setTimeout(() => {
-      setPhase("done");
-      onComplete();
-    }, 450);
-    return () => clearTimeout(t);
-  }, [phase, onComplete]);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (lite || reduced) {
+      done.current();
+      return;
+    }
+    const t1 = setTimeout(() => setLeaving(true), 820);
+    const t2 = setTimeout(() => done.current(), 1120);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [lite]);
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden font-mono">
-      {phase !== "fragment" && phase !== "done" && <div className="absolute inset-0 bg-base bg-diagonal" />}
-
-      {phase === "fragment" && (
-        <div className="absolute inset-0 grid grid-cols-4 grid-rows-2">
-          {Array.from({ length: FRAGMENTS }).map((_, i) => {
-            const dirX = (i % 4) - 1.5;
-            const dirY = Math.floor(i / 4) - 0.5;
-            return (
-              <motion.div
-                key={i}
-                className="bg-base bg-diagonal border border-line/40"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 0, x: dirX * 240, y: dirY * 260, rotate: dirX * 12 }}
-                transition={{ duration: 0.42, delay: i * 0.02, ease: [0.4, 0, 0.2, 1] }}
+    <motion.div
+      className="fixed inset-0 z-[100] grid place-items-center bg-base/90"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: leaving ? 0 : 1 }}
+      transition={{ duration: leaving ? 0.3 : 0.2 }}
+    >
+      <motion.div
+        className="flex flex-col items-center text-center"
+        initial={{ scale: 0.92, y: 8 }}
+        animate={{ scale: leaving ? 1.06 : 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      >
+        <div className="relative">
+          <XLogo size={84} />
+          <motion.span
+            className="absolute -bottom-2 -right-2 grid h-9 w-9 place-items-center rounded-full border-4 border-base bg-success"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.25, type: "spring", stiffness: 520, damping: 18 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06060b" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <motion.path
+                d="M5 12.5l4.5 4.5L19 7.5"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.35, duration: 0.3 }}
               />
-            );
-          })}
+            </svg>
+          </motion.span>
         </div>
-      )}
-
-      {phase === "scan" && (
         <motion.div
-          className="absolute left-0 right-0 h-20 z-10"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent, rgba(0,245,212,0.10), rgba(0,245,212,0.18), transparent)",
-          }}
-          initial={{ top: "-10%" }}
-          animate={{ top: "110%" }}
-          transition={{ duration: 1.0, ease: "linear", repeat: Infinity }}
-        />
-      )}
-
-      {(phase === "scan" || phase === "glitch") && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 p-6">
-          <div className="w-full max-w-md text-xs sm:text-sm">
-            <div className="label text-secondary mb-3">// ÉTABLISSEMENT DE LA SESSION</div>
-            {lines.slice(0, shown).map((l, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.1 }}
-                className={i === lines.length - 1 ? "text-secondary" : "text-success"}
-              >
-                {l}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {phase === "glitch" && (
-          <>
-            <motion.div
-              className="absolute inset-0 bg-white z-30"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.85, 0] }}
-              transition={{ duration: 0.2, times: [0, 0.4, 1] }}
-            />
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center z-40"
-              style={{ transform: "skewX(-2deg)" }}
-            >
-              <span
-                className="glitch is-glitching font-display font-black text-3xl sm:text-5xl tracking-[3px] text-ink"
-                data-text="UnknownX-077"
-              >
-                UnknownX-077
-              </span>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+          className="mt-7 font-display text-2xl font-bold text-ink-strong"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.35 }}
+        >
+          Accès autorisé
+        </motion.div>
+        <motion.div
+          className="mt-1.5 font-mono text-xs uppercase tracking-[0.16em] text-muted"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
+          Bienvenue, {username}
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

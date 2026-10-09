@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { InlineAdmin } from "@/components/InlineAdmin";
 import { WRITEUPS, type Writeup } from "@/data/mock";
 import { usePerf } from "@/lib/perf";
 import { useReducedMotion } from "framer-motion";
-import { WriteupSkeletonCard } from "@/components/ui/Skeletons";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 
 const DIFF_COLOR: Record<Writeup["difficulty"], string> = {
@@ -26,16 +25,7 @@ export default function WriteupsPage() {
   const { lite } = usePerf();
   const shouldReduceMotion = useReducedMotion();
   const disableAnimation = lite || (shouldReduceMotion ?? false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (disableAnimation) {
-      setLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [disableAnimation]);
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState<string | null>(null);
@@ -122,13 +112,7 @@ export default function WriteupsPage() {
       <div className="divider-gradient my-5" />
       <span className="label !text-muted block mb-4">{filtered.length} write-up(s)</span>
 
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <WriteupSkeletonCard key={i} disableAnimation={disableAnimation} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="card p-8 text-center font-mono text-sm text-muted">
           [ aucun write-up ] — ajuste la recherche ou les filtres.
         </div>
@@ -151,7 +135,7 @@ export default function WriteupsPage() {
                       {w.name}
                     </span>
                     {w.status === "en cours" && (
-                      <span className="text-[10px] font-mono uppercase tracking-[1px] text-warning border border-warning/40 px-1.5 py-0.5">
+                      <span className="rounded-md text-[10px] font-mono uppercase tracking-[1px] text-warning border border-warning/40 px-1.5 py-0.5">
                         WIP
                       </span>
                     )}
@@ -159,7 +143,7 @@ export default function WriteupsPage() {
                       {w.platform}
                     </span>
                     <span
-                      className={`text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DIFF_COLOR[w.difficulty]}`}
+                      className={`rounded-md text-[10px] font-mono uppercase tracking-[1px] border px-1.5 py-0.5 ${DIFF_COLOR[w.difficulty]}`}
                     >
                       {w.difficulty}
                     </span>
@@ -174,7 +158,7 @@ export default function WriteupsPage() {
                             {w.tags.map((t) => (
                               <span
                                 key={t}
-                                className="text-[10px] font-mono text-secondary bg-secondary/5 border border-secondary/30 px-1.5 py-0.5"
+                                className="rounded-md text-[10px] font-mono text-secondary bg-secondary/5 border border-secondary/30 px-1.5 py-0.5"
                               >
                                 #{t}
                               </span>
@@ -220,7 +204,7 @@ function FilterRow({
           key={opt}
           onClick={() => onPick(active === opt ? null : opt)}
           aria-pressed={active === opt}
-          className={`px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
+          className={`rounded-full px-2.5 py-1 font-mono text-xs uppercase tracking-[1px] border transition-colors ${
             active === opt
               ? "border-secondary text-secondary bg-secondary/10"
               : "border-line-strong text-muted hover:text-ink hover:border-secondary/40"

@@ -29,21 +29,22 @@ export function MatrixRain() {
     const font = 16;
     const glyphs = "アァカサタナハマヤラ0123456789ABCDEF<>=/\\".split("");
 
+    // Résolution 1x : des glyphes flous de traîne n'ont pas besoin du Retina,
+    // et le voile plein écran repeint à chaque frame coûte 4x moins.
     const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = 1;
       w = canvas.clientWidth;
       h = canvas.clientHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       cols = Math.max(1, Math.floor(w / font));
       drops = Array.from({ length: cols }, () => Math.random() * h);
+      ctx.font = `${font}px ui-monospace, Consolas, monospace`;
     };
 
     const frame = () => {
       ctx.fillStyle = "rgba(2,8,4,0.10)";
       ctx.fillRect(0, 0, w, h);
-      ctx.font = `${font}px 'Share Tech Mono', monospace`;
       for (let i = 0; i < cols; i++) {
         const g = glyphs[Math.floor(Math.random() * glyphs.length)];
         const x = i * font;
@@ -57,7 +58,7 @@ export function MatrixRain() {
     let lastT = 0;
     const loop = (now = 0) => {
       raf = requestAnimationFrame(loop);
-      if (now - lastT < 40) return; // ~25 FPS (pluie de code, largement suffisant)
+      if (now - lastT < 50) return; // ~20 FPS (pluie de code, largement suffisant)
       lastT = now;
       frame();
     };
@@ -69,15 +70,20 @@ export function MatrixRain() {
       raf = requestAnimationFrame(loop);
     }
 
-    const onResize = () => resize();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(resize, 200);
+    };
     const onVis = () => {
-      if (document.hidden) cancelAnimationFrame(raf);
-      else if (!reduced) raf = requestAnimationFrame(loop);
+      cancelAnimationFrame(raf);
+      if (!document.hidden && !reduced) raf = requestAnimationFrame(loop);
     };
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(timer);
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVis);
     };

@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -24,33 +25,50 @@ interface PerfContextValue {
 const PerfContext = createContext<PerfContextValue | null>(null);
 const KEY = "ux077:lite";
 
-export function PerfProvider({ children }: { children: ReactNode }) {
-  const [lite, setLite] = useState(false);
+/* Appareil modeste (peu de cœurs / RAM) ou économie de données demandée. */
+function lowEndDevice(): boolean {
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { saveData?: boolean };
+  };
+  return (
+    nav.connection?.saveData === true ||
+    (nav.deviceMemory !== undefined && nav.deviceMemory <= 2) ||
+    (nav.hardwareConcurrency !== undefined && nav.hardwareConcurrency <= 2)
+  );
+}
 
-  // Lecture de la préférence persistée (client uniquement).
+export function PerfProvider({ children }: { children: ReactNode }) {
+  const [lite, setLiteState] = useState(false);
+
+  // Préférence persistée ; sans préférence, lite d'office sur petit matériel.
   useEffect(() => {
     try {
-      setLite(localStorage.getItem(KEY) === "1");
+      const stored = localStorage.getItem(KEY);
+      setLiteState(stored === null ? lowEndDevice() : stored === "1");
     } catch {
       /* localStorage indisponible : on reste en mode complet */
     }
   }, []);
 
-  // Persistance + reflet sur <html> pour les règles CSS `.lite`.
+  // Reflet sur <html> pour les règles CSS `.lite`.
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, lite ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
     document.documentElement.classList.toggle("lite", lite);
   }, [lite]);
 
-  return (
-    <PerfContext.Provider value={{ lite, toggle: () => setLite((v) => !v), setLite }}>
-      {children}
-    </PerfContext.Provider>
-  );
+  // Seul un choix explicite de l'utilisateur est mémorisé.
+  const setLite = useCallback((v: boolean) => {
+    setLiteState(v);
+    try {
+      localStorage.setItem(KEY, v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const toggle = useCallback(() => setLite(!lite), [lite, setLite]);
+
+  const value = useMemo(() => ({ lite, toggle, setLite }), [lite, toggle, setLite]);
+  return <PerfContext.Provider value={value}>{children}</PerfContext.Provider>;
 }
 
 export function usePerf(): PerfContextValue {

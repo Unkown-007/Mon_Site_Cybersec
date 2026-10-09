@@ -36,7 +36,8 @@ const SEV_TONE: Record<string, string> = {
 };
 
 export function NewsTicker() {
-  const [entries, setEntries] = useState<TickerEntry[]>([]);
+  // null = chargement en cours (on réserve la place → pas de saut de mise en page)
+  const [entries, setEntries] = useState<TickerEntry[] | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -87,43 +88,49 @@ export function NewsTicker() {
     };
   }, []);
 
-  if (entries.length === 0) return null;
+  if (entries !== null && entries.length === 0) return null;
 
   // Doublé pour la boucle sans couture.
-  const loop = [...entries, ...entries];
+  const loop = entries ? [...entries, ...entries] : [];
 
   return (
-    <div className="fixed top-14 inset-x-0 z-40 h-8 border-b border-primary/15 bg-base/80 backdrop-blur-md overflow-hidden" style={{ boxShadow: 'inset 0 -1px 0 rgba(123,92,240,0.08), 0 1px 8px rgba(0,0,0,0.3)' }}>
-      <div className="marquee-mask relative flex h-full items-center">
-        {/* badge LIVE fixe à gauche */}
-        <div className="absolute left-0 top-0 z-10 flex h-full items-center gap-1.5 bg-base/95 pl-3 pr-4 border-r border-line-strong">
-          <span className="h-1.5 w-1.5 rounded-full bg-danger animate-flicker" aria-hidden="true" />
-          <span className="label !text-danger !text-[9px]">LIVE FEED</span>
-        </div>
+    <div className="mb-6 flex h-10 items-center overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025]">
+      {/* badge LIVE */}
+      <div className="flex h-full shrink-0 items-center gap-2 border-r border-white/[0.07] pl-3.5 pr-3.5">
+        <span className="live-dot h-1.5 w-1.5 rounded-full bg-danger" aria-hidden="true" />
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-danger">Live</span>
+      </div>
 
-        <div
-          className="marquee-track items-center"
-          style={{ ["--marquee-duration" as string]: `${Math.max(40, loop.length * 3.2)}s` }}
-        >
-          {loop.map((e, i) => (
-            <a
-              key={`${e.kind}-${i}`}
-              href={e.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center gap-2 px-5 font-mono text-[11px] whitespace-nowrap"
-              title={e.text}
-            >
-              <span className={`shrink-0 uppercase tracking-[1px] ${e.tone}`}>
-                {e.kind === "cve" ? "▰" : "◇"} {e.label}
-              </span>
-              <span className="text-muted group-hover:text-ink transition-colors">
-                {e.text.length > 110 ? e.text.slice(0, 107) + "…" : e.text}
-              </span>
-              <span className="text-line-strong">/</span>
-            </a>
-          ))}
-        </div>
+      <div className="marquee-mask relative flex h-full min-w-0 flex-1 items-center">
+        {entries === null ? (
+          <div className="mx-4 h-2 w-2/3 rounded-full terminal-skeleton" aria-hidden="true" />
+        ) : (
+          <div
+            className="marquee-track items-center"
+            style={{ ["--marquee-duration" as string]: `${Math.max(40, loop.length * 3.2)}s` }}
+          >
+            {loop.map((e, i) => (
+              <a
+                key={`${e.kind}-${i}`}
+                href={e.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2.5 whitespace-nowrap px-5 text-[12.5px]"
+                title={e.text}
+              >
+                <span
+                  className={`shrink-0 rounded-md bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${e.tone}`}
+                >
+                  {e.label}
+                </span>
+                <span className="text-muted transition-colors group-hover:text-ink-strong">
+                  {e.text.length > 110 ? e.text.slice(0, 107) + "…" : e.text}
+                </span>
+                <span className="text-white/15">•</span>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
